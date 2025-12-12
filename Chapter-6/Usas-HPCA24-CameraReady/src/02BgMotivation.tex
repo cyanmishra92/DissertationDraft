@@ -1,0 +1,142 @@
+%%%%%
+
+%\subsection{Edge Servers: The Panacea for Video Analytics}
+%Video analytics using DNNs is a growing business and is expected to reach about \$19.3~Billion by the end of this decade~\cite{YahooVideo}. However, 
+%Performing video analytics at scale presents substantial challenges, especially for streaming applications that are deployed at the edge but often need real time analytics and accurate response~\cite{ekya}. The first challenge is \textbf{data traffic} and \textbf{network reliability}. Streaming video data from a traffic camera to the cloud is often expensive, especially for wireless communications (e.g., a 720p @ 30fps RGB video results in $\approx 25Gbps$ bandwidth requirement per camera (refer \S\ref{sec:eval} for details of the data set). Edge networks are also often unreliable~\cite{getmobile,ekya},  resulting in communication disruption. Secondly, video data are often \textbf{sensitive}, especially in the context of public deployment use-cases like urban mobility: Many modern privacy regulations and government policies~\cite{sweden-data,azure-data} prohibit streaming the data to a third party central server. This renders using any central data centers (sustainable or otherwise) useless. Therefore, edge servers, like AWS outpost~\cite{aws-outposts}, and Azure App Service Environment (Azure ASE)~\cite{azure-ase}, have become the go-to solutions for edge video analytics. 
+%Edge servers, unlike their cloud counterpart can be deployed at the premise and operated by the governing agency. 
+
+
+% Edge servers often enjoy the flexibility and simplicity of cloud interfaces (like having access to the same APIs, tools, etc.), 
+% %while being in the control of the governing organization, yet being entirely managed and serviced by the service provider if an when required. Although, 
+% but they typically have limited resources (e.g., weak GPUs, smaller memory capacities~\cite{AWSOutpostPricing}). %footprints~\cite{AWSOutpostPricing} etc.
+% %, they still are able to service multiple video inference requests  (often in real time, or) without SLA violations~\cite{videoedge}.
+% %\subsection{Model Compression: But, It Drifts}
+% To cater towards the limited resources and to maximize the throughput (and meet SLAs), these edge servers often use customized analytics services~\cite{MSrocket}. Furthermore, they also rely on {\em specialized DNN models} targeted for edge deployments~\cite{mobilenetv2,tinyyolo} for performing inference. In contrast to the typical DNN models deployed in the cloud premise, these edge models are compressed, quantized and often tailored towards the targeted hardware~\cite{deepcompression,netadapt,NASnetMobile}, which enables them to perform accurate inference with a high throughput and a low resource footprint (compressed models may have $\approx 50\times$ fewer parameters~\cite{deepcompression}). However, parameter reduction comes at the cost of loss of generality~\cite{noscope,seqlearning}, which leads to {\em data drift} sensitivity. 
+% %Although drifts are minimal if the training data accurately captures the nature of the deployment, 
+% %In real-world systems, these drifts can become significant as the live data diverges from the training data and the environment changes rapidly~\cite{ekya}. Our experiments (Fig.~\ref{Fig:DDrift}) on the Urban Traffic data set~\cite{ekya,UrbanTraffic}, 3D Point Cloud data set~\cite{kitti, nuscenes} and audio data set~\cite{UrbanSound} trained and tested with multiple DNNs shows that varrying time windows and a varied change of scene degrades the accuracy of the edge network by more than $15\%$ compared to its baseline accuracy.
+% In real-world systems, the phenomenon of data drift becomes a significant concern as the live data deviates from the originally used training data and the environment undergoes rapid changes~\cite{ekya}. Our experimental investigations, conducted on the Urban Traffic dataset~\cite{ekya, UrbanTraffic}, 3D Point Cloud dataset~\cite{kitti, nuscenes}, and audio dataset~\cite{UrbanSound}, involved training and testing multiple DNNs. The results presented in Fig.~\ref{fig:DDrift} demonstrate that the use of varying time windows and encountering diverse scene changes leads to a notable degradation in the accuracy of the edge network, exceeding $15\%$ compared to its baseline accuracy. These findings underscore the critical challenge posed by data drift in the context of continuous learning at edge servers.
+% \begin{figure}[ht]
+% %\vspace{-10pt}
+%   \centering\
+% \includegraphics[width=0.7\linewidth]{figs/1.pdf}%%\vspace{-4pt}
+%   %\vspace{-6pt}\caption{Data drift over time of 10 hours and the effect of retraining on accuracy; each time window is 2 hours.}
+%   \label{Fig:DDrift}
+%   %\vspace{-8pt}
+% \end{figure}
+
+Edge servers often leverage the convenience and flexibility of cloud interfaces, granting access to the same APIs, tools, and functionalities~\cite{MSrocket}. However, due to their inherent limitations in resources, such as weak GPUs and smaller memory capacities~\cite{AWSOutpostPricing}, these servers often resort to ``customized'' analytics services to maximize throughput and meet SLAs, including specialized DNN models tailored for edge deployments~\cite{mobilenetv2, tinyyolo}, which are compressed, quantized, and optimized for the targeted hardware~\cite{deepcompression, netadapt, NASnetMobile}. These tailored models enable accurate inference with high throughput and reduced resource footprint, with some compressed models having approximately $50\times$ fewer parameters~\cite{deepcompression}, but with a greater susceptibility to data drift~\cite{noscope, seqlearning}.
+
+Data drift emerges as a significant concern in real-world systems as the live data diverges from the original training data, and the environment undergoes rapid changes~\cite{ekya}. Fig.~\ref{Fig:DDrift} depicts our experimental investigations on data drift, encompassing training and testing multiple DNNs on diverse datasets such as Urban Traffic~\cite{ekya, UrbanTraffic}, 3D Point Cloud~\cite{kitti, nuscenes}, and audio~\cite{UrbanSound}. The similar trends across these results highlight the impact of varying time windows and encountering diverse scene changes, leading to degradation in network accuracy by up to $30\%$. These findings underscore the critical challenge posed by data drift and the need for continuous learning on edge servers.
+% \begin{figure*}[t]
+% %\vspace{-8pt}
+%  \centering
+%     \subfloat[Video Urban Mobility Data]
+%     {
+%      \includegraphics[width=0.3\linewidth]{figs/DriftV.pdf}%
+%     \label{Fig:DriftV}
+%     }
+%     \hfill
+%     \subfloat[Audio Traffic Data]
+%     {
+%      \includegraphics[width=0.3\linewidth]{figs/DriftA.pdf}%
+%     \label{Fig:DriftA}
+%     }
+%     \hfill
+%     \subfloat[3DPointCloud Autonomous Driving Data]
+%     {
+%     \includegraphics[width=0.3\linewidth]{figs/Drift3.pdf}%
+%     \label{Fig:Drift3}
+%     }
+%     % \hfill
+%     % {
+%     %  \includegraphics[width=0.23\linewidth]{figs/1.pdf}%
+%     % \label{Fig:Drift3}
+%     % }
+%     %\vspace{-6pt}\caption{Data drift on different data modalities.}
+%     \label{Fig:DDrift}  
+%     %\vspace{-8pt}
+% \end{figure*}
+\begin{figure}[ht]
+%\vspace{-8pt}
+  \centering 
+\includegraphics[width=\linewidth]{figs/DriftAll.pdf}
+  %\vspace{-16pt}
+  \caption{{Data drift on different data modalities. Sampling window size: 4hours for video, 20 minutes for audio for urban traffic video and audio data. 1hour for 3D Point Cloud simulated data. [SM:Small Model (smaller model or larger model pruned and quantized using energy aware pruning~\cite{EAP} and NetAdapat~\cite{netadapt}), LM:Large Model (no pruning or quantization), SMR:Small Model with Retraining].}}
+  \label{Fig:DDrift}
+  %\vspace{-20pt}
+\end{figure}
+
+% \noindent\textbf{\underline{Continuous Learning at the Edge:}}{\em Continuous learning},\\ where the model keeps on learning from the new samples over time (updating for seen and previously unseen classes), has been the preferred approach to compensate for data drift~\cite{continuelearn01,incremental01,icarl,incremental03}. The temporal locality of videos allows the models to effectively learn from recent data~\cite{incremental02}. Fig.~\ref{Fig:DriftV} also shows the accuracy improvement of the MobileNet-V2 model with a na\"ive retraining over time. To improve the accuracy and reduce sampling bias~\cite{samplingbias}, multiple task dedicated models are typically deployed. For example, in a traffic monitoring scenario, the morning and noon traffic might be significantly different, and can benefit from different data. 
+
+% Due to their significant compute and time costs, DNN training is typically performed in the cloud. For a continuous learning paradigm, training becomes an essential, repetitive (and perhaps perennial) task. Considering the prior limitations of communicating video data to cloud, edge servers are ideal candidates not only for inference but also for continuous learning. These edge servers are typically equipped with GPUs, and therefore, Ekya~\cite{ekya}, has proposed co-locating the learning algorithm along with the inference tasks on the edge servers. Since there could be multiple models with varying degree of drifts and different time bounds to get back the accuracy, Ekya proposes an intelligent scheduling algorithm to determine the priority of the training and inference tasks jointly optimizing the inference SLA and the drift over time. Intuitively, the inference tasks typically take priority due to their strict SLAs. However, with multiple resource types (e.g., CPUs, GPUs, and domain accelerators) and multiple tasks (different trainings, different SLA inferences), scheduling becomes non-trivial and Ekya shows significant improvement in resource utilization compared to a na\"ive fair scheduler (which treats training and inference with equal importance). Although Ekya partly solves issues of managing learning at the edge, it gives rise to a new problem: \textit{``can we pervasively (and sustainably) deploy these edge servers at the scale that future applications demand?"} 
+\noindent\textbf{\underline{Continuous Learning at the Edge:}} Continuous learning, wherein the model continually learns from new samples over time, adapting to seen and previously unseen classes, has emerged as a preferred approach to mitigate data drift~\cite{continuelearn01, incremental01, icarl, incremental03}. The temporal locality of (video like) data has shown models to effectively learn from recent data. Although, multiple task-dedicated models are typically deployed to enhance accuracy and reduce sampling bias~\cite{samplingbias}, particularly in scenarios like traffic monitoring, where different time periods exhibit distinct traffic patterns, they are not immune to data drift.
+%As depicted in Fig.~\ref{Fig:DDrift}, showing the accuracy improvement of the MobileNet-V2 model with na\"ive retraining over time.
+As depicted in {Fig.~\ref{Fig:DDrift}, our experiments,  on different modalities, shows the accuracy degradation due to data drift. Specifically focuing on video data, we observe that: using quantized MobileNet-v2 (14M paramters, 71.3\% accuracy) as the small model and ResNet-101 (171M parameters, 76.4\% accuracy) as the large model, the accuracy of the smaller model has degraded $>20\%$ over 5 sampling windows (of 4 hours each), where as the effect is minimal in the larger model. However, with a proper retraining, the smaller model could keep up with the original accuracy. We also observe a similar trend over other modalities, making the importance of continuous learning clear for multiple domains.}
+
+
+However, in a continuous learning paradigm, training becomes an essential, repeatedly scheduled task whose computational and time costs cannot be considered a one-time overhead freely delegated to the cloud. A recent work, Ekya~\cite{ekya}, has demonstrated that edge servers equipped with GPUs are capable of performing the necessary tasks for continuous learning within their form-factor-imposed resource constraints, provided that those resources are intelligently managed.
+%Due to the considerable computational and time costs associated with DNN training, it is typically performed in the cloud. 
+%Given, for instance, the challenges of communicating video data to the cloud, edge servers present themselves as ideal candidates not only for inference but also for continuous learning. 
+%Equipped with GPUs, Ekya~\cite{ekya} demonstrates that edge servers are well-suited for co-locating learning algorithms with inference tasks. Given the potential existence of multiple models with varying degrees of drift and different time bounds to regain accuracy, Ekya advocates an intelligent scheduling algorithm to determine the priority of training and inference tasks, jointly optimizing inference Service Level Agreements (SLAs) and drift over time. While inference typically take precedence due to strict SLAs, scheduling becomes challenging with multiple resource types (e.g., CPUs, GPUs, and domain accelerators) and tasks with different training requirements and inference SLAs. Ekya significantly improves resource utilization over a na\"ive scheduler that assigns equal importance to training and inference.
+
+%\vspace{2pt}
+\noindent\textbf{\underline{\textit{Sustainable} Continuous Learning at the Edge:}} Even given such advancements in continuous learning on edge servers, provisioning training resources at the edge for every sensing-to-analytics application entails sustainability questions.
+%Despite the progress in managing learning at the edge, a new challenge arises: \textit{"can we pervasively and sustainably deploy these edge servers at the scale that future applications demand?"} Addressing this question becomes critical as edge servers play a pivotal role in handling the computational demands of continuous learning, inference, and data drift mitigation.
+For example, a popular AWS outpost, a g4dn.12xlarge instance~\cite{AWSOutpostPricing}, consists of a 24~core Intel Xeon CPU (150W TDP)~\cite{IntelXeonPower} with 192GB of memory and 4 NVIDIA T4 (with tensor cores, 70W TDP)~\cite{T4Power} with 64GB GPU memory. A standard offering with $2\times$g4dn.12xlarge instances need 4kW power~\cite{aws-outposts} (the compute units have a TDP of $\approx 1kW$~\cite{IntelXeonPower,T4Power}) for performing analytics. With state-of-the-art learning APIs~\cite{MSrocket} and intelligent co-location and scheduling of inference and continuous learning~\cite{ekya}, these edge servers can support about 8 videos streams~\cite{ekya}, resulting in $\approx 120W$ (just for compute) per video stream. Scaling this to crowded cities with 30-50+kilo-cameras like Beverly Hills ($> 35k$~\cite{BeverlyHills}), Los Angeles ($\approx 35k$~\cite{NYCcamera}), New York ($\approx$56k~\cite{NYCcamera}), or Chicago ($\approx$30k) will need a lot of power. In fact, it will take $\ge$3Million cameras
+%\footnote{Assuming $\approx$9 cameras/1000 people (same as LA)  scaled to US population} 
+(assuming $\approx$9 cameras/1000 people, similar to LA, and scaled to US population)
+to just enable autonomous urban mobility in the USA, which may consume $360MW$ power ($1296GWh$ energy, 0.03\% of US power) 
+%which is similar to half the energy requirement of Yemen~\cite{EIAWorld} 
+for video analytics alone. Clearly, the current solution is {\em not}  sustainable, neither in terms of the load on the power grid, nor in terms of the $CO_2$ footprint (1.1$\times$$10^9$lbs); reducing the power budget for continuous learning is essential, as the carbon footprint of DNN training has emerged as a prominent concern~\cite{DNNenergy01, DNNcarbon01, DNNcarbon02, DNNcarbon03}, demanding careful consideration as a primary design metric.
+
+%For example, deploying continuous learning for traffic surveillance in a city like New York, utilizing approximately 56k cameras~\cite{NYCcamera} and state-of-the-art edge servers~\cite{AWSOutpostPricing} with co-location policies~\cite{ekya}, may conservatively consume 17MW of power, leading to a staggering 156 metric tons of $CO_2$ emissions per day. 
+
+Although green data centers~\cite{metaGreen, MSGreen} provide partial mitigation, they fail to address data privacy and communication bandwidth challenges in the current context. Similarly, other applications with diverse data modalities, such as LiDAR and Camera for autonomous driving, IMU, bio-sensors, and Speech for IoT, face similar issues. Thus, \textit{attaining a sustainable solution for privacy-preserving, distributed continuous learning remains an ongoing pursuit.}  
+
+%\vspace{2pt}
+\noindent\textbf{\underline{Exploiting Intermittent Computing:}}
+An obvious solution to the power problem is to run the training in a self-sustained way, i.e., without depending on the power grid and by relying on a renewable energy source like solar power; opportunities for harvesting renewables naturally scale alongside a greater number of deployment locations and solar power, even though not always available, is in abundance. In the United States, a typical $12\%$ efficient solar panel~\cite{solardata}, can provide an annual average of $50W/m^2-150W/m^2$ of power~\cite{NRELDB}. Furthermore, solar power has reasonably predictability characteristics. Typically, inference tasks have significantly less compute time and power requirement, and commercial off the shelf devices, like edgeTPU~\cite{coralT} can perform object detection using the aforementioned compressed models at a reasonable frame rate (at times $\ge 71fps$). Therefore, {\em designing a training platform to perform continuous learning with the intermittent solar power and within the typical harvested budget} would be the best solution. The power sustainability consequently reduces the cost of deployment as the publicly available edge server, like AWS outpost offering (one of the cheaper and lower power consuming ones) for performing edge inference costs \$5,134.92/month~\cite{AWSOutpostPricing}.
+%\footnote{The specialized AWS outpost offering, one of the cheaper and lower power consuming ones, for performing edge inference costs \$5,134.92/month~\cite{AWSOutpostPricing}.} as well.  
+
+% \subsection{Our Novelty:}
+
+% While $\USS$ is not the first work to propose continuous learning on video data at edge servers, it is the first one to do so {\em sustainably}, using {\em harvested energy}. Furthermore, it goes beyond the previously proposed small scale representation learning frameworks~\cite{icarl, ekya}, and proposes a hardware design that can adapt to the harvested energy budget while accommodating reorientation learning and micro-profiling.
+
+% \noindent\textbf{Why be battery-free:} Battery-free operation is a key component of sustainably scalable distributed infrastructure. Millions of battery-supported cameras (for even a single country) would also need millions of batteries and entail a plethora of environmental issues in their resource extraction, production, and replacement~\cite{batterysus1, batterysus2, batterysus3, batterysus4, batterysus5, batterysus6, batterysus7}. From research organizations~\cite{nsf} to countries~\cite{paris}, there is a push towards sustainable computing, and many prior works~\cite{NVPma, chinchilla,IntBeyondEdge, Origin, resiRCA, wispcam, nobat1,nobat2, nobat3, nobat4, nobat5, nobat6, bonito} have championed battery-free systems and their efficiency benefits. While many of these works targeted tiny devices, we believe $\USS$ can set the baseline as the first battery-less edge server, and open the exploration of similar concepts on larger-scale systems. 
+% %We strongly believe this design philosophy to be one of out key novelties and our entire system design, along with the morphable hardware design, is a byproduct of the design philosophy. \
+% %While the scope of this manuscript is limited to a select  set of applications within the urban mobility concept, similar approaches could be adapted to autonomous driving, smart industries, remote sensing, and monitoring applications as well.
+% Though the scope of this work is limited to a select  set of applications within the urban mobility concept, similar approaches could be adapted to autonomous driving, smart industries, remote sensing, and monitoring applications as well. 
+% %Moreover, we rethink the entire system design starting from algorithms down to hardware, and hence the hardware software co-design.
+
+
+% \noindent\textbf{Algorithmic Contribution:} Although prior works~\cite{icarl, CL1, CL2, CL3} have explored representation learning for continuous learning, $\USS$ is the first to implement it at large scale and explore related challenges. Prior works either need supervised learning or rely on K-means clustering, neither of which can be directly adapted for $\USS$ as it needs unsupervised annotation for data privacy, and the K-means clustering fails for large-scale  datasets with many classes. Therefore, $\USS$ uses an ensembled teacher-student method where multiple teachers annotate the data of the student and a hierarchical K-means+ (or a DBSCAN~\cite{DBSCAN}) clustering learns the representation for exemplar selection. Furthermore, we adapt a novel power aware micro-profiling policy to decide the right hyper-parameters, so that we consume energy where learning is most beneficial. We discuss and evaluate our robust exemplar selection  (\S\ref{subsec:exemplar}), and micro-profiler (\S\ref{sec:HP}).
+
+% \noindent\textbf{Hardware Contribution:} $\USS$ being battery-free entails hardware adaptation (resizing) to best track variable power income. Although many prior works~\cite{dadiannao, cnvlutin, sarmaSparse, eyeriss2,flexblock, flexsa} have designed energy efficient training hardware and can support variable precision training, {\em none of them adapts to a variable energy income.} Moreover, adding nonvolatility (in the form of NV-Buffers) to the aforementioned systems is not a solution as typical systolic arrays are not wired to turn off compute tiles or memory banks when necessary. Our design optimizes for the entire solution space and maximizes hardware reuse for exemplar selection and micro-profiling while catering towards the training task. Moreover, $\USS$ is capable of turning off individual compute-tiles to cater towards the runtime power variability and employs a novel scheduling policy (\S\ref{subsec:cmpschd}) to make sure that all the tiles work seamlessly under power emergencies. Being battery-less also changes the status-quo, and $\USS$ becomes intermittent by nature. Although the contribution of $\USS$ can be translated to a battery-backed power aware system, in the current setup, and assumption, we treat $\USS$ as a fully intermittent system.
+
+%\textcolor{blue}{As mentioned earlier (in~\S\ref{sec:introduction}), in this work, we tackle this issue by proposing a multi-pronged optimization: \textbf{1.} At \textbf{Algorithm level} to adapt the right continuous learning approach (in \S\ref{sec:CL}) while enabling robust exemplar selection; \textbf{2.} At \textbf{application--deployment level} to determine the right set of learning parameters (in \S\ref{sec:HP}), i.e., to make the learning {\em both} power-aware and drift-aware while running the algorithm efficiently in the training hardware environment; \textbf{3.} A novel \textbf{hardware} (in \S\ref{sec:HW}) support for continuous learning, hyperparameter selection, and most importantly, to perform intermittent power-aware training. Finally, $\USS$ integrates all these pieces of the puzzle together to design a sustainable intermittent computing framework for performing continuous learning on edge-gathered video data: (1)  sustainability first and hence being battery-less. The need for new HW comes from us being battery-less; (2) ensemble representation learning for large scale data; (3) identifying the compute overlaps between exemplar selection, micro-profiling and training to maximize hardware reuse and minimize host intervention, and hardware-driven exemplar selection micro-profiler for better efficiency; and finally, (4)  generalizing the algorithmic and hardware contributions to different applications.}
+
+%\subsection{Our Novelty:}
+
+
+
+
+
+\noindent\textbf{\underline{Our Approach (and its Novelty):}} $\USS$ introduces several novel contributions in the domain of \textit{sustainable} continuous learning at edge servers using harvested energy, setting it apart from prior works examining on-edge learning.
+%Firstly, \US{} pioneers sustainable continuous learning using harvested energy, representing a significant step towards scalable and eco-friendly distributed infrastructure. 
+%While prior works have explored continuous learning on video data at edge servers, $\USS$ is the first to achieve this sustainably.
+
+\noindent\textbf{Battery-Free Operation:} A key highlight of $\USS$ lies in its battery-free operation, which aligns with the current global push for sustainable computing. The scaling up via millions of additional battery-supported analytics platforms would introduce severe environmental challenges due to resource extraction, production, and replacement of batteries~\cite{batterysus1, batterysus2, batterysus3, batterysus4, batterysus5, batterysus6, batterysus7}. By demonstrating the viability of a battery-less edge server for video analytics, \US{} spearheads the adoption of similarly sustainable systems for other domains. While the initial scope is limited to urban mobility applications, the concept's adaptability extends to various domains, including autonomous driving, smart industries, and remote sensing: Section~\ref{sec:sensitivity} performs an initial exploration of how techniques from \US{} will apply to other domains.
+
+\noindent\textbf{Algorithmic Advancements:} $\USS$ extends the frontier of representation learning for continuous learning by implementing it at a large scale and addressing related challenges. Prior works relied on supervised learning or K-means clustering, unsuitable for $\USS$ due to its need for unsupervised data annotation and the inability to handle large-scale datasets with numerous classes. To overcome these limitations, $\USS$ employs an ensembled teacher-student method, wherein multiple teachers annotate student data. A hierarchical K-means+ (or DBSCAN) clustering approach learns representations for exemplar selection. Additionally, a novel power-aware micro-profiling policy is adapted to determine optimal hyper-parameters for a variable-power environment. The robust exemplar selection and micro-profiling mechanisms are discussed and evaluated in \S\ref{subsec:exemplar} and \S\ref{sec:HP}, respectively.
+
+\noindent\textbf{Hardware Innovation:} \US{} embraces the intermittency entailed by harvesting and advocates for hardware adaptation (resizing) to efficiently manage variable power income and avoid power emergencies. While previous works have designed energy-efficient training hardware with support for variable precision training, none have adapted to variable energy income. $\USS$ optimizes the entire solution space, maximizing hardware reuse for exemplar selection and micro-profiling while addressing the training task. The system can turn off individual compute-tiles to accommodate runtime power variability (see  \S\ref{subsec:cmpschd}) and enable seamless operation during power reductions. 
+%Embracing its intermittent nature, $\USS$ marks a paradigm shift, fostering the exploration of fully intermittent systems.
+
+Overall, \US{} demonstrates the viability of sustainable continuous learning at edge servers, encompassing advancements in energy harvesting, algorithmic techniques, and hardware adaptation. 
+%This success can inspire adoption of the principles of the \US{} framework in other domains as well.  
+%Further, analysis of a diverse range of data types and inference tasks provide evidence that subsequent systems will be able to leverage these techniques across an increasing number of domains.
+
+%Its contributions extend the boundaries of sustainable computing, opening new avenues for transformative applications in diverse domains.
+
+%%%%%
+%\vspace{-10pt}

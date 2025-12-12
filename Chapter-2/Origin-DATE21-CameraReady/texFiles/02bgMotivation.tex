@@ -1,0 +1,102 @@
+A major challenge while executing a DNN inference on an energy harvesting sensor is the power budget. The conventional method, where the sensors collect the data and send it to the cloud or any other host device (such as connected mobile phones) is not an effective option as communicating large data demands more power, which is both highly variable and scarce in EH systems. Therefore, the better option, from a communication cost perspective, is to execute the inferences on the individual sensors and use an ensemble learning method (like majority voting) to aggregate these results for the final classification.
+%To perform HAR on a distributed body area network, we intent to leverage the ensemble learning approach to reduce the communication cost. 
+
+\begin{wrapfigure}{l}{0.3\textwidth}%[htbp]
+  %\dummyfig{Sensor Setup}
+  \begin{minipage}[!]{\linewidth}
+  \begin{subfigure}[!]{\textwidth}
+  \centering
+  \includegraphics[width=0.98\linewidth]{Figures/RR0Bar.pdf}
+  \caption{Inference completion breakdown when three EH sensors are working together to finish the incoming inferences. In only 1\% of the cases all of the sensors finished inference, while 9\% of the time at least one of them finished. 90\% of the time the inference could not start because of lack of energy.}
+ %\caption{Accuracy on MHELATH Dataset: The figure plots the accuracy results of the different policies described in Section~\ref{sec:DesignSpaceExploration} and Section~\ref{sec:origin}. RR indicates the extended round-robin policy in use and pred indicates power predictor only model. EAP indicates the baseline with the pruned DNN and Ideal indicates the baseline without pruning}
+  \label{Fig:RR0Bar}
+  \end{subfigure}
+  \end{minipage}
+\begin{minipage}[!]{\linewidth}
+ \begin{subfigure}[!]{\textwidth}
+  \centering
+  %\dummyfig{Sensor Setup} 
+  \includegraphics[width=0.98\linewidth]{Figures/RR3Bar.pdf}
+  %\caption{Accuracy on PAMAP2 Dataset: The figure plots the accuracy results of the different policies described in Section~\ref{sec:DesignSpaceExploration} and Section~\ref{sec:origin}. RR indicates the extended round-robin policy in use and pred indicates power predictor only model. EAP indicates the baseline with the pruned DNN and Ideal indicates the baseline without pruning}
+ \caption{Inference completion breakdown when three EH sensors are working in round robin fashion, where one of the sensors performs inference while the other two are accumulating energy. 28\% of the time the sensors could finish the inference, while 72\% of the time the inference failed as the sensor could not harvest enough energy while not performing any inference.}
+ \label{Fig:RR3Bar}
+  \end{subfigure}
+  \end{minipage}
+  \caption{Fraction of inference completed on harvested energy using na\"ive scheduling.}
+  \label{Fig:fraction}
+\end{wrapfigure}
+Each of the sensors in a multi-device HAR deployment receives different data depending on its location and the current human activity in progress. Therefore, 
+%we cannot use the same DNN structure for all the sensors, and 
+different DNNs are needed to process data from these different locations. Consequently, the power requirement and the latency of these DNNs may vary and synchronizing them for collective execution would require scheduling that addresses these differences in resource requirements. Even if we were able to design a proper scheduling policy, for a conventional ensemble, all the sensors involved need to finish their computation. However, our preliminary results using the hardware setup of~\cite{ResiRCA} and the DNN from~\cite{HARHaChoi} on the MHEALTH~\cite{mHealth,mHealthDroid} dataset suggests that only 10\% of inferences could be completed in a WiFi powered system (Fig.\ref{Fig:RR0Bar}). Therefore, we cannot always expect inference outcomes from all the sensors while doing HAR on EH-WSN. Clearly, the completion of the task is power bound: Adopting a wait-compute execution model, such that we have enough energy to complete some results, at a lower duty cycle, instead of always trying and failing would yield benefits. This leaves us with the following important questions:\\
+$\bullet$ \emph{Are continuous inferences essential, or can we leverage the workload itself to skip some inferences without substantial accuracy loss, allowing enough energy to be accumulated for future inferences?}\\
+$\bullet$ \emph{Since all the sensors cannot be activated together due to the limited power, how do we effectively perform the ensemble?}
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Running DNNs on a tiny devices comes with multiple challenges. First - typically, DNNs consists of millions of MAC operations and carry a memory footprint of few megabytes, and hence demanding a significant amount of energy to run them. Further, latency-sensitive applications (e.g. real-time inference) would demand a significant amount of power. The current mobile devices are somewhat capable of running some of the DNNs in real-time. For example, most of the mobile phones run tiny DNNs to perform bio-metric authentication. However, these tasks are intermittent and infrequent and most of the times require binary classification. Long-term, continuous and time critical use-cases, with more number of classes, such as human activity recognition requires more compute and hence would demand even more power.% draining the battery of the device quickly. 
+%  The obvious solution, boosting the battery capacity, is not a scalable option, for any such increment would also result in increase in form-factor and cost of the device. Furthermore, for smaller devices such as smart watches, smart shoes etc. the power and performance challenges become even more prominent as these devices have tiny batteries~\cite{iWatchBattery}.   %Moreover, as the expected number of connected devices are supposed to reach up to 29.3 billion by 2023 ~\cite{ciscoAnnualReport}, sustainability also becomes an issue. 
+% Therefore, most of these tiny devices rely on either on one of the connected host device, such as the mobile phone, or the cloud, to run these inferences. \begin{wrapfigure}{l}{0.3\textwidth}
+% %\centering
+%   %\dummyfig{Inference pipeline on typical edge devices.} 
+%   \includegraphics[width=0.28\textwidth]{Figures/InferenceFlow.pdf}
+%   \caption{Inference pipeline on typical edge devices}
+%   \label{Fig:wearableDNNPipeline}
+% %\end{figure}
+% \end{wrapfigure}
+% As we can see, from Fig.~\ref{Fig:wearableDNNPipeline} the data collected from the sensors are first transmitted to the nearby host devices, which in turn then processes the data and does the classification. In the case of the inference being too complex for the even the host device to run, the data is then sent to the cloud and the inference results relayed back to the host or the device. This process incurs a lot of latency and energy for data movement and is not efficient~\cite{ResiRCA}~\cite{intelligenceBeyondEdge}. Therefore, it is clear that running large scale, time critical DNN inferences on tiny devices is an open challenge and needs addressing.  
+
+% % \begin{figure}
+% % \centering
+% % \includegraphics[width=0.48\textwidth]{Figures/InferenceFlow.png}%
+% % 	\caption{Inference pipeline on typical edge devices}
+% % 	\label{Fig:wearableDNNPipeline}
+% % \end{figure}
+
+% % How to insert a dummy figure:
+% %\begin{figure}[htbp]
+% % \begin{wrapfigure}{l}{0.3\textwidth}
+% % \centering
+% %   %\dummyfig{Inference pipeline on typical edge devices.} 
+% %   \includegraphics[scale=1.0]{Figures/InferenceFlow.pdf}
+% %   \caption{Inference pipeline on typical edge devices}
+% %   \label{Fig:wearableDNNPipeline}
+% % %\end{figure}
+% % \end{wrapfigure}
+
+% Recent works~\cite{IntermittentChallange}~\cite{ResiRCA}~\cite{NVPMicro} have proposed using energy harvesting (EH) as an solution, but it is no panacea. The harvested power is very fickle, and the current devices assume a steady power supply. Moreover, the harvested power needs to match the required power of the device, thus requiring extra circuitry to convert the fickle harvested energy to a steady power supply. Given the current computer architecture paradigm, any power failure will put the system back to the last check point~\cite{LuciaCheckpoint} or worse, to the beginning of the program. Therefore, we need a tiny, yet steady power supply, in form of a battery or a super-capacitor to utilize harvested energy to perform some useful computation and make enough forward progress. However, more recent works~\cite{NVPMa} propose a new generation of devices, namely, Non-volatile Processor (NVP), which because of its inherent non-volatile nature, does not require software check pointing, and can continue computation even with a fickle power supply. As we want a battery-less system, we will be using the NVP paradigm to execute our DNN inference, more specifically the design follows the work proposed in~\cite{ResiRCA}. 
+
+% Even after enabling EH and NVP in the tiny devices, the bigger challenge still remains tacking the power demand of larger DNNs. Some of the prior works~\cite{ResiRCA}~\cite{IntBeyondEdge} try to enable small scale inferences such as hand-written character recognition in an energy harvesting set-up. %For example,~\cite{ResiRCA} used workloads such as handwritten number classification usinng LeNet~\cite{LeNet} which has about 431K parameters.
+% However, complex tasks such as, human activity recognition, will need complex DNNs with more parameters. Human activity recognition DNNs proposed in~\cite{HARHompel}~\cite{HARHaChoi} needs more than 800K parameters and more than 70 million MAC operations. Furthermore, detecting human activity is a time sensitive operation and hence we can not rely on gathering enough energy to finish the computation at any point of time in the future. Moreover, these recent works on HAR, fuse multiple sensor data to recognize the activity which relies on the fact that data collected from all these individual sensors are sent to a central location, such as a mobile device or cloud, where the inference is done. This defeats our purpose of finishing the inference at the source and minimizing the communication delay and latency. To generalize, we can say that in a scenario involving distributed energy harvested wireless sensors sensors, having a centralized inference engine is not very efficient, for it has data communication latency and energy overhead. This motivates us to design a system that can complete the individual inferences at the sensor node itself and just communicate the results to one central location which will aggregates these results to give us a correct classification. 
+
+% To our advantage, the ensemble learning paradigm can help us solving the problem. Ensemble learning is the process by which multiple models, such as classifiers or experts, are strategically generated and combined to solve a particular computational intelligence problem. Ensemble learning is primarily used to improve the (classification, prediction, function approximation, etc.) performance of a model, or reduce the likelihood of an unfortunate selection of a poor one~\cite{PolikarEnsemble}. Therefore we can use each of the nodes in a wireless sensor network to be a weak classifier and use ensemble to further boost the classification. Since a strong classifiers are typically tend to be more compute intensive and complex, designing weak classifiers and ensemble can help us reducing the energy footprint and hence be viable for our energy harvesting scenario.
+
+% Even though there have been many prior works in enabling machine learning in energy harvesting wireless sensor networks (EH-WSNs), the holistic approach is still missing. As discussed earlier, we have missing opportunity of having the state of the art NVP model along with the machine learning techniques such as ensemble learning to enhance and fully utilize the capabilities of EH-WSNs and enable inference in the tiny devices while taking minimal support from the a fully powered host device. To enable tiny EH-WSNs to perform inference, we not only need to understand and take advantage of the architectural innovations, but also explore and dive deeper into the machine learning framework, the task at hand and algorithmic opportunities. Furthermore, we need to implement system level policies to efficiently propose a hardware-software co-designed model which can help us efficiently manage and perform inference at the edge while maximizing the accuracy and forward progress.

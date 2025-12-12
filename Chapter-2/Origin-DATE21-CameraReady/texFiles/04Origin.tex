@@ -1,0 +1,153 @@
+% To understand what we can do better to improve the classification accuracy, we need to understand the shortcomings of the scheduling described in Section~\ref{subsec: preamble/RoundRobin}. The most important missing opportunity is inability to use all the sensors at a time. Given the harvested energy and the energy requirement, each sensors could not work together all the time and hence we resorted to the round-robin method. A fair alternative is anytime time completion, i.e. the senors would accumulate enough energy to perform one inference and perform classification individually. This will bring a lot of asynchronous behaviour to the sensor network and ensemble learning will no longer be a simple task as the host, which plays the role of the aggregator, has to keep track of all the sensor at each time step. Moreover, this will further lead to more number of communication between the sensors and the host defeating the purpose of reducing communication overhead. 
+
+
+ We design a EH-WSN setup for HAR, where the user has three EH inertial measurement units (IMUs), at the chest, left ankle and right wrist\footnote{This can also be extended to larger numbers of sensors and modalities}. It is obvious that the raw data sensed by each sensor would be different, even for the same activity, because of the difference in movement and dynamics. For example, while cycling, the data sensed by the ankle, chest and wrist sensors would be entirely different because of the nature of the motion. Thus, the DNN architectures to infer these data are also different.  %\dummyfig{Accuracy of baseline DNNs}
+\begin{wrapfigure}{l}{0.3\textwidth}
+\includegraphics[width=0.3\textwidth]{Figures/IndividualAccuracy.pdf}
+  \caption{Accuracy of the individual DNNs and with a majority voting ensemble for different activities.}
+  \label{Fig:individualAccuracy}
+\end{wrapfigure} 
+To design these DNNs, we leverage the work in~\cite{HARHaChoi,HARHompel} and further apply state of the art optimizations given in~\cite{netadapt,EAPruning} to make the DNN more suitable for energy-scarce applications. Fig.~\ref{Fig:individualAccuracy} gives the accuracy of these DNNs on MHEALTH dataset~\cite{mHealth,mHealthDroid}. A detailed description of the setup is explained in Section~\ref{sec:evaluation}. In this section, we provide an overview of our proposed solution.
+
+% \begin{figure}[!]
+%     \centering
+%     \begin{subfigure}[!]{0.5\linewidth}
+%         \centering
+%         \includegraphics[scale=0.5]{Figures/RR0Bar.pdf}
+%         \caption{RR0 dummy}
+%         \label{Fig:RR0}
+%     \end{subfigure}%
+%     \begin{subfigure}[!]{0.5\linewidth}
+%         \centering
+%         \includegraphics[scale=0.5]{Figures/RR3Bar.pdf}
+%         \caption{RR3}
+%         \label{Fig:RR3}
+%     \end{subfigure}
+%     \caption{Caption place holder}
+% \end{figure}
+
+
+\subsection{Preamble to Origin}
+ Human activity has  temporal continuity, i.e. most activities last for some duration (in the range of hundreds of milliseconds to seconds). Therefore, there is an opportunity to skip some intermediate inferences over the period of an activity in order to increase harvesting duration and the probability that an initiated inference will complete. So long as the number of skipped inferences is modest, there will still likely be samples processed before an activity finishes. This can be extended further adopting a round-robin activation schedule to both increase harvesting periods per initiated inference on each node while increasing the odds that at least some node is attempting an inference at any given time.\begin{wrapfigure}{l}{0.3\textwidth}
+%\centering
+  %\dummyfig{Inference pipeline on typical edge devices.} 
+  \includegraphics[scale=0.5]{Figures/ExtendedRR.pdf}
+  \caption{Different flavors of (extended) round-robin scheduling and their execution flow. Each policy is named after the number of nodes the cycle has, i.e. RR3 has 3 nodes with no no-ops and RR6 has 3 nodes with 3 no-ops.}
+  \label{Fig:RRextended}
+%\end{figure}
+\end{wrapfigure} Even using a round robin execution, we observe that only 28\% of the inferences are completed (shown in Fig.~\ref{Fig:RR3Bar}). Therefore, we induce a delay (no-op cycles in Fig.~\ref{Fig:RRextended}) between one sensor finishing an inference and the next sensor starting the next one, so that each of the sensors get more time to accumulate more energy prior to attempting an inference.  
+%instead of back-to-back inferences on different nodes, a few no-operation cycles are added in between, to accumulate sufficient energy and maximize the number of inferences that can run to completion with available energy. The past inference is retained in these no-operation cycles. 
+We refer to this policy that stretches the basic round-robin policy as extended round-robin (ER-r).  Using ER-r, we can complete more total inferences, but this design is limited by the accuracy of individual sensors. Moreover, since all sensors are not equally capable of classifying each activity with same accuracy (Fig.~\ref{Fig:individualAccuracy}), ER-r might lead to lower accuracy in many cases. 
+
+A better approach is to prioritize performing inferences on the sensor that has the highest local accuracy for the current activity. However, this poses a chicken and egg problem -- to know which sensor is the best for classifying an activity we need to know what activity is going to be performed beforehand. %We don't know of the activity and hence we cant choose the best sensor to activate, and if we knew the activity beforehand, there is no need to classify. 
+However, while perfect future knowledge remains impossible, in the context of HAR, we can anticipate the next activity from the previous activity with high confidence. Intuitively, human activities do not usually stop abruptly, i.e. if a person is walking and has taken a step, there is a high probability that the person will continue walking rather than immediately switch to another activity. %The only exception is that, if the person stops walking at that given instance and/ or moves to a different activity. 
+%We leverage the temporally continuous nature of human activity and  anticipate the next possible activity from the current classification. 
+Therefore, to classify the next possible activity, we activate the sensor which is most accurate for classifying the anticipated activity. This motivates us to develop an \emph{activity-aware scheduling} (AAS) policy which aims to activate the best suited sensor for the anticipated activity. 
+
+% \begin{figure}[htbp]
+%   %\dummyfig{Sensor Setup} 
+%   \centering
+%   \includegraphics[scale = 0.8]{Figures/CASAlgo.pdf}
+%   \caption{Flow diagram for class aware scheduling (CAS) policy}
+%   \label{Fig:CASAlgo}
+% \end{figure}
+
+\subsection{Activity Aware Scheduling} %Designing an Intelligent Scheduler}
+%Activity aware scheduling (AAS) leverages the temporal continuity nature of the human activity, and hence activates the sensor best fit for the upcoming anticipated activity. 
+To enable the activity awareness we keep a small lookup table of accuracy of all the sensors over all the classes. However, accuracy being a floating point number, is expensive in terms of energy to store and lookup. To minimize this overhead, instead of storing the accuracy, we store the rank of the sensors for individual activities. After a sensor detects an activity, it anticipates the next activity to be the current classified activity, looks up for the best sensor, and signals to activate it  for the upcoming inference. However, this leads to another potential issue - what if the current inference is running on the best sensor, and the sensor does not have enough energy to run the next inference? 
+% \begin{wrapfigure}{l}{0.2\textwidth}
+%   %\dummyfig{Sensor Setup} 
+%   \centering
+%   \includegraphics[width=0.2\textwidth]{Figures/CASAlgo.pdf}
+%   \caption{Flow diagram for activity aware scheduling (AAS) policy}
+%   \label{Fig:CASAlgo}
+% \end{wrapfigure}
+In this case, the current sensor chooses the next best sensor for the job and signals it. %(Fig.~\ref{Fig:CASAlgo}). 
+The other sensor receives this as an external signal and activates itself to classify the activity. To incorporate the ER-r, we induce delays between sending the external signal and starting the inference on the same sensor. This delay depends of the extended round-robin policy. % and is different for RR3, RR6, RR9 and RR12. 
+%Activity aware scheduling by virtue of its inherent nature brings more accuracy to the classification. 
+% \begin{wrapfigure}{l}{0.3\textwidth}
+%   %\dummyfig{Sensor Setup} 
+%   \includegraphics[width=0.3\textwidth]{Figures/CASAccuracy.pdf}
+%   \caption{Accuracy results for activity aware scheduling: the bar bar graph plots the accuracy results AAS with extended round robin}
+%   \label{Fig:CASaccu}
+% \end{wrapfigure}
+ Combination of ER-r and AAS, results in more than 70\% accuracy for most of the activities (Fig.~\ref{Fig:CASaccu}).
+\begin{figure}[htbp]
+  %\dummyfig{Sensor Setup} 
+  \includegraphics[width=0.48\textwidth]{Figures/CASAccuracy.pdf}
+  \caption{Accuracy results for AAS combined with ER-r.}
+  \label{Fig:CASaccu}
+\end{figure}
+
+
+% \begin{table}
+% %\begin{wraptable}{l}{3.3cm}
+% \centering
+% \footnotesize
+% \begin{tabular}{|l|l|l|l|} 
+% \hline
+% \diagbox{Activity}{Sensor} & Chest & Left Ankle & Right Wrist  \\
+% \hline
+% Walking                    & 4     & 1          & 0            \\
+% \hline
+% Climbing                   & 0     & 4          & 4            \\
+% \hline
+% Cycling                    & 1     & 2          & 3            \\
+% Running                    & 3     & 0          & 2            \\
+% \hline
+% Jogging                     & 2     & 3          & 1            \\
+% \hline
+% Jumping                    & 5     & 5          & 5            \\
+% \hline
+% \end{tabular}
+% \caption{The look-up table data for class aware scheduling (the lower the number associated with the activity the more accurate the sensor)}
+% \label{tab:LUT4CAS}
+% \end{table}
+
+% \begin{figure}[htbp]
+%   %\dummyfig{Sensor Setup} 
+%   \includegraphics[width=0.48\textwidth]{Figures/CASAccuracy.pdf}
+%   \caption{Accuracy results for class aware scheduling: The bar bar graph plots the accuracy results CAS with extended round-robin and power prediction.}
+%   \label{Fig:CASaccu}
+% \end{figure}
+
+Even though AAS provides significantly better results compared to standard round-robin, it is still unable to incorporate ensemble learning. The major challenge is the inability to run inferences in all the sensors simultaneously because of the harvested energy budget. Therefore, we need to find the classification result for all the sensors without activating them. %As human activities are continuous tasks and the next possible activity is most probably the continuation of the current one, the prior activity to the current activity would most probably be the same. 
+Extending our assumption from AAS, we hypothesize that the most recent classification result of a sensor must be a good representation of what its inference would be for the current activity. Hence, by memorizing or \emph{\textbf{recalling}} the most recent classification result, we can get the inference result of a sensor even without activating it. %Adding the \emph{recall} feature allows us to get results from all the sensors at any given time. 
+Even though the sensors are running in the round-robin fashion, the non-participating sensors can still impact the classification result by virtue of \emph{recalling} their most recent classification. Combining the \emph{Recall} with AAS (which we term as AASR - Activity Aware Scheduling with Recall) opens possibilities for getting a more accurate classification. To minimize the communication overhead, and to ensure participation of all sensors, we build the \emph{recall} strategy into the host device. The host device remembers the most recent classifications by all of the sensors. After receiving or recalling prediction from all sensors, the host performs a majority voting for the final classification. 
+
+AASR thus bridges the major gaps in the design that we intend to achieve. With the addition of \emph{recall}, we have a fully functional ensemble learning system on a EH-WSN. AASR intelligently takes advantage of multiple DNNs (by bringing in activity aware scheduling), leverages the workload (by considering the activity continuity via recall and extended round-robin strategies), and also poses minimal overhead on the host device for running aggregation. However, as we did not want to burden the host device with complex computation, the aggregation task is very na\"ive in that
+%,  %Looking back into all the features available in AASR, we see that 
+%i.e. our scheduler is activity aware, yet our aggregator is \emph{not}, as 
+it just performs recall and incorporates no intelligence. Hence, there is an opportunity to also improve the ensemble technique.
+
+\subsection{Designing an Adaptive Ensemble Learner}
+AASR scheduling solves most of the issues on the sensor side without  burdening host device, yet the host device still performs a na\"ive majority voting-based ensemble. Designing any sophisticated ensemble learning technique will either consume more resources of the host device, or need more information and computation at the edge, thus making our effort of finishing the inference at the edge not viable. However, if we can design a simple, light weight and adaptive ensemble technique, then our design will be holistic from both the sensor and the host side. The current scheduler is activity aware, i.e. while performing an inference it always tries to choose the best available sensor to perform the task at hand. Furthermore, the AASR poses negligible overhead both in terms of compute and memory. Our goal is to develop an activity aware ensemble technique which can further improve accuracy, when compared to AASR. 
+
+The idea of making the ensemble task activity aware has similarities to weighted majority voting, where we assign weights to the individual learners participating in the ensemble, such that a higher accuracy classifier contributes more weight towards the final result. However, from Fig.~\ref{Fig:individualAccuracy} it is clear that not all the sensors are equally good at classifying various activities; in fact, this builds the foundation of AASR. Therefore, assigning a static weight to the output of each classifier will not reflect that its accuracy is  activity-dependent. For example, the classifier used in the left ankle sensor tends to be more accurate overall, but for classifying climbing action, it is not better than the chest sensor. Hence, to give the left ankle more weight while doing an ensemble for a climbing task makes the classifier biased. Furthermore, it the relative weight of each sensor is likely to shift from user to user.  %A simple solution might be to reuse the lookup table of AAS, but that does not reflect the scale of the weight that needs to be assigned to each classifier for every individual class. Another alternative 
+A simple solution is to assign the accuracy of each of the sensors for every class as its weight. Although accuracy is a close measurement of the confidence of the classification, it does not truly reflect it. 
+%Therefore, to solve this issue we need to bring the activity awareness in to the host device as well.
+
+% \begin{figure}[htbp]
+%   %\dummyfig{Sensor Setup} 
+%   \includegraphics[width=0.48\textwidth]{Figures/ConfidenceMatrix.pdf}
+%   \caption{Confidence matrix as a heat map (deeper color represents more confidence). The top row represents the sensors, and first column represents the activity}
+%   \label{Fig:heatmap}
+% \end{figure} %(Fig.~\ref{Fig:heatmap})
+
+For example, let us consider two DNN classifiers ($C_1$ and $C_2$) classifying between 4 different classes $(o_1, o_2, o_3, o_4)$. The final probability vector from the last layer (softmax function) $V_{C_1} = [0.94, 0.01, 0.02, 0.01]$, and $V_{C_2} = [0.80, 0.05, 0.08, 0.07]$. Both the models have classified the input to be of class $o_1$. The accuracy of both system might be identical (over a large number of test sets), yet for the current test case, both the models are not equally confident about the classification. The question is, how do we measure the confidence of the given classification? It is obvious that the most confident classification for the same class would be $[1, 0, 0, 0]$, where the model is 100\% confident on class $o_1$ and the most confused prediction would be $[0.25, 0.25, 0.25, 0.25]$, where the classifier is equally confused between all the classes. Therefore, a good metric for the confidence would be the variance of the output probability vector. The higher the variance the more confident is the classification. Towards this, we build a lookup table  by averaging the variance of output vectors of multiple test cases. This table, which we call the \emph{confidence matrix}, gives us the confidence of each sensor for each class, and can be used as a weight for majority voting. %should we do mathematical formulation
+
+The next challenge is to adapt the confidence matrix for  individual users. Each user has unique expressions of behaviour classes reflected in the sensor data. For example, gaits of two different people may significantly vary, and might be entirely different from the training data. Thus, it is important to keep learning and adapting to the user behavior. Since, we cannot keep re-training the DNNs because of their resource constraints, we choose to periodically update the confidence matrix. The initial confidence matrix, derived from the test cases, would be programmed into the host device. Further, after each successful classification, the sensors would send the confidence score for that classifier along with the output class. This confidence score would further update the weight matrix of the host device using a moving average method and keep updating it as the user keeps using the device. %Since the activity style for each user would be different (for example everyone has a different walking gait), the confidence for the same activity with two different users may vary. Therefore, constant updates to the confidence matrix aids the ensemble learner to classify better for each individual.   
+
+
+
+\subsection{Origin: AASR meets Confidence Matrix}
+\label{subsec:Origin}
+% \begin{wrapfigure}{l}{0.22\textwidth}
+%   %\dummyfig{Sensor Setup} 
+%   \includegraphics[width=0.22\textwidth]{Figures/OriginPolicy.pdf}
+%   \caption{High level Overview of \emph{Origin}.}
+%   \label{Fig:fullpolicy}
+% \end{wrapfigure} 
+Combined together, the activity aware scheduler with recall (AASR) and the adaptive confidence matrix we present \emph{Origin}: a holistic system where an intelligent scheduler meets an adaptive ensemble learner. 
+%The overall design of \emph{Origin} is shown in Fig.~\ref{Fig:fullpolicy}. 
+This design optimizes the DNN execution in an energy harvesting wireless sensor network by collectively looking into all the involved components. The DNNs as individuals are optimized before to meet the power budget. In the earlier case of na\"ive scheduling we tried to build an efficient DNN by applying energy aware pruning~\cite{EAPruning}. However, since \emph{Origin} follows an activity aware scheduling with extended round-robin, it can relax the power constraint pruning if needed. Instead of restricting the power constraint to the average power of the entire power trace, the constraint can be relaxed to the average power requirement of the extended round-robin policy in use.  Further, the scheduling strategy was modified using activity aware scheduling with extended round-robin such that all the sensors get enough time to harvest and also the best possible sensor works on the classification task at hand instead of any arbitrary sensor. The added recall functionality enables ensemble learning. Moreover, the host device, which performs the ensemble, is equipped with a confidence matrix, which adapts to the user and performs weighted majority voting instead of a na\"ive majority voting. The associated confidence matrix boosts the classification accuracy and also resolves ties while voting.

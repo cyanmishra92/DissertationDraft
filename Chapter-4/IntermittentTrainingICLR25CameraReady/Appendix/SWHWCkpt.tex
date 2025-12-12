@@ -1,0 +1,41 @@
+\subsection{Intermittency-Aware General Matrix Multiplication (GeMM)}
+\label{appendix:intermittentGeMM}
+Here we explain the operation of an energy-aware algorithm for performing General Matrix Multiplication (GeMM). The algorithm is designed to operate in environments where energy availability is intermittent, such as in devices powered by energy harvesting. It includes mechanisms for loop tiling, checkpointing, and resumption to manage computation across power interruptions effectively.
+
+\subsubsection{Algorithm Overview}
+The GeMM operation, typically expressed as \( C = A \times B \), where \( A \), \( B \), and \( C \) are matrices, is implemented with considerations for energy limitations. The algorithm breaks the matrix multiplication into smaller chunks (tiles), periodically saves the state before potential power losses, and resumes computation from the last saved state upon power restoration.
+
+
+\subsubsection{Function Definitions}
+\begin{itemize}
+    \item \textbf{SAVE\_STATE}: Saves the current indices and the partial result of the output matrix \( C \) to non-volatile memory to allow recovery after a power interruption.
+    \item \textbf{LOAD\_STATE}: Retrieves the last saved indices and partial result from non-volatile memory to resume computation.
+\end{itemize}
+
+\subsubsection{Loop Tiling}
+The algorithm uses loop tiling to divide the computation into smaller blocks that can be managed between power interruptions. This tiling not only makes the computation manageable but also optimizes memory usage and cache performance, which is critical in constrained environments.
+
+\subsubsection{Check-pointing Mechanism}
+Before each power interruption, detected through an energy monitoring system, the algorithm saves the current state using the \textbf{SAVE\_STATE} function. This state includes the loop indices and the current value of the element being processed in \( C \). This ensures that no computation is lost when the power goes out.
+
+\subsubsection{Resumption Mechanism}
+Upon resuming, the algorithm loads the saved state using the \textbf{LOAD\_STATE} function. This state is used to continue the computation exactly where it left off, minimizing redundant operations and ensuring efficiency.
+
+
+% \subsection{DynInfer with Hardware-Software Support}
+% \label{appendix:DynInferFlow}
+% We also provide a full software-compiler-hardware driven execution framework for commercial devices with non-volatility support (like MSP-EXP430FR5994 with FeRAM). Figure~\ref{Fig:progflow} shows a detailed overview of our design execution. To support user programs (\ycircled{P1}) we implement a moving window based power predictor (\ycircled{P2}) which takes its input from the on-board EH capacitor. Considering the energy available, the predictor makes an informed decision on how to proceed. The compiler deconstructs the program into \brect{189,215,238}{jobs} to perform seamless program execution. These \brect{189,215,238}{jobs} form the functional program execution DAG. For example, for a DNN execution, the \brect{189,215,238}{jobs} could be CONV2D (\bcircled{C1}), batch normalization (\bcircled{C2}) etc. However, certain \brect{189,215,238}{jobs} could be too big to execute atomically on harvested energy. Therefore, we profile the task using the compute platform (in this case using the MSP-EXP430FR5994 and the LEA in it) to further divide the \brect{189,215,238}{jobs} into \brect{255,192,0}{Power Atomic Tasks} (\brect{255,192,0}{Tasks} hence further). These \brect{255,192,0}{Tasks} are carefully coded with optimized assembly language to maximize their efficiency. We take advantage of \brect{112,173,71}{Hardware Support} (the on-board NV FeRAM) to perform backup and restore in case of \brect{255,0,0}{Power Emergencies}. In case of a power emergency (as shown in Figure~\ref{Fig:progflow} \ccircled{T3}) the task is abandoned and a hardware assisted Backup (\gcircled{Lb}) and Restore (\gcircled{Lr}) is performed. 
+
+% \begin{figure}[H]
+%   \centering 
+%   \includegraphics[width=0.5\linewidth]{figs/ProgFlow.pdf}
+%   \caption{Software-Compiler-Hardware Driven Inference Flow}
+%   \label{Fig:progflow}
+%   %\vspace{-2pt}
+% \end{figure}
+
+% \subsubsection{Algorithmic Steps}
+% \input{Algos/CkptGeMM}
+
+% \subsection{Task Completion under Intermittent Execution}
+% \label{appendix:complete}

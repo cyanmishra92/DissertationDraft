@@ -1,0 +1,23 @@
+\begin{algorithm}[H]
+\caption{Measure Cache Characteristics Using Sequential Access}
+\begin{algorithmic}[1]
+\STATE Initialize a large array $A$ with size significantly larger than the expected cache size
+\STATE Define $min\_size$ as the starting size of the data to test (e.g., 1KB)
+\STATE Define $max\_size$ as the maximum size to test (e.g., size of $A$)
+\STATE Define $step\_size$ to increment the test size (e.g., double the size each time)
+\STATE Initialize $previous\_time$ to a high value
+\FOR{size = $min\_size$ to $max\_size$ by $step\_size$}
+    \STATE Access each element in $A[0:size-1]$ sequentially to ensure all data is loaded into cache
+    \STATE Reset and start the high-resolution timer
+    \STATE Access each element in $A[0:size-1]$ again to measure the cache hit time
+    \STATE Record the time taken as $current\_time$
+    \IF{$current\_time$ significantly greater than $previous\_time$}
+        \STATE Print "Estimated cache size boundary at $size$ with time $current\_time$"
+        \STATE Print "Cache hit time for size $size/2$ is $previous\_time$"
+        \STATE Print "Memory hit time (cache miss) for size $size$ is $current\_time$"
+        \STATE Break
+    \ENDIF
+    \STATE $previous\_time = current\_time$
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}

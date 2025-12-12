@@ -1,0 +1,47 @@
+We thank the reviewers for their valuable comments. We have included our answers/comments and revision summary below:
+
+# Specific Questions
+## Reviewer-A
+**Battery-size:** Usas hardware can perform backpropagation on 38 frames using  1J (backup-restore+host). In a single day Usas gets about  116640 exemplar frames (not objects, each frame might have multiple objects). 2 objects/frame needs 6140J (~568.51mAh, 3 x button-cells) for finishing one epoch. However, we want to operate in a battery-free environment for sustainability reasons (Section-2.5).
+
+## Reviewer-B: 
+**Deployment:** The edge servers in this setup are individual servers, not edge datacenters with multi-node instances. However, each server caters towards multiple DNNs (specialized DNNs for each time window of the day, like morning, noon, afternoon, evening etc.). Therefore, they do joint scheduling of training all these DNNs but for the same camera. The number of such servers could reach upto millions. We don’t discount an infrastructure where multiple cameras can benefit from having a central node with multiple such accelerators (like one node with 8 accelerators for 8-10 cameras at one location), but the problem-solution space largely remains the same. The training needs to finish before a fixed time-bound (assumption 24hrs; refer Figure-1). Commercial GPUs, with DVFS could finish <50% of the desired compute in the time bound (Refer Figure-5). Intelligent scheduling, with a custom accelerator, could only take it to ~70%.
+
+**Baseline HW:** Although there are multiple accelerators dedicated for DNN inference, DaDianNao still remains one of the best accelerators for training, thanks to its high energy-efficiency and throughput. We also included the comparison with FlexBlock and Eyeriss V2. We compared our work to Ekya, which is the state-of-the-art multi-tenant  solution for continuous-learning on commercial hardware.
+
+**Benefit Breakdown:** The accuracy benefit is both algorithm and hardware driven. The exemplar selection provides the best exemplar-sets to learn from (contributing to the accuracy and robustness). The micro-profiler suggests the best training-setup given the power budget, and the morphable-hardware manages to finish the majority of the compute leading to better convergence. The contribution depends on the power-profile: while for a stringent power-profile it’s hardware dominating, for a stable power profile it’s mainly algorithmic. We included a breakdown of benefit for multiple power traces (Figure-13a).
+
+**CO2-Footprint:** We do agree that there is a small carbon-footprint associated even with solar powered systems - both in the form of the embodied and operational footprint. We’ll update the text to acknowledge the embodied and the operational components of the CO2. However, the carbon-footprint we report is a representation of the CO2 consumed to produce the energy required to just operate both environments.
+
+## Reviewer-C:
+**Novelty:** We have noted the key novelties of Usas in Section-2.5. We have further augmented the section with specific details to differentiate from the prior works and the conventional design philosophy. 
+
+**DaDianNao Performance:** We updated Figure-12(a) to include the performance of DaDianNao. To make a fair comparison, we showed the instantaneous and average #tiles utilized by DaDianNao and Usas. 
+
+## Reviewer-D:
+**Power Failures:** We use non-volatile state buffers (NVSBs, 18 count, 1 per 4x4 tiles, each of 1kB, and 2 of 4kB each) for state saving. The NVSB contains the global/ asynchronous work queue(Figure-7), the shuffling configuration(minibatch arrangement). Upon predicting a power failure, the work queue schedule, intermediate result, network and layer information is saved. Usas also includes STT-RAM based buffers in the memory hierarchy (parallel to the IF/OF/filter). Upon detecting the power failure, the working set of IF/OF/filter and model state is copied to them. We do NOT replace the buffers with its NV counterpart because of their limited life. Refer to Section-4.4 for more details.
+
+**Wiring Complexity:** We have a small mesh based fabric implemented along with the systolic structure. Each mesh intersection covers a 4x4 tile area and contains a simple arbitration-logic(8x8 priority-mux) and 2*512B of NVSB(double capacity for recurrent failure data storage). Figure-6 has been updated to show the illustration.
+
+## Reviewer-E:
+**Other Use-cases:** The algorithmic contribution of Usas can be used in multiple other scenarios. We have included the results for the exemplar selection and the microprofiler in the revised doc along with its comparison with respective state of the art.
+
+# Revision Summary:
+In the revised text we have augmented Section-2.5 to clearly state the design philosophy and novelty of Usas. This also answers the questions regarding using batteries (from multiple reviewers) for solving the power variations. We also add clarification on the design of the power predictor in Section-3.3. We added an entire segment on the graceful power-down sequence and handling power failures. In evaluation we clarified the issues with energy efficiency and added comparisons to some of the newer accelerators. We updated Figure-13 to show how DaDianNao performs in a monotonically increasing power environment. We also added a section evaluating the contribution of each of the components of Usas towards the accuracy and how the algorithmic contributions can go beyond the current usecase. We also added the key learnings (Section-6). To accommodate the changes, we had to remove certain text and figures. We removed the overall architecture figure in the introduction, and the microprofiler figure. Also, we abridged some text in discussion, and the support for representation learning. 
+
+
+# General Concerns:
+## Key Learnings:
+Compared to most intermittent systems, the ratio of energy requirement of task vs the harvested energy is much higher here. Moreover, there is a sense of timeliness. This makes designing such a system tricky. While many of the prior works have designed their systems around inference using intermittent systems, we are one of the few works which focuses on learning, and the only work which does it on a large scale of data. Energy intermittency leads to selective availability of resources leading to  intermittent availability of memory and interconnect. This gives us a unique platform to think of intermittency beyond embedded systems and beyond just energy. Furthermore, since the number of relevant frames, number of exemplars, and number of training samples rapidly change depending on the scene, time, and many more factors, our system is data intermittent as well. 
+
+## Intermittent vs Power Aware:
+Being battery-less also changes the status-quo, and Usas becomes intermittent by nature. Although the contribution of Usas can be translated to a battery-backed power aware system, in the current setup, and assumption, we treat Usas as a fully intermittent system. 
+
+## Power-trace:
+We DO NOT simulate any of the power traces. We take the real solar data (specifically for the year 2022) provided by the SOLRAD organization of the US Government. So, any variations in them are natural.
+
+## Continuous Learning vs Federated Learning:
+Continuous learning and federated learning are two orthogonal approaches. Federated Learning is a distributed learning approach where models are trained on multiple devices or servers without directly exchanging data. It's about learning location and data privacy. Continuous Learning is an approach where a model learns over time, adapting to new data and tasks without forgetting previous knowledge. It's about learning progression and memory retention. We can apply federated learning for continuous learning approaches (example GBoard). Our goal is to build a specialized model for the task at hand, and CL is a better approach for that. 
+
+## Energy Efficiency:
+We agree that in an intermittent environment, an energy efficient system eventually wins. However, without a battery backup, everytime the system starts from 0 energy and in this case the most energy efficient system that makes forward progress wins. DaDianNao might be energy efficient, but the quanta of energy required to get it going is too high and sustaining it without a backup is not possible. 

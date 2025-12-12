@@ -1,0 +1,57 @@
+\subsection{Re-RAM cross-bar for DNN inference:}
+ReRAM x-bars are an emerging class of computing devices that leverage resistive random-access memory (ReRAM) technology for efficient and low-power computing. These devices can perform multiplication and addition operations in a single operation, making them ideal for many signal processing and machine learning applications. Moreover, these devices can also be used for performing convolution operations, which are widely used in image and signal processing applications.
+%  \begin{figure}[ht]
+%   \centering
+%   %\dummyfig{Sensor Setup}
+%   \includegraphics[clip,width=0.2\linewidth]{figs/XBcell.png}
+%   \caption{Multiply Add using a Re-RAM Cell}
+%   \label{Fig:xbcell}
+% %\end{figure}
+%  \end{figure}
+
+\begin{figure}[ht]
+ \centering
+    \subfloat[Re-RAM Cell]
+    {
+     \includegraphics[width=0.22\linewidth]{figs/XBcell.png}%
+    \label{Fig:xbcell}
+    }
+    %\hfill
+    \subfloat[A Full Re-RAM tile]
+    {
+     \includegraphics[width=0.3\linewidth]{figs/XBfull.png}%
+    \label{Fig:xbfull}
+    }
+    \caption{DNN computation using ReRAM xBAR.}
+    \label{fig:XBar}  
+    %\vspace{-20pt}
+\end{figure}
+ 
+\subsubsection{Simple Single Cell Example:}
+consider a simple example of a ReRAM crossbar array with two cells, where V1 and V2 are the input voltages, G1 and G2 are the conductance values of the ReRAM devices, and I1 and I2 are the resulting output currents. To perform multiplication-addition, we first apply the input voltages V1 and V2 to the rows of the crossbar array. The conductance values G1 and G2 of the ReRAM devices are set to the corresponding weight values for the multiplication operation. The output currents I1 and I2 are then computed as follows:
+\begin{align*}
+I =  I1 + I2 \\ 
+= G1 \times V1 + G2 \times V2
+\end{align*}
+Here, the output currents I1 and I2 are the result of the multiplication of the input voltages V1 and V2 by their respective weight values, which are summed together using the crossbar wires. Please refer to Figure~\ref{Fig:xbcell} for more details. As we can see, the input voltages V1 and V2 are applied to the rows of the crossbar array, while the conductance values G1 and G2 are applied to the columns. The output currents I1 and I2 are the result of the multiplication-addition operation, and are obtained by summing the currents flowing through the ReRAM devices.
+
+In practice, ReRAM crossbar arrays can have many more cells, and can be used to perform more complex multiplication-addition and convolution operations. However, the basic principle remains the same, where the input signals are applied to the rows, the weights are applied to the columns, and the output signals are obtained by summing the currents flowing through the ReRAM devices.
+
+\subsubsection{Extending to Complex Compute:}
+In order to perform multiplication-addition in ReRAM x-bars, two arrays of weights and inputs are used. The inputs are fed to the x-bar, which is a two-dimensional array of ReRAM crossbar arrays. The crossbar arrays are composed of a set of row and column wires that intersect at a set of ReRAM devices (refer Figure~\ref{Fig:xbfull}). The ReRAM devices are programmed to have different resistance values, which are used to store the weights.
+
+%  \begin{figure}[ht]
+%   \centering
+%   %\dummyfig{Sensor Setup}
+%   \includegraphics[clip,width=0.5\linewidth]{figs/XBfull.png}
+%   \caption{A Full Re-RAM tile}
+%   \label{Fig:xbfull}
+% %\end{figure}
+%  \end{figure}
+During the multiplication-addition operation, the input signals are applied to the rows of the x-bar, and the weights are applied to the columns. The output of each ReRAM device is the product of the input and weight signals, which are added together using the crossbar wires. This results in a single output signal that represents the sum of the weighted inputs.
+
+To perform convolution, ReRAM x-bars use a similar approach, but with a more complex circuit. The input signal is applied to the x-bar in the same way, but the weights are now applied in a more structured way. Specifically, the weights are arranged in a way that mimics the convolution operation, such that each weight corresponds to a specific location in the input signal. To perform the convolution operation, the input signal is applied to the rows of the x-bar, and the weights are applied to the columns in a structured way. The output signal is obtained by summing the weighted input signals over a sliding window, which moves across the input signal to compute the convolution.
+
+At the circuit level, the ReRAM x-bar for multiplication-addition typically includes several components, such as digital-to-analog converters (DACs), analog-to-digital converters (ADCs), shift registers, and hold capacitors. The DACs and ADCs are used to convert the digital input and weight signals into analog signals that can be applied to the rows and columns of the x-bar. The shift registers are used to apply the weight signals in a structured way, and the hold capacitors are used to store the analog signals during the multiplication-addition operation. Similarly, for performing convolution, the ReRAM x-bar typically includes additional components, such as delay lines and adders. The delay lines are used to implement the sliding window for the convolution operation, while the adders are used to sum the weighted input signals over the sliding window.
+
+%\end{document}

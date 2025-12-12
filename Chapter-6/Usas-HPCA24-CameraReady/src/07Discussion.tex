@@ -1,0 +1,25 @@
+
+% \noindent\textbf{Key insights:} Compared to most intermittent systems, continuous learning for edge video analytics is a high-energy task operating on a large scale of data. Moreover, task timeliness affects system functionality via determining the duration of accuracy degradation. This makes designing such a system tricky. 
+% % %While many of the prior works have designed their systems around inference using intermittent systems, we are one of the few works which focuses on learning, and the only work which does it on a large scale of data. 
+% This gives us a unique platform to think of intermittency beyond embedded systems and beyond just energy: e.g. how energy intermittency can manifest as intermittent availability of memory and interconnect. Furthermore, since the number of relevant frames, number of exemplars, and number of training samples rapidly change depending on the scene, time, and many more factors, our system is data intermittent as well.
+
+\noindent
+%\textcolor{blue}
+{\textbf{Key insights:} Compared to other systems, the ratio of energy requirement of task vs the harvested energy is much higher here. Added with time constraints, designing such a system becomes tricky. While many of the prior works have designed their systems around inference using intermittent systems, we are one of the few works which focuses on learning, and the only work which does it on a large scale of data. The proposed system is not only energy intermittent, but also memory intermittent, interconnect intermittent and most importantly data intermittent (we don't know how much data and what data). This gives us a unique platform to think of intermittency beyond embedded systems and energy.}
+
+\noindent\textbf{Related Works:} Although there has been significant research~\cite{resiRCA,chinchilla,Origin,footprint,intNAS, stateful, more, intermittentLearning} on enabling machine learning in intermittently powered devices, a majority of it focuses on performing inference. Only intermittent learning~\cite{intermittentLearning} focuses on performing on-device training, but with very small workloads and models. Considering the scale, scope and workload of our problem, limits direct comparisons, except for comparing their exemplar selection method. Similarly, Ekya~\cite{ekya} only focuses on co-location of computation, and it's efficiency on finishing compute even on a custom hardware is shown in Fig.~\ref{Fig:DVFSPrim}. 
+
+%\noindent\textbf{Alternate Power Sources:} A limitation of our work comes from the choice of solar energy: unavailability during night and bad weather makes the deployment harder. However, there has been significant recent  development in portable wind turbines~\cite{aero}, which can be deployed on rooftops, can work with $\ge 5mph$ wind speed, and can provide power equivalent of 15 solar cells. Therefore, similar technologies can be used to augment the harvesting mechanism. 
+
+
+\noindent\textbf{Green Data Centers:} As sustainability gains traction, industry has worked towards building green data centers~\cite{MSGreen,metaGreen}. Although using these data centers for computation can be an alternative, it will not solve the bandwidth and the privacy issues mentioned in \S\ref{sec:introduction}. Moreover, communicating and storing such high volume data will also require energy. Our solution decentralizes this massive compute using a sustainable approach and hence has its own merits. Further, this can help build future solutions using these decentralised nodes for other applications. We do encourage the use of green data centers for other centralized compute applications.  
+
+%\noindent\textbf{Intermittent vs Power-aware:} We do agree that the 
+
+% \begin{itemize}
+%     \item add about green data centers
+%     \item add about alternative wind energy
+%     \item add about generalization
+%     \item add about related works
+%     \item bring the 4 points (non-supervision, functionality, sustainability, and intermittency) together
+% \end{itemize}

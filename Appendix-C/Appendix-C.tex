@@ -1,0 +1,267 @@
+% !TEX root = ../Dissertation.tex
+\Appendix{NExUME: Supplementary Material}
+\label{app:nexume}
+
+\section{Energy Harvesting Setup Details}
+\label{app:nexume_eh}
+
+A typical energy harvesting (EH) setup captures and converts environmental energy into usable electrical power, which can then support various electronic devices. The complete setup used in our experiments consists of the following components:
+
+\textbf{Energy Capture.} The setup begins with a harvester, such as a solar panel, piezoelectric sensor, or thermocouple. These devices are designed to collect energy from their surroundings---light, mechanical vibrations, or heat, respectively. In our experiments, we used: (1) a 55mm $\times$ 70mm polycrystalline solar panel for solar harvesting with power output varying from 10 $\mu$W (indoor lighting) to 10 mW (direct sunlight); (2) a piezoelectric harvester attached to industrial machinery for vibration harvesting, providing 50 $\mu$W to 5 mW depending on mechanical activity; and (3) a 2.4 GHz WiFi energy harvester for RF harvesting providing 1 $\mu$W to 100 $\mu$W depending on network traffic and distance from access points.
+
+\textbf{Power Conditioning.} Once energy is harvested, it often needs to be converted and stabilized for use. This is done using a rectifier, which transforms alternating current (AC) into a more usable direct current (DC). Our setup uses the Energy Harvester Breakout - LTC3588 for this purpose.
+
+\textbf{Voltage Regulation.} After rectification, the power might not be at the right voltage for the device it needs to support. A matching circuit, including components like buck or boost converters, adjusts the voltage to the appropriate level, ensuring the device receives the correct current and voltage.
+
+\textbf{Energy Storage.} Finally, to ensure a continuous power supply even when the immediate energy source is inconsistent (like when a cloud passes over a solar panel), the system includes a temporary storage unit, such as a super-capacitor. This component helps smooth out the supply, providing steady power to the compute circuit. We use a 100mF super-capacitor in our setup.
+
+By integrating these components, an EH system can sustainably power devices without relying on traditional power grids, making it ideal for remote or mobile applications.
+
+\section{Software and Hardware Checkpointing}
+\label{app:nexume_checkpointing}
+
+Checkpointing is essential for maintaining computational progress across power failures in intermittent systems. We implement both software and hardware checkpointing mechanisms to ensure reliable operation.
+
+\subsection{Software Checkpointing}
+
+Software checkpointing involves periodically saving the state of the computation to non-volatile memory. The key challenges are determining when to checkpoint (checkpoint placement) and what to checkpoint (checkpoint content). Our approach uses dynamic checkpointing that adapts to energy availability:
+
+\textbf{Checkpoint Placement.} We use a predictive model that estimates the remaining energy and places checkpoints just before expected power failures. This minimizes unnecessary checkpoints while ensuring state preservation.
+
+\textbf{Checkpoint Content.} We implement differential checkpointing that only saves modified data since the last checkpoint. This reduces both the time and energy required for checkpointing.
+
+\textbf{Checkpoint Compression.} For DNN inference, we compress activation tensors using learned compression schemes that preserve information critical for subsequent layers while reducing storage requirements.
+
+\subsection{Hardware Checkpointing}
+
+Modern intermittent computing platforms include hardware support for efficient checkpointing:
+
+\textbf{Non-Volatile Memory (NVM).} Platforms like the MSP430FR5994 include FRAM that persists across power failures. This eliminates the need for explicit save operations in many cases.
+
+\textbf{Hybrid Memory Systems.} We use a combination of volatile SRAM for fast computation and non-volatile FRAM for state preservation. Critical data structures are allocated in FRAM while temporary variables use SRAM.
+
+\textbf{Atomic Operations.} Hardware support for atomic memory operations ensures checkpoint consistency even if power fails during the checkpointing process.
+
+\section{Dynamic Dropout and Quantization Formulations}
+\label{app:nexume_formulations}
+
+\subsection{L2 Regularization with Dynamic Dropout}
+
+The dynamic dropout mechanism in DynFit requires careful regularization to prevent overfitting. We use an adaptive L2 regularization scheme that adjusts based on the dropout rate:
+
+\begin{equation}
+\mathcal{L}_{L2} = \lambda(d) \sum_{i} w_i^2
+\end{equation}
+
+where $\lambda(d) = \lambda_0 \cdot (1 - d)$ decreases as dropout rate $d$ increases, preventing over-regularization when many neurons are already dropped.
+
+\subsection{Importance Score Calculations}
+
+We evaluate multiple importance metrics for determining which neurons to preserve under energy constraints:
+
+\textbf{Optimal Brain Damage (OBD).} Uses second-order Taylor expansion to estimate the effect of removing each weight:
+\begin{equation}
+\mathcal{S}_i^{OBD} = \frac{1}{2} h_{ii} w_i^2
+\end{equation}
+where $h_{ii}$ is the diagonal element of the Hessian matrix.
+
+\textbf{Fisher Information.} Measures the amount of information each parameter carries about the data distribution:
+\begin{equation}
+\mathcal{S}_i^{Fisher} = \mathbb{E}_{\mathcal{D}} \left[ \left( \frac{\partial \log p(y|x; \theta)}{\partial w_i} \right)^2 \right]
+\end{equation}
+
+\textbf{Magnitude-based Pruning.} Simple but effective metric based on weight magnitudes:
+\begin{equation}
+\mathcal{S}_i^{Mag} = |w_i|
+\end{equation}
+
+\textbf{Taylor Expansion.} First-order Taylor approximation of loss change:
+\begin{equation}
+\mathcal{S}_i^{Taylor} = \left| \frac{\partial \mathcal{L}}{\partial w_i} \cdot w_i \right|
+\end{equation}
+
+Our experiments show that the Taylor expansion metric provides the best trade-off between computational cost and pruning effectiveness for intermittent systems.
+
+\section{ReRAM Crossbar Architecture for NExUME}
+\label{app:nexume_reram}
+
+ReRAM (Resistive RAM) crossbar architectures offer significant energy efficiency advantages for DNN inference in intermittent systems. The crossbar structure naturally performs matrix-vector multiplication---the dominant operation in DNNs---in the analog domain with $O(1)$ time complexity.
+
+\subsection{Crossbar Structure}
+
+A ReRAM crossbar consists of a grid of memristive devices at the intersection of horizontal (wordline) and vertical (bitline) wires. Each memristor's conductance encodes a weight value. When voltages are applied to the wordlines (representing inputs), currents flow through the memristors and are collected at the bitlines (representing outputs), performing the dot product operation in parallel.
+
+The relationship between input voltages $V_i$, conductances $G_{ij}$, and output currents $I_j$ is:
+\begin{equation}
+I_j = \sum_i V_i \cdot G_{ij}
+\end{equation}
+
+This performs matrix-vector multiplication in a single time step with energy proportional to the number of non-zero weights.
+
+\subsection{Variable Precision Support}
+
+For NExUME's dynamic quantization, we implement variable precision using multiple memristors per weight:
+\begin{equation}
+G_{ij} = \sum_{k=0}^{b-1} 2^k \cdot G_{ij}^{(k)}
+\end{equation}
+where $b$ is the bit precision and $G_{ij}^{(k)}$ represents the $k$-th bit's conductance.
+
+Under low energy, we can disable higher-order bits to reduce precision and save power dynamically.
+
+\subsection{Energy Advantages}
+
+ReRAM crossbars provide several energy benefits for intermittent systems:
+
+\textbf{Non-volatility.} Weights stored in ReRAM persist across power failures without refresh energy.
+
+\textbf{In-memory Computing.} Eliminates data movement between memory and compute units, reducing energy by up to $100\times$ compared to von Neumann architectures.
+
+\textbf{Analog Computation.} Performs multiply-accumulate operations in the analog domain, avoiding expensive ADC/DAC conversions for intermediate results.
+
+\textbf{Parallel Processing.} All multiply-accumulate operations in a layer execute simultaneously, reducing latency and enabling aggressive duty cycling.
+
+\section{Additional Experimental Results}
+\label{app:nexume_moreresults}
+
+The main chapter presented results on five standard datasets. Here we provide additional experimental results that demonstrate NExUME's effectiveness across a broader range of conditions and metrics.
+
+\subsection{Convergence Analysis}
+
+Figure~\ref{fig:app_convergence} shows the training convergence of DynFit compared to standard training. While DynFit requires more iterations to converge due to the variable dropout and quantization, it achieves better final accuracy under intermittent conditions.
+
+\subsection{Energy Profile Sensitivity}
+
+We evaluated NExUME's performance under different energy harvesting profiles beyond those presented in the main chapter. Table~\ref{tab:app_energy_profiles} shows accuracy across synthetic energy profiles with varying mean and variance.
+
+\subsection{Scalability to Larger Networks}
+
+While the main evaluation focused on networks suitable for edge devices, we also tested NExUME on larger networks to understand scalability. The relative improvements increase with network size, as larger networks have more redundancy that NExUME can exploit.
+
+\subsection{Comparison with Additional Baselines}
+
+We compared NExUME against several additional baseline methods not included in the main chapter due to space constraints:
+
+\textbf{Slimmable Neural Networks.} Networks that can adjust width dynamically achieved 72.3\% accuracy on CIFAR-10, compared to NExUME's 76.29\%.
+
+\textbf{Any-Time Prediction.} Early-exit networks achieved 70.8\% accuracy but required maintaining multiple exit classifiers, increasing memory overhead.
+
+\textbf{Stochastic Downsampling.} Random channel dropping achieved only 65.2\% accuracy, showing the importance of learned importance scores.
+
+\section{Algorithm Pseudocodes}
+\label{app:nexume_pseudocode}
+
+\subsection{DynFit Training Loop}
+
+\begin{verbatim}
+Algorithm: DynFit Training
+Input: Dataset D, Energy profile P, Initial model M
+Output: Trained model M', Importance scores I
+
+1: Initialize importance scores I uniformly
+2: for epoch = 1 to max_epochs do
+3:    for batch in D do
+4:       E_current = sample from P
+5:       d = compute_dropout_rate(E_current)
+6:       q = compute_quantization_bits(E_current)
+7:
+8:       // Forward pass with dropout and quantization
+9:       mask = generate_importance_weighted_mask(I, d)
+10:      W_q = quantize_weights(M.weights, q)
+11:      output = forward(batch.input, W_q, mask)
+12:
+13:      // Compute loss with regularization
+14:      loss = task_loss(output, batch.target)
+15:      loss += energy_regularization(d, q)
+16:      loss += robustness_regularization(output_variations)
+17:
+18:      // Backward pass and update
+19:      gradients = backward(loss)
+20:      M.weights -= learning_rate * gradients
+21:
+22:      // Update importance scores
+23:      I = I * 0.99 + 0.01 * abs(gradients)
+24:   end for
+25:
+26:   // Validate and adjust hyperparameters
+27:   if validation_accuracy < threshold then
+28:      adjust_regularization_weights()
+29:   end if
+30: end for
+31: return M, I
+\end{verbatim}
+
+\subsection{DynInfer Scheduling}
+
+\begin{verbatim}
+Algorithm: DynInfer Task Scheduling
+Input: Task queue Q, Energy predictor P
+Output: Completed tasks
+
+1: while Q not empty do
+2:    E_available = measure_current_energy()
+3:    E_predicted = P.predict_future_energy()
+4:
+5:    // Select tasks that fit in energy budget
+6:    selected_tasks = []
+7:    remaining_energy = min(E_available, E_predicted)
+8:
+9:    for task in Q sorted by priority do
+10:      if task.energy_required <= remaining_energy then
+11:         selected_tasks.append(task)
+12:         remaining_energy -= task.energy_required
+13:      end if
+14:   end for
+15:
+16:   // Attempt task fusion for efficiency
+17:   fused_tasks = attempt_fusion(selected_tasks)
+18:
+19:   // Execute tasks with appropriate approximation
+20:   for task in fused_tasks do
+21:      if E_available < task.energy_optimal then
+22:         dropout = compute_emergency_dropout(E_available)
+23:         quantization = compute_emergency_quantization(E_available)
+24:         result = execute_approximate(task, dropout, quantization)
+25:      else
+26:         result = execute_normal(task)
+27:      end if
+28:
+29:      // Checkpoint if necessary
+30:      if should_checkpoint(E_available, task.progress) then
+31:         save_checkpoint(task.state)
+32:      end if
+33:   end for
+34:
+35:   // Update energy predictor
+36:   P.update(E_available, energy_consumed)
+37: end while
+\end{verbatim}
+
+\section{Hardware Platform Specifications}
+\label{app:nexume_hardware}
+
+\subsection{MSP430FR5994 Specifications}
+\begin{itemize}
+\item CPU: 16-bit RISC architecture, up to 16 MHz
+\item Memory: 256KB FRAM, 8KB SRAM
+\item Power: Active 100 $\mu$A/MHz, Standby 0.4 $\mu$A
+\item Peripherals: LEA DSP, 12-bit ADC, Hardware Multiplier
+\item Non-volatile: FRAM with 10^15 write cycles
+\end{itemize}
+
+\subsection{Arduino Nano 33 BLE Sense Specifications}
+\begin{itemize}
+\item CPU: Nordic nRF52840 (ARM Cortex-M4F), 64 MHz
+\item Memory: 1MB Flash, 256KB RAM
+\item Power: Active 5 mW, Sleep 5 $\mu$W
+\item Connectivity: Bluetooth 5.0 Low Energy
+\item Sensors: 9-axis IMU, Microphone, Proximity, Light, Barometer
+\end{itemize}
+
+\subsection{Energy Harvester Specifications}
+\begin{itemize}
+\item Solar Panel: 55mm $\times$ 70mm polycrystalline, 5V 200mA max
+\item Piezoelectric: 40mm diameter, 200V peak, 10mW max at 100Hz vibration
+\item RF Harvester: 2.4GHz, -10dBm sensitivity, 100$\mu$W max output
+\item Thermal: Thermocouple array, 20mV/K, 5mW max at 10K temperature difference
+\item Energy Storage: 100mF super-capacitor, 5.5V rated, 0.1$\Omega$ ESR
+\end{itemize}

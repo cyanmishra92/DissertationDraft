@@ -1,0 +1,72 @@
+\subsection{Learning Sparse Masks Dropout with QuantaTask Optimization}
+\label{appendix:spmask}
+Learning Sparse Masks Dropout adapts dropout masks as learnable parameters within the network, inspired by Wen et al. (2016), combined with the QuantaTask optimization to handle energy constraints in intermittent systems.
+
+\textbf{Mathematical Formulation:}
+Let \(\mathbf{W}\) be the weight matrix of a layer. Define a binary dropout mask \(\mathbf{m} = [m_1, m_2, \ldots, m_n]\) where \(m_i \in \{0, 1\}\). In Learning Sparse Masks Dropout, the dropout masks are treated as learnable parameters. The mask values are determined using a sigmoid function to ensure they lie between 0 and 1:
+\[
+m_i = \sigma(z_i)
+\]
+where \(z_i\) are learnable parameters and \(\sigma(\cdot)\) is the sigmoid function.
+
+Apply the dropout mask during the forward pass. Let \(\mathbf{a}_i\) denote the activation of neuron \(i\):
+\[
+\mathbf{a}_i^{\text{dropout}} = \mathbf{a}_i \cdot m_i
+\]
+
+Compute the loss \(\mathcal{L}(\mathbf{Y}, \mathbf{\hat{Y}})\) where \(\mathbf{Y}\) is the output of the network and \(\mathbf{\hat{Y}}\) is the target output.
+
+DynFit integrates closely with DynAgent, which serves as a repository of EH profiles and hardware characteristics. Let \(\mathcal{Q}\) represent the set of execution quanta, where each quanta \(q \in \mathcal{Q}\) is defined by a tuple \((l, e)\):
+\[
+q = (l, e)
+\]
+Here, \(l\) is the number of loop iterations and \(e\) is the estimated energy required for these iterations. The goal is to optimize the loop iteration parameter \(l\) such that the energy consumption \(E_q\) for each quanta \(q\) is within the energy budget \(E_b\):
+\[
+\text{minimize} \quad \sum_{q \in \mathcal{Q}} E_q \quad \text{subject to} \quad E_q \leq E_b
+\]
+
+\textbf{Training with Learning Sparse Masks Dropout and QuantaTask Optimization:}
+Initialize the network parameters \(\mathbf{W}\), dropout mask parameters \(\mathbf{z}\), and scaling factor \(\alpha\). Define the energy budget \(E_b\) for a single quanta and for the entire inference. Initialize the loop iteration parameters \(l\).
+
+Compute the activations \(\mathbf{a}\) and apply the dropout mask:
+\[
+m_i = \sigma(z_i)
+\]
+\[
+\mathbf{a}_i^{\text{dropout}} = \mathbf{a}_i \cdot m_i
+\]
+
+Compute the loss \(\mathcal{L}(\mathbf{Y}, \mathbf{\hat{Y}})\). Calculate the gradients of the loss with respect to the weights and dropout mask parameters:
+\[
+\frac{\partial \mathcal{L}}{\partial W_{ij}}, \quad \frac{\partial \mathcal{L}}{\partial z_i}
+\]
+For each layer \(L\) and loop \(i\) within the layer, estimate the energy \(E_i\) required for the current quanta size \(l_i\):
+\[
+E_i \gets \text{DynAgent.estimateEnergy}(L, i, l_i)
+\]
+If \(E_i > E_b\), fuse tasks to reduce the overhead:
+\[
+\text{FuseTasks}(L, i, l_i, E_b)
+\]
+Update \(E_i\) after task fusion:
+\[
+E_i \gets \text{DynAgent.estimateEnergy}(L, i, l_i)
+\]
+
+
+Update the dropout mask parameters \(\mathbf{z}\) based on the gradients:
+\[
+z_i \leftarrow z_i - \eta \frac{\partial \mathcal{L}}{\partial z_i}
+\]
+
+Perform the backward pass to update the network weights, considering the dropout mask:
+\[
+\mathbf{W} \leftarrow \mathbf{W} - \eta \frac{\partial \mathcal{L}}{\partial \mathbf{W}} \odot \mathbf{m}
+\]
+where \(\eta\) is the learning rate and \(\odot\) denotes element-wise multiplication.
+
+\textbf{Inference with Learning Sparse Masks Dropout and QuantaTask Optimization:}
+Check the available energy using DynAgent.
+If energy is below a threshold, increase the dropout rate to ensure the inference can be completed within the energy budget. Otherwise, maintain or reduce the dropout rate to improve accuracy.
+Perform the forward pass with the updated dropout mask to obtain the output \(\mathbf{Y}\).
+This approach ensures that the network is robust to varying energy conditions by incorporating dynamic dropout with learnable mask parameters, along with the QuantaTask optimization to handle energy constraints.

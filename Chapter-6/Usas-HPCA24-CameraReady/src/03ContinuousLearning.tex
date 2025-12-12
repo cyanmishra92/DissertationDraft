@@ -1,0 +1,64 @@
+%\vspace{-2pt}
+The first step to any data-driven learning algorithm is data collection and annotation. Since $\USS$ is a continuous learning framework and learns from the live data that the camera(s) capture, data collection is simply storing the live video feed. However, data annotation or labeling is more challenging. Classically, once data is collected, it is classified, labeled, and bounded by borders (bounding box) mostly using manual labor (at times with software assistance) or crowd sourcing~\cite{label01,label02,label03}. This requires the data to be present at a central location for manual inspection, both of which are not possible because of communication and privacy constraints. Therefore, we adapt a ``student-teacher paradigm''~\cite{student_teacher01}, where a more general, robust and larger model (typically with hundreds of millions of parameters~\cite{kerasAPI,cocoBM}) helps in annotating the data. However, because of the heavy compute requirements, the teacher model runs with a much slower frame rate and annotates only some (important) frames. There has been a significant body of work on frame similarity and saliency~\cite{shulinISCA, shulinMICRO, ziyuICDCS,framesim1, framesim2, framesim3}, and those details remain beyond the scope of this work. 
+\begin{figure}
+%\vspace{-2pt}
+  \centering 
+\includegraphics[width=\linewidth]{figs/AutoLabel.pdf}
+  %\vspace{-4pt}
+  \caption{Auto-labeling in $\USS$: Select frames only with low confidence as they might contain potentially new information, and use ensemble learning to improve the labeling.}
+  \label{Fig:CLlabel}
+  %\vspace{-16pt}
+\end{figure}
+\subsection{Data Annotation}
+\label{subsec:annotation}
+\noindent \underline{\textbf{Picking the Important Ones:}} Typically, edge models are capable of inferring at the frame rate of the camera (at times, 30fps to 60fps)~\cite{coralT}. However, the teacher model used to label the incoming data cannot match this in a resource-constrained environment where performing training is going to be even more resource consuming. Therefore, we employ an intelligent ``data sampling mechanism'' to select the frames that might contain new information and a potential candidate for learning. Fig.~\ref{Fig:CLlabel} shows the different components of the student-teacher data annotation model adapted in $\USS$, where the edge model is the ``student'' (continuously retrained), and larger models are the ``teachers'' (the ones teaching the student about what-is-what). 
+%\textcolor{blue}
+{The students models are typically optimized for edge, i.e. with optimizations like quantization, pruning etc. or by developing an application specific model from scratch along with the said optimizations. These student models, thanks to their lack of robustness (which is often, but not always, related to the smaller footprint they have, and thereby lacking the parameter space to generalize better), are susceptible to data drift and hence are continuously retrained. However, the teacher models are typically large, and with a wide parameter space can generalize the learning process better than the students. These teacher models are often factory trained. As they are less prone to drift, they need occasional updates.} For each sampled frame, the classification results and the confidence matrix (output of the last layer) are  sent for annotation. If the student (or the edge model) is confident about the classification (e.g. a clear frame with no new objects, or a frame similar to one of the training samples), then that frame is discarded as it potentially contains little to no new information. However, if the student is not confident on the classification, the frame is then saved as a potential exemplar (we will further refine this in \S\ref{subsec:exemplar}). The potential exemplars are then further refined and classified by the teacher models. To improve the confidence of the teacher models, we employ an ensemble learning based weighted majority voting policy~\cite{cocktail}. Each of the teacher models infers on the exemplar frame. Furthermore, each teacher model has its private confidence matrix on different object classes. 
+This confidence  matrix serves as a weight for performing the ensemble of multiple teachers, and helps exploiting the expertise of each of the teacher models for each of the individual classes, significantly boosting the accuracy and robustness of the data annotation. 
+This maximizes the accuracy of the teacher, and consequently minimizes the chance of the student model learning wrong labels. Note that the limited parameters of the student make it more sensitive to data fidelity and hence ensuring an accurate data labeling is very important for end to end classification accuracy. The impact of wrong labeling is discussed in \S\ref{sec:eval}.  
+\begin{figure}
+%%\vspace{-2pt}
+  \centering 
+\includegraphics[trim={0 40pt 0 1pt},clip, width=\linewidth]{figs/biastrain.pdf}
+  %\vspace{-6pt}
+  \caption{
+  %\textcolor{blue}
+  {Distribution of different classes on a typical traffic pattern and the impact of training on the sampling bias. The ''appeared`` line represents the percentage of the frames in which the corresponding class is present, e.g. Fire hydrant, in the taken scene, is present in 100\% of the frames. Incorrect exemplar selection might lead to non-IID training data distribution, leading to catastrophic forgetting or over-fitting.}}
+  \label{Fig:biastrain}
+  %\vspace{-10pt}
+\end{figure}
+
+\noindent \underline{\textbf{The Problem:}} However, this exemplar section mechanism has an inherent flaw. Consider a traffic camera looking at a busy street with a traffic signal. Due to the traffic distribution (e.g., more cars than buses), the camera typically sees a varied distribution of different classes, which might reflect in the exemplar set. Moreover, some static objects (traffic light, stop sign, etc.) might be present in all frames. This creates a sampling ``bias''~\cite{samplingbias} while performing the training, and often leads to catastrophic forgetting. Fig.~\ref{Fig:biastrain} shows a typical traffic distribution from Urban Traffic data~\cite{UrbanTraffic}) and the impact of sampling bias on class distribution. Note that, as some of the classes (e.g., bicycles) are barely present in the exemplar, the model tend to lose accuracy (because of catastrophic forgetting) on them, whereas the model rapidly over-fits for the classes with more examples (e.g., traffic light). 
+
+\subsection{Proper Exemplar Selection}
+\label{subsec:exemplar}
+To tackle the sampling bias~\cite{samplingbias}, we adapt a representation learning~\cite{icarl} framework for designing the proper exemplar selection. The fundamental issue with the previous approach is the inability to select correct numbers of IID data for training. In addition to that, just DNN training cannot  learn new classes if there is no way to annotate and label new classes. Representation learning solves both these issues.  
+
+% \begin{figure}[h]
+%   \centering 
+% \includegraphics[width=0.9\linewidth]{figs/iCARLD.pdf}
+%   %\vspace{-6pt}\caption{Representation learning flow and cartoon example of updating the feature space upon encountering new data.}
+%   \label{Fig:iCARLD}
+%   %\vspace{-6pt}
+% \end{figure} 
+
+%\textcolor{blue}
+{The learner (here the teacher models) need to properly classify the data, learn if the data is a new type of one of the older classes, and identify if it encounters a new class. We achieve this by clustering the feature vector of the Large DNN model. Fundamentally, we use the larger DNN models as feature extractors which turn the data into a feature vector. In the original training phase, these feature vectors are separated using K-means~\cite{icarl} or other clustering. The cluster centers for each data ($\mu_y$ for class $y$) are calculated as $\mu_y = \frac{1}{P_y}\sum_{p \in P_y}\Phi(p)$,
+% \begin{align*}
+% \mu_y = \frac{1}{P_y}\sum_{p \in P_y}\Phi(p), 
+% \end{align*},
+where $P_y$ is the number of samples belonging to class (or cluster $y$), and $\Phi$ is the feature extraction function working on the data $p$. These clusters represent the classes in the high dimensional feature space. When the classifier sees new data ($x$), it calculates its distance from all the cluster centers as $y^* = \min_{y = 1 \dots t}||\Phi(x)-\mu_y||$. There are three cases:} %\textcolor{blue}
+
+{\noindent\textbf{Case-1:} If the data is close to one of the cluster centers and belongs to its cluster boundary, then it falls into the bucket of that particular class. This typically happens if the data are very similar to the training samples.}
+%\textcolor{blue}
+
+{\noindent\textbf{Case-2:} If the data belongs to a known class, but is significantly different from the training samples, it falls not too far from one of the clusters. This distance of the new data from the cluster center is called the ``distillation loss''~\cite{icarl}. An encounter of a new example of the existing class is followed by an update to the clustering by minimizing the classification loss of the newly-seen data.}
+%\textcolor{blue}
+
+{\noindent\textbf{Case-3:}  Finally, if the classifier sees an example of a new class then the feature vector of the data sits far from all the cluster centers indicating an unknown class. The distance of this feature vector from the other cluster center is called ``classification loss''~\cite{icarl}, and this re-triggers clustering with an updated number of clusters.}
+
+
+Over multiple time windows, the representation learner goes through all the possible exemplars selected by using the confidence matrix and creates an exemplar set with same number of examples from each possible class.  Since we have multiple teacher models, each of them contributes to the exemplar set, making it robust and removing bias. To efficiently implement the exemplar selection algorithm,  $\USS$ implements the major portions using ``custom hardware'' (discussed in \S\ref{subsec:MHW}). The annotations on the new exemplar set created by the representation learner is compared against the confidence matrix of the edge model to calculate the ``drift''. Consequently, this exemplar set becomes the training data for the continuous learning, which consequently minimizes the drift. Once the student model is trained with the exemplar set, the data is discarded and the feature space for the teacher models is updated. By doing this,  $\USS$ keeps {\em both} the student and the teacher models ``updated.'' Since the feature space of the teacher model is updated using K-means+, the major computation is the training of the student model using the exemplar data. Although efficient hardware accelerators~\cite{dadiannao,sparsetrain,sarmaSparse} have been developed to do the same, these accelerators are typically designed with a ``throughput-first'' approach and are neither configured nor capable of operating with an intermittent power source. Deploying sufficient battery resources to allow intermittency-unaware designs to operate on solar power is neither efficient nor sustainable.% The only way these hardware accelerators can operate with dynamic solar power is by storing the harvested power to a battery and then utilizing the same to perform training, which is neither efficient nor sustainable. 
+
+%%%%%
+

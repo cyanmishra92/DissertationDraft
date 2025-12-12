@@ -1,0 +1,95 @@
+%  \begin{figure}
+%   \centering 
+%   \includegraphics[width=\linewidth]{figs/SeekerFull.pdf}
+%   \caption{Full Seeker.}
+%   \label{Fig:FullSeeker}
+%   %\vspace{-8pt}
+% \end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ \begin{figure} 
+    \subfloat[Data volume with dynamic coresets]
+    {%
+     \includegraphics[clip,width=\linewidth]{figs/SeekerFull.pdf}%
+    \label{Fig:SeekerFull}
+    }
+    
+    %\hfill
+    \subfloat[Fraction of inferences completed with different EH sources]
+    {%
+     \includegraphics[clip,width=\linewidth]{figs/AnytimeCoreset.pdf}%
+    \label{Fig:AnytimeCoreset}
+    }
+    
+    \caption{Accuracy and communication efficiency of \emph{Seeker} with different data sets and its sensitivity towards various EH sources.}
+    %\vspace{-0.1cm}
+    \label{fig:AllSensitivity}  
+    %\vspace{-0.5cm}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+By leveraging the coreset construction techniques discussed in Section~\ref{sec:DSE}, we design \emph{Seeker: A synergistic sensor host ecosystem}. Figure~\ref{Fig:system_design} gives a pictorial representation of the overall design of \emph{Seeker} and its various components.
+\textit{Seeker} leverages the concept of NVP, and employs a flexible store and execute method using the state of the art ReRAM crossbar architecture~\cite{Origin} to perform inference at the edge. It augments the sensor nodes with two different quantized DNNs (16 bit and 12 bit) to  increase the number of completed inferences at the sensor node itself. Prior studies~\cite{netadapt,ResiRCA,drq-isca2020} and our empirical analysis on the quantization vs accuracy trade-offs (see Fig.~\ref{Fig:quantized-accuracy}) indicate the 16 and 12bit precision to maximize the accuracy of the inferences while minimizing the energy consumption. Moreover, we also implement the memoization option so that it does not have to repeat inferences if it encounters similar data, thereby saving substantial energy as well as delivering results with extremely low latency. However, even with all these optimizations, due to the fickle nature of EH, \textit{Seeker} cannot finish all the inferences at the edge and must communicate with a host device. To minimize the data communication overhead between the sensor-node and the host device, \textit{Seeker} utilizes coresets to build representative, yet compressed, forms of the data. 
+
+To cater towards the fickle EH budget, we use the two different coreset construction techniques, described in Section~\ref{sec:DSE}: a cheaper, less accurate formation (importance sampling) and a more expensive, yet accurate formation (K-means). Transmitting coresets rather than raw data greatly improves the energy efficiency of communication to the host, when required, and effectively increases the number of completed inferences, thereby increasing overall accuracy. Depending on the incoming data and the EH budget, the sensor decides whether to skip compute, perform an inference at the edge, or form a coreset to offload the inference to the host. The host, after obtaining information from multiple sensors, performs any further required computation and uses ensemble learning~\cite{Origin} to give an accurate classification result. Note that, unlike prior EH-WSN systems~\cite{Origin}, the role of the host device here is not limited to just result aggregation; rather, the host participates and performs inference when the sensors do not have enough energy and choose to communicate the data (in the form of coresets) to the host. In this section, we will explain, in detail, the overall execution workflow of the \emph{Seeker} system, followed by the the detailed design of the hardware support to maximize its energy efficiency.
+
+
+
+\subsection{Decision Flow: From Sensors to the Host}
+Figure~\ref{Fig:DecsionFlowSeeker} depicts a flow chat showing the decision process taken in the sensor nodes to navigate between each components. Each sensor has a data buffer that collects the data points for classification (implemented using a 60 $\times 3$ FIFO structure of 4Byte cells to store the floating point data. The $\times 3$ caters towards the multiple channels of the sensor. The moving window is designed using a counter to shift the streaming data.) The sensor also stores one ground truth trace for each activity. The sensor computes the correlation (\circled{1a}) between the stored ground truth and the current data. If the correlation coefficient is $\geq threshold$ (\circled{1b}) the sensor skips all computation and sends the result to the host. Otherwise, the sensor prioritizes local computation and, with the help of a moving average power predictor~\cite{Origin}, predicts whether it can finish the quantized DNN inference with the combination of stored energy and expected income (\circled{2a} and \circled{2b}).  If energy is insufficient for DNN inference, the sensor will use coreset formation to communicate the important features to the host, which completes the inference. Since the clustering based coreset is typically more accurate then those formed by importance sampling, the former is preferred, when possible. We increase the frequency of cluster-based formation by using custom, energy efficient hardware. With the help of an activity-aware and recoverable coreset construction and low-power hardware design, we can efficiently communicate inferences or compressed data to the host device with minimum power and latency overheads. 
+
+ \begin{figure}
+  \centering 
+  \includegraphics[width=0.65\linewidth]{figs/SeekerDecisionFlow.pdf}
+  \caption{Decision flow of Seeker.}
+  \label{Fig:DecsionFlowSeeker}
+  %\vspace{-8pt}
+\end{figure}
+
+
+
+
+
+\emph{Seeker}, accounting for the available energy budget, considers the following decisions:
+\textbf{D0:} Test for data similarity using correlation, and if similarity is found then communicate the results to the host;
+\textbf{D1:} DNN at sensor with raw data + Communicate the results to the host;
+\textbf{D2:} Try Quantized DNN inference and communicate the results to the host;
+\textbf{D3:} Clustering based coreset construction at the sensor, and communicate the coreset to the host; host runs DNN inference on the reconstructed data; and
+\textbf{D4:} Importance sampling based coreset construction at the sensor and communicate the coresets to the host; host recovers the original data with the pre-programmed generator, and performs inference with the recovered data.  
+Table~\ref{tab:energy-numbers-table} lists the energy requirements of each of these decisions.
+
+\begin{table}
+\centering
+\resizebox{0.45\textwidth}{!}{%
+\begin{tabular}{|l|l|l|l|l|}
+\hline
+\textbf{Strategy} & \textbf{Sensor Energy} & \textbf{Comm. Energy} & \textbf{Total Energy} & \textbf{Avg Acc (\%)} \\ \hline
+D0 & 0.54  & 8.27  & 8.81  & --\\ \hline
+D1 & 29.23 & 8.27  & 37.5  & 80.03\\ \hline
+D2 & 16.58 & 8.27  & 24.85 & 77.37\\ \hline
+D3 & 1.07  & 15.97 & 17.04 & 78.30\\ \hline
+D4 & 0.87  & 15.97 & 16.84 & 85.30\\ \hline
+raw data & -- & 70.16 & 70.16 & 87.23\\ \hline
+
+\end{tabular}%
+}
+\caption{Energy breakdown of different Seeker strategies (in $\mu$Joules). The accuracy reported is the average case over $\ge 1000$ inferences.}
+\label{tab:energy-numbers-table}
+%\vspace{-8pt}
+\end{table}
+
+\subsection{Efficient Hardware Accelerator}
+\label{hardwaresupport}
+Energy harvesting brings challenges in both average power levels and power variability. Performing DNN inference under such conditions often limits exploitation of inherent DNN parallelism within the energy budget. Therefore, many prior works use custon DNN accelerators, typically based on (non-volatile) resistive RAM (Re-RAM) based~\cite{ResiRCA, Origin} crossbar architecture, to perform DNN inference on EH-sensor nodes. \textit{Seeker}'s inference engine follows the design proposed in ResiRCA~\cite{ResiRCA} and modifies it to cater towards new quantization requirements: We have two different instances of the Re-RAM crossbar in our system - one for the 16bit model and one for the 12-bit model. The nonvolatile nature of the Re-RAMs helps in performing intermittent computing with the harvested energy. Moreover, techniques like loop tiling and partial sums~\cite{ResiRCA} can further break down the computation to maximize forward progress with minimum granularity. 
+
+\begin{figure}
+  \centering 
+  \includegraphics[width=\linewidth]{figs/39.pdf}
+  \caption{Energy consumption comparison of the clustering accelerator vs the SoTA hardware}
+  \label{Fig:accvssota-cluster}
+\end{figure}
+
+While DNN inference is already accelerated in the sensor node, the addition of a general-purpose processor for coreset computation would be energy inefficient. Specifically, the computation requirement is fixed and does not require the overheads to support generality. Therefore, we add a low power, low latency coreset construction hardware. Comparing the energy consumption of the proposed clustering accelerator with  Adafruit ItsyBitsy nRF52840 Express - Bluetooth LE~\cite{adafruitI} suggests the accelerator to be $\approx 3.7\times 10^{3}$ times energy efficient (refer Figure~\ref{Fig:accvssota-cluster}).
+Both the coreset construction algorithms follow a sequence of multiply and add/subtract operations followed by averaging, and hence can be simply designed with few logic units. Moreover, as we are operating with lower data volume, these operations can be parallel (for example, the clustering hardware simultaneously works on all the cluster formations). The bigger challenge is posed by the requirement of a variable number of iterations for these algorithms to converge, the number of clusters/samples required, etc.  To efficiently design the hardware and configure its parameters, we run several experiments and empirically arrive at the following conclusions: \textbf{1.} The clustering finishes within 4 iterations and, for importance sampling, it takes up to 7 iterations. \textbf{2.} None of the clusters have more than 16 points during any clustering. \textbf{3.} We need not store all the points in either cases at every iteration, rather the clustering hardware needs to store the sum, the radii of the clusters, the number of points per cluster, and the importance sampling hardware needs just the points. \textbf{4.} Storing the radii helps in easily selecting the points in the subsequent iterations. 
+
+\vspace{-8pt}

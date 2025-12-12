@@ -1,0 +1,98 @@
+%\appendix
+\section{Proof of Convergence for the Equilibrium-Aware Training Process}
+\label{appendix:equilibrium_training_convergence}
+
+In this appendix, we provide a comprehensive and detailed proof of the convergence theorem stated in the main text. We also elaborate on how the new loss function, the introduced regularizers, and their gradients integrate into the backpropagation and stochastic gradient descent (SGD) steps. Additionally, we discuss bounds on the newly introduced hyperparameters and provide guidelines for selecting them.
+
+\subsection*{Problem Setting and Notation}
+
+We consider a global inference model \( f_{\theta} : \mathcal{X} \to \mathcal{Y} \) parameterized by \(\theta \in \mathbb{R}^d\). The model’s performance is measured by a loss function \(\ell : \mathcal{Y} \times \mathcal{Y} \to \mathbb{R}_{\ge0}\) that is convex in \(\theta\) for any fixed input-label pair \((x,y)\). The model operates in an energy-harvesting wireless sensor network (EH-WSN) environment where sensors participate strategically in inference tasks based on a game-theoretic equilibrium.
+
+Let \(\mathcal{D}\) denote the effective data distribution induced by the equilibrium strategies of the sensors. Under equilibrium conditions, the distribution \(\mathcal{D}\) is stationary or at least stationary over sufficiently large timescales. The expected loss is
+\[
+L(\theta) = \mathbb{E}_{(x,y)\sim \mathcal{D}}[\ell(f_{\theta}(x), y)].
+\]
+
+To enhance robustness and efficiency, we introduce two regularizers:
+\[
+\Omega_{\text{SNR}}(\theta) \quad \text{and} \quad \Omega_{\text{complexity}}(\theta).
+\]
+\(\Omega_{\text{SNR}}(\theta)\) encourages the model to perform reasonably well across varying SNR levels, while \(\Omega_{\text{complexity}}(\theta)\) penalizes overly complex models that might demand excessive energy or communication costs. Both are assumed convex and have bounded gradients.
+
+The final training objective is:
+\[
+J(\theta) = L(\theta) + \lambda_1 \Omega_{\text{SNR}}(\theta) + \lambda_2 \Omega_{\text{complexity}}(\theta),
+\]
+where \(\lambda_1, \lambda_2 \geq 0\) are hyperparameters controlling the influence of the regularizers.
+
+Our goal is to show that by running a diminishing step-size SGD on \(J(\theta)\), using unbiased gradient estimates from the equilibrium distribution \(\mathcal{D}\), the parameters \(\{\theta_k\}\) converge in expectation to a stationary point \(\theta^*\) of \(J(\theta)\).
+
+\subsection*{Key Assumptions and Conditions}
+
+\begin{enumerate}
+    \item \textbf{Convexity of \(\ell\).} The loss \(\ell(f_{\theta}(x), y)\) is convex in \(\theta\). Consequently, the expected loss \(L(\theta)\) is also convex.
+    \item \textbf{\(L\)-smoothness of \(\ell\).} There exists a constant \(L > 0\) such that for all \(\theta,\theta'\),
+    \[
+    \|\nabla L(\theta) - \nabla L(\theta')\| \leq L \|\theta - \theta'\|.
+    \]
+    This ensures that \(L(\theta)\) is Lipschitz-smooth.
+    \item \textbf{Convexity and boundedness of regularizers.} The regularizers \(\Omega_{\text{SNR}}\) and \(\Omega_{\text{complexity}}\) are convex in \(\theta\), and their gradients are bounded. Let
+    \[
+    \|\nabla \Omega_{\text{SNR}}(\theta)\| \leq G_1, \quad \|\nabla \Omega_{\text{complexity}}(\theta)\| \leq G_2 \quad \forall \theta.
+    \]
+    \item \textbf{Stationary distribution \(\mathcal{D}\).} The equilibrium participation strategies induce a stationary effective distribution \(\mathcal{D}\). Over sufficiently large timescales, the system does not drift away from this equilibrium, and samples \((x,y)\) can be considered drawn i.i.d. from \(\mathcal{D}\).
+    \item \textbf{Unbiased gradient estimates.} When the aggregator requests a training update, a subset of sensors, determined by equilibrium conditions, provide local gradients. Although not all sensors participate every time, the equilibrium ensures a stable pattern of participation. Averaged over multiple rounds, the collected gradients form an unbiased estimator \(\widehat{\nabla}L(\theta)\) of \(\nabla L(\theta)\):
+    \[
+    \mathbb{E}[\widehat{\nabla} L(\theta)] = \nabla L(\theta).
+    \]
+    Since the regularizers are deterministic, their gradients \(\nabla \Omega_{\text{SNR}}(\theta)\) and \(\nabla \Omega_{\text{complexity}}(\theta)\) do not introduce bias.
+\end{enumerate}
+
+\subsection*{Integration of Regularizers in Backpropagation and SGD}
+
+During the training iteration \(k\):
+\begin{enumerate}
+    \item \textbf{Forward pass:} Each participating sensor collects data \((x,y)\) and evaluates \(\ell(f_{\theta_k}(x), y)\).
+    \item \textbf{Backward pass:} The sensor computes \(\nabla_{\theta}\ell(f_{\theta_k}(x),y)\) via standard backpropagation. To incorporate regularizers, the sensor (or the aggregator after collecting updates) adds \(\lambda_1 \nabla \Omega_{\text{SNR}}(\theta_k)\) and \(\lambda_2 \nabla \Omega_{\text{complexity}}(\theta_k)\). These gradients are computed analytically since the regularizers are explicit, differentiable functions of \(\theta\).
+    \item \textbf{Aggregation:} The aggregator averages the received gradients:
+    \[
+    \widehat{\nabla} J(\theta_k) = \widehat{\nabla} L(\theta_k) + \lambda_1 \nabla \Omega_{\text{SNR}}(\theta_k) + \lambda_2 \nabla \Omega_{\text{complexity}}(\theta_k).
+    \]
+    Since \(\mathbb{E}[\widehat{\nabla} L(\theta_k)] = \nabla L(\theta_k)\), we also have \(\mathbb{E}[\widehat{\nabla} J(\theta_k)] = \nabla J(\theta_k)\).
+    \item \textbf{Update step:} With a chosen step size \(\alpha_k\),
+    \[
+    \theta_{k+1} = \theta_k - \alpha_k \widehat{\nabla} J(\theta_k).
+    \]
+\end{enumerate}
+
+\subsection*{Diminishing Step-Size and Convergence Results}
+
+Classical convex optimization theory (see Bottou et al. (2018) or Nemirovski et al. (2009)) states that for convex, Lipschitz-smooth objectives and unbiased gradient oracles, SGD converges to a stationary point if the step sizes \(\{\alpha_k\}\) decrease at an appropriate rate. A common choice is \(\alpha_k = 1/\sqrt{k}\), but any diminishing sequence with \(\sum_k \alpha_k = \infty\) and \(\sum_k \alpha_k^2 < \infty\) works.
+
+Under these conditions, we have:
+\[
+\lim_{k \to \infty} \mathbb{E}[J(\theta_k)] = J(\theta^*) \quad \text{and} \quad \lim_{k \to \infty} \mathbb{E}[\|\nabla J(\theta_k)\|] = 0.
+\]
+This implies \(\theta_k\) converges in expectation to a stationary point \(\theta^*\) of \(J(\theta)\).
+
+\subsection*{Equilibrium Stability and Impact on Stationarity}
+
+The key subtlety is that \(\mathcal{D}\) depends on equilibrium strategies. However, the equilibrium ensures a stable operating regime where sensor behaviors—and thus \(\mathcal{D}\)—do not change drastically over time. This stability allows us to treat \(\mathcal{D}\) as effectively fixed for the purpose of the asymptotic analysis. If \(\mathcal{D}\) were to drift significantly, standard SGD results would not directly apply. The equilibrium prevents such non-stationary behavior in the long run.
+
+Furthermore, since the regularizers are deterministic and have bounded gradients, they do not add pathological conditions to the optimization landscape. They may alter the shape of \(J(\theta)\), encouraging certain regions of parameter space, but they do not prevent convergence. On the contrary, they may help by smoothing out undesirable minima or limiting model complexity.
+
+\subsection*{Bounding and Selecting Hyperparameters \(\lambda_1, \lambda_2\)}
+
+The choice of \(\lambda_1\) and \(\lambda_2\) affects the curvature of \(J(\theta)\) and can influence convergence speed and the location of \(\theta^*\). Some guidelines include:
+\begin{enumerate}
+    \item Start with small values of \(\lambda_1\) and \(\lambda_2\) to avoid overwhelming the primary loss \(L(\theta)\). Gradually increase them if the model relies too heavily on high-SNR data or becomes too complex.
+    \item Ensure \(\lambda_1 \leq \frac{c_1}{G_1}\) and \(\lambda_2 \leq \frac{c_2}{G_2}\) for some constants \(c_1,c_2 > 0\), to prevent excessively large gradients due to the regularizers.
+    \item Tune \(\lambda_1,\lambda_2\) based on validation performance. If the model overfits high-SNR data, increase \(\lambda_1\). If it becomes too large and slow to run, increase \(\lambda_2\).
+\end{enumerate}
+By keeping \(\lambda_1,\lambda_2\) within reasonable bounds, we ensure that the modified gradient \(\widehat{\nabla} J(\theta)\) remains well-behaved, preserving the conditions for SGD convergence.
+
+We have shown that under the stated assumptions—convexity and smoothness of \(\ell\), convexity and bounded gradients of \(\Omega_{\text{SNR}}\) and \(\Omega_{\text{complexity}}\), stationarity of \(\mathcal{D}\) induced by equilibrium strategies, and unbiased gradient estimates—the diminishing step-size SGD applied to \(J(\theta)\) converges in expectation to a stationary point \(\theta^*\).
+
+The equilibrium ensures \(\mathcal{D}\) remains stable, allowing classical stochastic optimization theory to hold. The regularizers, being convex and with bounded gradients, integrate seamlessly into the backpropagation and SGD updates, shaping the optimization landscape but not invalidating convergence properties. Proper selection and tuning of \(\lambda_1,\lambda_2\) help maintain stable and robust training dynamics.
+
+Thus, the proposed training process achieves a harmonious balance: it respects the strategic, energy-constrained environment (through equilibrium and game-theoretic considerations), while leveraging well-established convex optimization guarantees to ensure convergence of the global model parameters.

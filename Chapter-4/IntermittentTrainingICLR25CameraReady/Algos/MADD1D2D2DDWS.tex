@@ -1,0 +1,27 @@
+\begin{algorithm}[H]
+\caption{From CONV1D to Depthwise Separable CONV2D}
+\begin{algorithmic}[1]
+\STATE \textbf{Function} MADD($inputA$, $inputB$, \&$out$): \# Multiply-Accumulate
+\STATE \quad $out \leftarrow out + inputA \times inputB$
+
+\STATE \textbf{Function} CONV1D($inputA$, $inputB$, $out$): \# 1D Convolution using MADD
+\STATE \quad \textbf{for} $i \leftarrow 0$ \textbf{to} $|inputA| - |inputB|$
+\STATE \quad \quad \textbf{for} $j \leftarrow 0$ \textbf{to} $|inputB| - 1$
+\STATE \quad \quad \quad MADD($inputA[i+j]$, $inputB[j]$, $out[i]$)
+
+\STATE \textbf{Function} CONV2D($inputA$, $inputB$, $out$): \# Extend CONV1D to 2D
+\STATE \quad \textbf{for} $i \leftarrow 0$ \textbf{to} $rows(inputA) - rows(inputB)$
+\STATE \quad \quad \textbf{for} $j \leftarrow 0$ \textbf{to} $cols(inputA) - cols(inputB)$
+\STATE \quad \quad \quad \textbf{for} $k \leftarrow 0$ \textbf{to} $rows(inputB) - 1$
+\STATE \quad \quad \quad \quad \textbf{for} $l \leftarrow 0$ \textbf{to} $cols(inputB) - 1$
+\STATE \quad \quad \quad \quad \quad MADD($inputA[i+k][j+l]$, $inputB[k][l]$, $out[i][j]$)
+
+\STATE \textbf{Function} DepthwiseSeparableConv2D($inputA$, $depthwiseKernels$, $pointwiseKernel$, $out$): \# Depthwise and Pointwise
+\STATE \quad \textbf{for} $c \leftarrow 0$ \textbf{to} $channels(inputA)$
+\STATE \quad \quad CONV2D($inputA[c]$, $depthwiseKernels[c]$, $out[c]$) \# Depthwise convolution
+\STATE \quad \textbf{for} $i \leftarrow 0$ \textbf{to} $rows(out) - 1$
+\STATE \quad \quad \textbf{for} $j \leftarrow 0$ \textbf{to} $cols(out) - 1$
+\STATE \quad \quad \quad \textbf{for} $k \leftarrow 0$ \textbf{to} $channels(out) - 1$
+\STATE \quad \quad \quad \quad MADD($out[k][i][j]$, $pointwiseKernel[k]$, $finalOut[i][j]$) \# Pointwise convolution
+\end{algorithmic}
+\end{algorithm}

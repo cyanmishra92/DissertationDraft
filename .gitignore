@@ -1,0 +1,41 @@
+# =========================
+# LaTeX build artifacts
+# =========================
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.blg
+*.nav
+*.snm
+*.vrb
+*.bcf
+*.run.xml
+*.acn
+*.acr
+*.alg
+*.glg
+*.glo
+*.gls
+*.ist
+*.xdy
+
+# =========================
+# OS / editor junk
+# =========================
+.DS_Store
+Thumbs.db
+*~
+*.swp
+*.swo
+
+# =========================
+# Windows ADS junk
+# =========================
+*Zone.Identifier*

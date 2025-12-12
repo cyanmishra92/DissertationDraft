@@ -1,0 +1,117 @@
+%%%%% Packages and Commands by Cyan %%%%%
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+
+
+\usepackage{multirow}
+\usepackage{wrapfig}
+
+\usepackage{graphics}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{wrapfig}
+\usepackage[subfigure]{tocloft}
+\usepackage{subcaption}
+\usepackage{amsfonts,bm}
+\usepackage{natbib} 
+
+\usepackage{macros}
+% \usepackage{algorithm}
+% \usepackage{algorithmic}
+% \usepackage{float}  % For math environments and symbols Ensure the 'H' position specifier is available
+\usepackage{algorithm}
+
+%\usepackage{algorithmic}
+
+\usepackage{algpseudocode}
+\usepackage{amsmath}
+\usepackage{float}
+\usepackage{multicol}
+\usepackage{setspace}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows}
+\usepackage{circuitikz}
+ \usepackage{tabularray}
+ \usepackage{multirow}
+
+\usepackage[inline]{enumitem}
+
+
+
+\section{Introduction}
+\label{sec:introduction}
+\input{src/01Introduction}
+
+% %-------------------------------------------------------------------------------
+
+% %-------------------------------------------------------------------------------
+%\vspace{-4pt}
+\section{Background and Motivation}
+\label{sec:bg-rw}
+\input{src/02BGnMotivation}
+
+% %-------------------------------------------------------------------------------
+
+% %-------------------------------------------------------------------------------
+%\vspace{-4pt}
+\section{SW}
+\label{sec:dse}
+\input{src/03DSE}
+
+% %-------------------------------------------------------------------------------
+
+% %-------------------------------------------------------------------------------
+%\vspace{-4pt}
+% \section{Proper Exemplar Selection in Machine Learning Storage Servers}
+% \label{sec:Exm}
+% \input{src/04ExemplarSelction}
+
+% %-------------------------------------------------------------------------------
+
+% %-------------------------------------------------------------------------------
+%\vspace{-4pt}
+\section{DSE}
+\label{sec:SE}
+\input{src/04SCnSE}
+
+% %-------------------------------------------------------------------------------
+
+% %-------------------------------------------------------------------------------
+%\vspace{-4pt}
+% \section{Integration and Design Implementation}
+% \label{sec:imple}
+% \input{src/05DesignImplementation}
+
+% %-------------------------------------------------------------------------------
+
+% %-------------------------------------------------------------------------------
+%\vspace{-4pt}
+\section{Implementation and Evaluation  }
+\label{sec:eval}
+\input{src/06Evaluation}
+
+% %-------------------------------------------------------------------------------
+
+% %-------------------------------------------------------------------------------
+%\vspace{-4pt}
+\section{Conclusions}
+\label{sec:conclusion}
+\input{src/08Conclusion}
+
+% %-------------------------------------------------------------------------------
+
+%%%%%%% -- PAPER CONTENT ENDS -- %%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%% CONTENT ENDS HERE %%%%%%%%%%%%%%%%
+
+%%%%% %%%% %%%%%%%% %%%%%

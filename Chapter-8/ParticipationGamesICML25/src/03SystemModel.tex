@@ -1,0 +1,153 @@
+\section{System Model}
+\label{sec:system_model}
+
+We consider a network of \(N\) EH sensors \(\mathcal{S} = \{s_1, s_2, \dots, s_N\}\) deployed to monitor a common scene. Each sensor observes the environment from a distinct vantage point. Time is slotted and indexed by \( t \in \mathbb{N} \). In each time slot, the network may perform an inference event, during which sensors have the opportunity to contribute data that enhances the accuracy of a global inference task, such as object detection or environmental classification.
+
+Each sensor \( s_i \) harvests energy from ambient sources, such as solar or vibrational energy, resulting in a stochastically varying energy supply. We denote by \( E_i(t) \) the energy harvested by sensor \( s_i \) during slot \( t \). The sensor maintains an energy buffer whose state evolves as
+\[
+B_i(t+1) = B_i(t) + E_i(t) - e_i(t),
+\]
+where \( B_i(t) \) is the energy available at the beginning of slot \( t \), and \( e_i(t) \) is the energy expended during that slot. Predicting future energy intake is challenging, so each sensor employs an estimator \(\hat{E}_i(t+1)\) to anticipate its upcoming energy resources. 
+%In practice, \(\Delta A_i(t)\) and \(\hat{E}_i(t+1)\) are estimated with some uncertainty. 
+%Although 
+Incorporating uncertainty-aware models or robust estimation techniques is beyond the scope of this paper.
+%, it represents a promising direction for future work. These predictions inform the sensor’s strategic decision-making, balancing current participation against future energy availability.
+
+Prior to deployment, a global inference model \( f_{\theta} \) is trained offline on representative data and distributed to each sensor. This model maps sensor observations to inference outputs. Although parameters \(\theta\) can theoretically be updated through on-edge training, we assume that frequent retraining in situ is prohibitively expensive given energy constraints. Thus, \(\theta\) remains largely static post-deployment. Sensors focus on inference using their local copies of \( f_{\theta} \). However, the subsequent training framework, discussed in Section~\ref{sec:training_framework}, allows for occasional fine-tuning of \(\theta\) based on equilibrium-driven participation, thereby refining the model to better suit the operational dynamics of the network.
+
+In each inference event, sensors decide whether to participate. If sensor \( s_i \) participates at time \( t \), it must capture data at a chosen Signal-to-Noise Ratio (SNR), process the data using \( f_{\theta} \), and transmit the result to a designated \emph{lead sensor}. High-SNR data capture improves the sensor’s contribution to global accuracy but consumes more energy. Let \( e_{\text{cap}}(\text{SNR}) \) denote the energy required for capture at a given SNR level. We assume a monotonic relationship: higher SNR increases both the capture cost and the expected accuracy contribution. This assumption simplifies the model by ensuring that better data quality unequivocally enhances inference performance, while also making the energy expenditure predictable.
+%based on SNR choices. 
+In addition to capture costs, participation incurs inference computation cost \( e_{\text{inf}} \) and communication cost \( e_{\text{comm}} \). Thus, if sensor \( s_i \) participates with SNR \(\text{SNR}_i(t)\), its total energy expenditure is
+\[
+e_i(t) = e_{\text{cap}}(\text{SNR}_i(t)) + e_{\text{inf}} + e_{\text{comm}}
+\]
+
+The improvement in global inference accuracy due to sensor \( s_i \) is denoted by \(\Delta A_i(t)\). This quantity depends on \(\text{SNR}_i(t)\) and on the data contributed by other participating sensors, as their combined perspectives shape the overall result. While \(\Delta A_i(t)\) may not be known precisely, we assume that each sensor can estimate its expected contribution based on historical observations and current conditions.
+Every inference event presents a binary decision for sensor \( s_i \):
+% \[
+$a_i(t) \in \{\text{Participate (P)}, \text{Not Participate (NP)}\}.$
+% \]
+Choosing \(\text{P}\) involves selecting an SNR level, incurring energy costs, and aiming to improve global accuracy. Choosing \(\text{NP}\) conserves energy but forfeits any contribution or associated reward. Because sensors have limited energy and the network may operate for extended periods, each sensor must consider the future implications of its current actions. The interplay of multiple sensors making similar decisions under uncertainty and energy constraints naturally suggests a game-theoretic framework for modeling their interactions.
+
+\section{Game-Theoretic Modeling}% of Participation Strategies}
+\label{sec:game_theory}
+
+%To effectively manage sensor participation in EH-WSNs, we model the interaction among sensors as a non-cooperative game. Each sensor is considered a rational player aiming to maximize its long-term utility. The game is iteratively played over time, with an inference event occurring in each time slot \( t \). Let \(\mathbf{a}(t) = (a_1(t), \dots, a_N(t))\) denote the action profile at time \( t \), where \( a_i(t) \in \{\text{Participate (P)}, \text{Not Participate (NP)}\} \) represents the decision of sensor \( s_i \).
+
+\subsection{Motivation for Game Theory over Simpler Methods}
+
+While heuristic methods—such as always selecting the top-\(k\) sensors based on current energy levels—or greedy algorithms that maximize immediate utility might offer straightforward solutions, they fall short in addressing the strategic and long-term dynamics inherent in EH-WSNs. These simplistic approaches ignore the interdependencies among sensor decisions and fail to account for future resource allocation, potentially leading to suboptimal performance over time. For instance, always selecting the highest-energy sensors can rapidly deplete their energy reserves, reducing the network's resilience during critical future events.
+
+Alternatively, reinforcement learning or Markov Decision Process-based approaches could adaptively learn participation policies that consider both immediate rewards and future states. However, these methods often require extensive training data, significant computational resources, and complex communication protocols, which may be impractical for resource-constrained sensor nodes.
+
+In contrast, a game-theoretic framework provides equilibrium guarantees, ensuring stable and cooperative participation strategies. By modeling each sensor as a rational player optimizing its own utility, we can derive participation patterns that are robust against unilateral deviations. This stability is crucial for maintaining long-term network performance without necessitating continuous recalibration or extensive communication overhead.
+
+\subsection{Utility Function Definition}
+
+We define a utility function \( U_i(t) \) for each sensor \( s_i \) that encapsulates the trade-off between accuracy gains and energy expenditures, as well as future opportunities. The utility function is designed to reflect both immediate rewards and long-term sustainability.
+
+\paragraph{Immediate Rewards and Penalties:}
+Let \(\gamma > 0\) be a scaling factor that translates accuracy gains into utility rewards. When sensor \( s_i \) participates (\( a_i(t) = \text{P} \)) and contributes correctly to the inference task, it receives a reward proportional to the improvement in global accuracy, denoted by \(\Delta A_i(t)\):
+\[
+R_i(t) = \begin{cases}
+\gamma \cdot \Delta A_i(t), & \text{if } a_i(t) = \text{P} \text{ and correct inference}, \\
+-\delta, & \text{if } a_i(t) = \text{P} \text{ and incorrect inference}, \\
+-\eta, & \text{if } a_i(t) = \text{NP}.
+\end{cases}
+\]
+Here, \(\delta > 0\) penalizes incorrect participation, discouraging sensors from submitting low-quality data, while \(\eta > 0\) penalizes non-participation to prevent perpetual abstention. Importantly, we set \(\eta > \delta\), ensuring that consistently opting out is more detrimental than occasionally providing inaccurate data.
+
+\paragraph{Energy Costs and Future Utility:}
+Participation incurs energy costs, reducing the sensor's capacity for future tasks. Additionally, sensors must consider the discounted value of future utility. Let \( C_i(t) \) represent the cost component:
+\[
+C_i(t) = e_i(t) + \beta V_i(t+1),
+\]
+where \( e_i(t) \) is the total energy expenditure for participation, encompassing data capture, inference computation, and communication:
+\[
+e_i(t) = e_{\text{cap}}(\text{SNR}_i(t)) + e_{\text{inf}} + e_{\text{comm}}.
+\]
+The discount factor \(\beta \in [0,1)\) captures how sensors value future utility, with \( V_i(t+1) \) representing the expected future utility given current decisions and predicted energy availability \(\hat{E}_i(t+1)\).
+
+\paragraph{Overall Utility Function:}
+Combining immediate rewards and costs, the overall utility function for sensor \( s_i \) at time \( t \) is:
+\[
+U_i(t) = R_i(t) - C_i(t).
+\]
+This utility function effectively balances the benefits of participation against the associated costs and future opportunities, guiding sensors to make strategic decisions that optimize their long-term contributions to the network.
+
+\paragraph{Nash Equilibrium and Stability:}
+A Nash equilibrium (NE) represents a stable action profile \(\mathbf{a}^*(t)\) where no sensor can unilaterally improve its utility by deviating from its current strategy:
+\[
+U_i(a_i^*(t), \mathbf{a}_{-i}^*(t)) \geq U_i(a_i(t), \mathbf{a}_{-i}^*(t)) \quad \forall a_i(t), \forall i.
+\]
+Achieving an NE ensures that sensor participation patterns are stable; once equilibrium is reached, no single sensor benefits from changing its participation decision independently. This stability is critical for maintaining consistent network performance and energy sustainability over time.
+
+\paragraph{Distributed Best-Response Algorithm:}
+To realize the NE, we propose a distributed best-response algorithm where each sensor iteratively adjusts its action based on the current state and the expected actions of others. The algorithm operates as follows:
+
+\begin{algorithm}[]
+\caption{Distributed Best-Response Participation Algorithm}
+\label{alg:best_response_revised}
+\begin{algorithmic}[1]
+\STATE \textbf{Input:} Current energies \( B_i(t) \), predicted harvest \(\hat{E}_i(t+1)\), parameters \(\gamma, \delta, \eta, \beta\), and energy costs \( e_{\text{cap}}(\cdot), e_{\text{inf}}, e_{\text{comm}} \).
+\STATE \textbf{At each inference event:}
+\STATE Each sensor \( s_i \) receives a solicitation from the lead sensor and forms an estimate of \(\Delta A_i(t)\) given potential SNR choices and expected actions of others.
+\STATE For each action candidate \( a_i(t) \in \{\text{P}, \text{NP}\} \), the sensor computes the expected utility:
+\[
+U_i^{a_i(t)} = \mathbb{E}[R_i(t)] - \mathbb{E}[e_i(t)] - \beta \mathbb{E}[V_i(t+1)],
+\]
+where the expectations are taken over uncertainties in correctness, SNR impact, and future energy.
+\STATE If \(U_i^{\text{P}} \geq U_i^{\text{NP}}\) and \( B_i(t) \geq e_{\text{cap}}(\text{SNR}_i(t)) + e_{\text{inf}} + e_{\text{comm}}\), then \( s_i \) chooses \(\text{P}\). Otherwise, it chooses \(\text{NP}\).
+\STATE After all sensors decide, the action profile \(\mathbf{a}(t)\) is realized, and energies are updated:
+\[
+B_i(t+1) = B_i(t) + E_i(t) - e_i(t).
+\]
+\STATE Sensors iterate this process at each inference event, refining their estimates and converging to stable action patterns.
+\end{algorithmic}
+\end{algorithm}
+
+Sensors employ this best-response mechanism, continuously updating their participation decisions based on the evolving network state and the actions of other sensors. Over repeated iterations, under suitable conditions, this process converges to a Nash equilibrium where participation strategies are mutually optimal.
+
+\paragraph{Existence and Convergence of Equilibrium:}
+
+\begin{theorem}
+\label{theorem:equilibrium_convergence_revised}
+Suppose that each utility function \( U_i(t) \) is non-decreasing in \(\Delta A_i(t)\), that energy constraints and discounting ensure diminishing marginal returns for repeated deviations, and that sensors have consistent estimation of \(\Delta A_i(t)\) and \(\hat{E}_i(t+1)\). Then, the iterative best-response updates described in Algorithm~\ref{alg:best_response_revised} converge to a Nash equilibrium action profile \(\mathbf{a}^*(t)\).
+\end{theorem}
+
+\paragraph{Proof of Theorem~\ref{theorem:equilibrium_convergence_revised}:}
+The proof constructs a potential function \(\Phi(\mathbf{a}(t)) = \sum_{i=1}^N U_i(a_i(t), \mathbf{a}_{-i}(t))\) that strictly increases whenever a sensor makes a profitable unilateral deviation. Since utilities are bounded (due to finite energy and limited accuracy gains) and returns diminish over time, no infinite sequence of profitable deviations is possible. Hence, the best-response dynamics must terminate at a profile where no sensor can improve its utility alone, i.e., a Nash equilibrium. A complete formal proof, including all technical conditions, is provided in Appendix~\ref{appendix:equilibrium_proof_reward}.
+
+%This equilibrium concept ensures that the sensors settle into stable, efficient participation strategies that balance accuracy contributions, energy constraints, and long-term viability.
+
+% \subsection{Limitations, Discussion and Guidelines}
+
+% \paragraph{Limitations:}
+% While equilibrium strategies lead to a stationary effective distribution \(\mathcal{D}\), real-world conditions may evolve over time due to changes in ambient energy availability, sensor failures, or shifts in environmental dynamics. Such non-stationarities can disrupt the established equilibrium, necessitating adaptive mechanisms to maintain stable participation patterns. Although our current model assumes slow-changing conditions that can be approximated as stable over sufficiently long intervals, addressing rapidly changing environments remains an open challenge. Future work could explore dynamic equilibrium models or incorporate online learning techniques to enhance resilience against non-stationary conditions.
+
+\paragraph{Guidelines for Hyperparameter Selection:}
+The parameters \(\gamma\), \(\delta\), and \(\eta\) critically influence sensor behavior by dictating the trade-offs between participation rewards, penalties for incorrect submissions, and deterrents against non-participation. Detailed guidelines for selecting these hyperparameters are provided in Appendix~\ref{appendix:hyperparameters}. Briefly, these parameters should be chosen to ensure that:
+%\begin{itemize}
+    \textbf{(1)} \(\gamma\) sufficiently incentivizes correct participation without leading to excessive energy expenditure.
+    \textbf{(2)} \(\delta\) appropriately penalizes incorrect inferences, discouraging low-quality data contributions.
+    \textbf{(3)} \(\eta > \delta\) to prevent sensors from consistently abstaining, thereby promoting overall network engagement.
+%\end{itemize}
+These guidelines help in balancing immediate utility gains with long-term energy sustainability, ensuring that the game-theoretic model drives desirable participation behaviors.
+
+%By leveraging a game-theoretic framework, we establish a robust mechanism for sensor participation in EH-WSNs that accounts for strategic interactions, energy constraints, and long-term performance objectives. This approach offers significant advantages over simpler heuristic or more complex RL-based methods, providing equilibrium guarantees and stable participation patterns essential for sustainable network operation. The integration with a federated learning framework further enhances the model's adaptability and robustness, enabling periodic fine-tuning of global inference models in alignment with equilibrium-driven sensor behaviors.
+
+
+% \appendix
+
+% \section{Proof of Theorem~\ref{theorem:equilibrium_convergence_revised}}
+% \label{appendix:equilibrium_proof}
+
+% \noindent\textbf{Proof:} Consider the potential function
+% \[
+% \Phi(\mathbf{a}(t)) = \sum_{i=1}^N U_i(a_i(t), \mathbf{a}_{-i}(t)).
+% \]
+% Since \(U_i\) accounts for both immediate accuracy gains and energy costs, as well as discounted future utilities, each unilateral action change that strictly increases a single sensor’s utility must also increase \(\Phi(\mathbf{a}(t))\).
+
+% Bounded energy and accuracy improvements imply \(\Phi(\mathbf{a}(t))\) is bounded above. Suppose there was an infinite sequence of unilateral profitable deviations. Each would strictly increase \(\Phi(\mathbf{a}(t))\), contradicting boundedness. Thus, no infinite improvement sequence is possible.
+
+% Eventually, no sensor can increase its utility through a unilateral change, indicating that \(\mathbf{a}(t)\) is a Nash equilibrium. The assumptions on non-decreasing \(\Delta A_i(t)\), consistent estimation, and the discount factor \(\beta\) ensure that no complex cyclical behavior emerges. Thus, the best-response dynamics converge to an NE. \(\hfill\square\)

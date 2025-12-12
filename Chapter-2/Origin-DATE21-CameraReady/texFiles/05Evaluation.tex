@@ -1,0 +1,129 @@
+% \begin{figure*}[htbp]
+%   %\dummyfig{Sensor Setup} 
+%   \includegraphics[width=0.98\linewidth]{Figures/MHEALTHResults.pdf}
+%  \caption{Accuracy on MHELATH Dataset: The figure plots the accuracy results of the different policies described in Section~\ref{sec:DesignSpaceExploration} and Section~\ref{sec:origin}. RR indicates the extended round-robin policy in use and pred indicates power predictor only model. EAP indicates the baseline with the pruned DNN and Ideal indicates the baseline without pruning}
+%   \label{Fig:evalMHELATH}
+% \end{figure*}
+
+% \begin{figure*}[htbp]
+%   %\dummyfig{Sensor Setup} 
+%   \includegraphics[width=0.98\linewidth]{Figures/PAMAP2Results.pdf}
+%   \caption{Accuracy on PAMAP2 Dataset: The figure plots the accuracy results of the different policies described in Section~\ref{sec:DesignSpaceExploration} and Section~\ref{sec:origin}. RR indicates the extended round-robin policy in use and pred indicates power predictor only model. EAP indicates the baseline with the pruned DNN and Ideal indicates the baseline without pruning}
+%   \label{Fig:evalPAMAP2}
+% \end{figure*}
+
+\begin{figure}%[htbp]
+  %\dummyfig{Sensor Setup}
+  \begin{minipage}[!]{\linewidth}
+  \begin{subfigure}[!]{\textwidth}
+  \centering
+  \includegraphics[width=0.98\linewidth]{Figures/MHEALTHResults.pdf}
+  \caption{Accuracy with MHEALTH dataset.}
+ %\caption{Accuracy on MHELATH Dataset: The figure plots the accuracy results of the different policies described in Section~\ref{sec:DesignSpaceExploration} and Section~\ref{sec:origin}. RR indicates the extended round-robin policy in use and pred indicates power predictor only model. EAP indicates the baseline with the pruned DNN and Ideal indicates the baseline without pruning}
+  \label{Fig:evalMHELATH}
+  \end{subfigure}
+  \end{minipage}
+\begin{minipage}[!]{\linewidth}
+ \begin{subfigure}[!]{\textwidth}
+  \centering
+  %\dummyfig{Sensor Setup} 
+  \includegraphics[width=0.98\linewidth]{Figures/PAMAP2Results.pdf}
+  %\caption{Accuracy on PAMAP2 Dataset: The figure plots the accuracy results of the different policies described in Section~\ref{sec:DesignSpaceExploration} and Section~\ref{sec:origin}. RR indicates the extended round-robin policy in use and pred indicates power predictor only model. EAP indicates the baseline with the pruned DNN and Ideal indicates the baseline without pruning}
+ \caption{Accuracy with PAMAP2 dataset.}
+ \label{Fig:evalPAMAP2}
+  \end{subfigure}
+  \end{minipage}
+  \caption{Accuracy results of the different policies described in Section~\ref{sec:origin}. RR indicates the extended round-robin policy in use, e.g. RR6 AAS represents AAS with RR6.}
+  \label{Fig:AccuracyResult}
+\end{figure}
+
+
+%The high level objective of \emph{Origin} is to design an accurate DNN classifier on energy harvesting wireless sensor network to perform human activity recognition. We combine intelligent scheduling and ensemble learning to reach the accuracy of a battery backed system. 
+In this section we explain the strategy for evaluating \emph{Origin}. We discuss about the hardware and software framework, and the accuracy of \emph{Origin} compared to two different baselines.
+
+\subsection{Energy Harvester and Sensor Setup}
+\label{subsec: eval/EHSensorSetup}
+Our evaluation setup consists of three sensors at three different locations. First sensor at the chest, second on the right wrist and last sensor on the left ankle. Each sensor consists of four major components, namely, the sensing component, an IMU, which collects acceleration and attitude data, an energy harvester which harvest the surrounding RF (WiFi) energy, a compute component same as~\cite{ResiRCA} and a wireless communication module (BLE or WiFi) to connect to a host device (battery backed mobile phone). We assume the communication cost to be negligible since it infrequently sends a few bytes of data to the host. 
+%rather than communicating to a cloud server using network. 
+To replicate the energy harvesting, we use a real power trace harvested from a WiFi source while doing various day to day tasks in an office environment~\cite{ResiRCA}. 
+The specifics of the energy-harvesting mechanism producing the power trace are beyond the scope of this work.% Do we need two power traces?
+ %We chose this trace to mimic a real world scenario. Furthermore, RF signals are the most common and abundant indoor source of harvested energy. Even though the average harvested power is of the order of hundreds of micro watts, we believe it makes more sense to use that rather than the solar power which gives several times more average power bur is impractical to avail at all the time.
+
+%We do not discuss energy harvesting mechanism %and the process of conditioning the harvested energy, 
+% for that discussion is beyond the scope of our work. 
+% but encourage interested readers to refer to cite{} 
+\subsection{DNN Classifier and the Dataset}
+Our DNN design choices are inspired from the works in~\cite{HARHaChoi,HARHompel}. However, instead of designing a centralized DNN which processes the combined data from all the sensors, we design three different smaller DNNs that work on their individual data. Further, to build an energy efficient version of the DNNs, we applied the energy-aware DNN optimizations proposed in~\cite{netadapt,EAPruning}. %We evaluate two different pruned flavors of the DNN to showcase their accuracy using \emph{Origin}. 
+We use two different datasets, MHEALTH~\cite{mHealth,mHealthDroid}, and PAMAP2~\cite{PAMAP21,PAMAP22}, for our evaluation which follow the similar sensor setup described in Section~\ref{subsec: eval/EHSensorSetup}. The DNNs were trained on the training data-sets using the Keras~\cite{keras} framework.
+
+\subsection{Accuracy Results}
+\hspace{-4.5mm} \textbf{Baseline:} We choose two baselines for our evaluation: 
+\begin{enumerate}[leftmargin=*]
+\item Baseline-1 consists of the original DNNs built along the lines of~\cite{HARHaChoi,HARHompel} (without any pruning). 
+\item Baseline-2 uses state of the art pruning techniques described in~\cite{netadapt,EAPruning} to prune the DNNs of Baseline-1 to fit the average harvested power budget from our harvesting trace described in Section~\ref{subsec: eval/EHSensorSetup}. 
+\end{enumerate}
+Both the baseline setups run on a fully powered system equipped with a steady power source. A majority voting ensemble method is used in both of these baselines to mimic ensemble learning. \emph{Origin} uses the DNNs of Baseline-2 for the classification tasks. We plot the accuracy of different strategies described throughout the paper. Fig.~\ref{Fig:evalMHELATH} shows the accuracy results on the MHEALTH dataset, and Fig.~\ref{Fig:evalPAMAP2} shows the results for the PAMAP2 dataset. Following are our observations:
+
+$\bullet$ The overall accuracy tends to improve with increasing round-robin delay time. This behaviour is expected and can be attributed to the increasing number of completed inferences. % (as shown in Fig.\ref{Fig:RRExtCompl}). 
+The nature of the workload itself gives us an opportunity to not perform inference at a rapid rate. Further evaluations suggest \emph{Origin} with RR-12 to be the best fit for HAR. Going beyond RR-12 might lead to missing an activity window for high intensity or rapid activities, and going below RR-12 might lead to energy scarcity at times. In case of abundant energy supply, one can use a round robin policy fit for the given EH source.
+
+$\bullet$ 
+%Across all the scenarios, \emph{Origin} gives a significant boost in accuracy and has similar, if not better accuracy than both the baselines.
+Table~\ref{tab:evalComp} shows the accuracy comparison between the RR12-\emph{Origin} with both the baselines. We observe that, for the MHEALTH dataset, RR12-\emph{Origin} is 2.72\% more accurate than the Baseline-2. % and lags by 3.6\% from the baseline-1. 
+ For the PAMAP2 data-set, RR12-\emph{Origin} is 2.53\% better than Baseline-2. For certain cases like climbing in PAMAP2, and running in MHEALTH, \emph{Origin} is more accurate than Baseline-1. These accuracy improvements can be attributed to \emph{Origin's} use of a confidence matrix in classification, as opposed to the baseline models, which only perform majority voting based ensembling. Note that both the baselines are running on a fully powered system whereas \emph{Origin} runs entirely on harvested energy.  In practice, we can extend \emph{Origin} further to other multi-sensor data-sets for HAR. \\
+%\item The top-1 accuracy of the RR12-Origin reaches 83.88\% on MHEALTH data-set and 83.55\% on the PAMAP2 data-set
+\textbf{Discussion:} Although \emph{Origin} is proposed and works for energy harvesting wireless sensor networks, it can also be used with battery-powered or hybrid (a combination to battery powered and EH) systems to minimize the energy footprint while maximizing the accuracy. Furthermore, it uses multiple sensors effectively and hence poses minimum risk if one of the sensors fails. This makes \emph{Origin} versatile and suitable for systems whose intermittence comes from either or both of power or device reliability limitations, both of which will be key factors in real-world IoT deployments. Moreover, ensemble learning techniques combined with efficient scheduling occasionally gives more accuracy than a larger and unpruned centralized DNN that is more failure-prone and power hungry.  
+
+\begin{table}[t]
+\centering
+\footnotesize
+\begin{tabular}{|c|c|c|c|c|c|} 
+\hline
+\multirow{2}{*}{Activity} & \multicolumn{5}{c|}{Policy Comparision}            \\ 
+\cline{2-6}
+                          & RR12 Origin & BL-2   & BL-1 & vs BL-2   & vs BL-1  \\ 
+\hline
+Walking                   & 81.60896    & 84.46 & 91.56 & -2.85104 & -9.95104  \\ 
+\hline
+Climbing                  & 83.10679    & 77.93 & 83.24 & 5.176789 & -0.13321  \\ 
+\hline
+Cycling                   & 85.88992    & 85.81 & 94.27 & 0.079918 & -8.38008  \\ 
+\hline
+Running                   & 87.13474    & 81.29 & 86.91 & 5.844736 & 0.224736  \\ 
+\hline
+Jogging                   & 81.81809    & 78.04 & 83.17 & 3.778086 & -1.35191  \\ 
+\hline
+Jumping                   & 83.69378    & 79.42 & 84.26 & 4.273776 & -0.56622  \\
+\hline
+\end{tabular}
+\caption{Comparing RR12 Origin with both the baselines on MHELATH dataset. BL indicates the baseline models.}
+\label{tab:evalComp}
+\end{table}
+
+% \begin{figure}[htbp]
+%   %\dummyfig{Sensor Setup} 
+%   \includegraphics[width=0.48\textwidth]{Figures/AccuracyOverTime.pdf}
+%   \caption{Accuracy over time for different users: the confidence matrix adapts to the behaviour and activity pattern of the user and learns over time to give stable if not better accuracy}
+%   \label{Fig:evalAccOverTime}
+% \end{figure}
+
+
+\subsection{Adaptive Ensemble Learner} 
+% \begin{figure}[htbp]
+%   %\dummyfig{Sensor Setup} 
+%   \includegraphics[width=0.48\textwidth]{Figures/AccuracyOverTime.pdf}
+%   \caption{Accuracy over time for different users: the confidence matrix adapts to the behaviour and activity pattern of the user and learns over time to give stable if not better accuracy}
+%   \label{Fig:evalAccOverTime}
+% \end{figure}
+As discussed earlier in Section~\ref{subsec:Origin}, origin uses a lightweight and adaptive ensemble learner that performs weighted majority voting based on a confidence matrix. 
+The confidence matrix adapts and learns from the user pattern. It is obvious that it is not feasible to train a DNN for all types and variances of human actions. Even for the same types of activity, some attributes will vary from user to user. 
+\begin{wrapfigure}{l}{0.3\textwidth}
+  %\dummyfig{Sensor Setup} 
+  \includegraphics[width=0.3\textwidth]{Figures/AccuracyOverTime.pdf}
+  \caption{Accuracy over time for different users: the confidence matrix adapts to the behaviour and activity pattern of the user and learns over time to give stable if not better accuracy.}
+  \label{Fig:evalAccOverTime}
+\end{wrapfigure}
+These variations can cause misclassifications and the adaptive nature of the confidence matrix mitigates this. To mimic the noisy and inconsistent behaviour of real-world scenarios, we test the adaptive nature of the ensemble learner for 3 different previously unseen users over a 1000 iterations (10000 successful classifications; each iteration has 10 classifications). The noisy data is generated by adding a Gaussian noise (with maximum SNR of 20dB) over the unseen test data. The first iteration shows the accuracy with the unchanged confidence matrix. % and over the next iterations the confidence matrix gets updated with the newer confidence values sent from the sensor. 
+Even though the accuracy claim of the models was nearly 85\%, in the first iteration, the accuracy drops below 80\% because of the added noise.  %With further updates in the confidence matrix, 
+As the confidence matrix gets updated with the newer confidence values sent from the sensor, we can see (from Fig.~\ref{Fig:evalAccOverTime}), that \emph{Origin} keeps up with the claimed accuracy (base accuracy), and at times outperforms it. We can attribute this to the confidence matrix and ensemble learner, since over these 1000 iterations, only the confidence matrix gets updated. Note that the confidence matrix reaches the steady state of baseline accuracy within 100 iterations. This, in turn, will lead to better and more stable classification for every individual without extensive need for retraining and updating the DNN, which might be impractical for EH-WSNs due to the high communication cost while updating the parameters.  
+%\cyan{add how we got this data? noisy data where default model doesnot work}

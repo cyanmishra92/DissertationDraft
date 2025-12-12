@@ -1,0 +1,295 @@
+\documentclass[sigplan,nonacm]{acmart}
+%\documentclass[sigconf,10pt]{acmart}
+\AtBeginDocument{%
+  \providecommand\BibTeX{{%
+    \normalfont B\kern-0.5em{\scshape i\kern-0.25em b}\kern-0.8em\TeX}}}
+
+\let\COMMENT\relax
+%\renewcommand{\baselinestretch}{1} 
+\usepackage{macros}
+%\usepackage[labelfont=bf]{caption}
+\usepackage{subcaption}
+%\usepackage[font={small,it}]{caption}
+%\captionsetup{font={small,sf}, labelfont=bf}
+\usepackage{color}
+% to be able to draw some self-contained figs
+%\usepackage{tikz}
+\usepackage{amsmath}
+%\captionsetup{justification=raggedright,singlelinecheck=false}
+%\usepackage{cite}
+\usepackage{subcaption}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{array,multirow,rotating}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+%\usepackage{algpseudocode}
+%\usepackage{algorithm2e}
+\usepackage{amsmath}
+%\usepackage{amssymb}
+\usepackage{tikz}
+%\usepackage{hyperref}
+\usepackage{adjustbox}
+\usepackage{float}
+
+
+\usepackage{mathtools}
+\usepackage{lipsum}
+
+\usepackage{mathtools}
+\usepackage{tablefootnote} %Cyan
+\usepackage{soul}
+\usepackage{footnote}
+\usepackage[toc,page]{appendix} %% Cyan
+\usepackage[]{hyperref}
+%\usepackage[toc,page]{appendix} %% Cyan
+%\usepackage[ruled,vlined,linesnumbered,commentsnumbered]{algorithm2e}
+
+
+%http://ctan.org/pkg/amssymb
+%\usepackage{pifont}% http://ctan.org/pkg/pifont
+\newcommand{\cmark}{\ding{51}}%
+\newcommand{\xmark}{\ding{55}}%
+
+% https://tex.stackexchange.com/questions/53338/reducing-spacing-after-headings
+%\usepackage[compact]{titlesec}
+%\microtypecontext{spacing=nonfrench}
+% \titlespacing\section{0pt}{4pt plus 0pt minus 1pt}{2pt plus 0pt minus 1pt}
+% \titlespacing\subsection{0pt}{4pt plus 0pt minus 1pt}{1pt plus 0pt minus 1pt}
+% \titlespacing\subsubsection{0pt}{4pt plus 0pt minus 1pt}{1pt plus 0pt minus 1pt}
+%\titleformat{\subsection}{\normalfont\fontsize{11}{11}\bfseries}{\thesubsection}{1em}{}
+
+% \titlespacing{\section}{0pt}{0.5ex}{0ex}
+% \titlespacing{\subsection}{0pt}{0.5ex}{0ex}
+% \titlespacing{\subsubsection}{0pt}{0.5ex}{0ex}
+%Since the \labelindent command exists for legacy reasons in the IEEE template, you can simply "disable" it by adding the following before importing the enumitem package:
+\let\labelindent\relax 
+\usepackage[inline]{enumitem}
+% \newcommand*\circled[1]{\tikz[baseline=(char.base)]{
+%           \node[shape=circle,draw,fill=black,text=white,font=\bf,inner sep=0.5pt] (char)
+%             {\scriptsize#1};}}
+            
+\newcommand*\tcircled[1]{\tikz[baseline=(char.base)]{
+            \node[shape=circle,draw,thick,font=\bf,inner sep=1pt] (char) 
+            {\footnotesize#1};}}
+            
+\usepackage{wrapfig}
+\usepackage{soul}
+
+ \floatsep 4pt plus 2pt minus 1pt       % Space between adjacent floats moved
+%                                       % to top or bottom of text page.
+\textfloatsep 2pt plus 0pt minus 1pt   % Space between main text and floats
+%                                       % at top or bottom of page.
+\intextsep 0pt plus 0pt minus 1pt      % Space between in-text figures and
+% % text.
+ \dblfloatsep 2pt plus 0pt minus 1pt    % Same as \floatsep for double-column
+%                                       % figures in two-column mode.
+ \dbltextfloatsep 2pt plus 0pt minus 1pt% \textfloatsep for double-column
+%                                       % floats.
+\setlength{\abovecaptionskip}{7pt plus 0pt minus 2pt}
+ \sloppypar
+\setlength{\abovedisplayskip}{0pt plus 0pt minus 4pt}
+\setlength{\abovedisplayshortskip}{0pt plus 0pt minus 4pt}
+\def\footnoterule{\kern-3pt
+  \hrule \kern 2.6pt} % the \hrule is .4pt high
+%\usepackage{titling}
+%\setlength{\droptitle}{-4em}
+%\date{}
+%\usepackage{lipsum}
+%\usepackage{booktabs}
+
+% ADD THE FOLLOWING COUPLE LINES INTO YOUR PREAMBLE
+% \let\OLDthebibliography\thebibliography
+% \renewcommand\thebibliography[1]{
+%   \OLDthebibliography{#1}
+%   \setlength{\parskip}{0pt}
+%   \setlength{\itemsep}{1pt plus 0.2ex}
+% }
+%  \setlength{\parskip}{0cm}
+% \setlength{\parindent}{1em}
+% \newcommand{\blue}[1]{\textcolor{blue}{#1}}
+% \newcommand{\red}[1]{\textcolor{red}{#1}}
+% \newcommand{\violet}[1]{\textcolor{violet}{#1}}
+% \newcommand{\brown}[1]{\textcolor{brown}{#1}}
+% \newcommand{\purple}[1]{\textcolor{purple}{#1}}
+% \newcommand{\fixme}[1]{\textbf{\textcolor{red}{#1}}}
+% \usepackage{soul}
+% \usepackage{fancyhdr}
+%\pagestyle{empty}
+%\pagestyle{fancy}
+% \fancyhf{}
+% \renewcommand{\headrulewidth}{0pt}
+% \cfoot[\fontsize{9}{11}\selectfont]{Text color coding: {\color{purple}{Revision Concerns}}, {\color{blue}{Common Concerns}}, {\color{violet} {Reviewer\#A}}, {\color{magenta}{Reviewer\#B}}, {\color{gray}{Reviewer\#C}, \color{olive}{Reviewer\#D}}, {\color{red}{Reviewer\#E}}\\ \thepage}
+% \thispagestyle{plain}
+\settopmatter{printacmref=false}
+\setcopyright{none}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+\pagestyle{plain}
+\pagenumbering{arabic}
+\begin{document}
+%\thispagestyle{plain}
+
+%%
+%% The "title" command has an optional parameter,
+%% allowing the author to define a "short title" to be used in page headers.
+%\title{\Large \bf Cocktail: A Multidimensional Optimization for Ensembling-based Model Serving in Public Cloud\vspace{-12mm}}
+\title{Synergistic and Efficient Edge-Host Communication for Energy Harvesting Wireless Sensor Networks}
+
+%\title{\Large \bf Cocktail: Leveraging Ensemble Learning for Optimized Model Serving\\ in Public Cloud.}
+\author{~
+%Cyan Subhra Mishra, Jack Sampson, Mahmut Taylan Kandmeir, Vijaykrishnan Narayanan, Chita R Das\\
+%\{cyan, jms1257, mtk2, vijaykrishnan.narayanan, cxd12\}@psu.edu\\
+%The Pennsylvania State University
+}
+
+
+%  \floatsep 2pt plus 0pt minus 1pt       % Space between adjacent floats moved
+% %                                       % to top or bottom of text page.
+% \textfloatsep 2pt plus 0pt minus 1pt   % Space between main text and floats
+% %                                       % at top or bottom of page.
+%  \intextsep 2pt plus 0pt minus 1pt      % Space between in-text figures and
+% %                                       % text.
+%  \dblfloatsep 2pt plus 0pt minus 1pt    % Same as \floatsep for double-column
+% %                                       % figures in two-column mode.
+%  \dbltextfloatsep 2pt plus 0pt minus 1pt% \textfloatsep for double-column
+% %                                       % floats. 
+%\sloppypar
+
+\def\footnoterule{\kern-3pt
+  \hrule \kern 2.6pt} % the \hrule is .4pt high
+
+%-------------------------------------------------------------------------------
+%\newcommand{\cyan}[1]{\PCOMMENT{\textcolor{cyan}{\sf Cyan: #1}}}
+%-------------------------------------------------------------------------------
+\begin{abstract}
+%-------------------------------------------------------------------------------
+%\vspace{7cm}
+\input{src/00abstract}
+\end{abstract}
+\maketitle
+\pagestyle{plain}
+
+%-------------------------------------------------------------------------------
+\section{\textcolor{red}{TODO}}
+\textcolor{red}{
+\begin{enumerate}
+    \item Motivate the problem better: position with COTS hardware, decision flow. Motivate the problem with data comminication -- data volume/energy.
+    \item Better results on classical compression techniques on MCUs. and why static coreset is not good -- motivating dynamic coreset
+    \item Dynamic coreset, but recovery? Motivate the genrative models for recovery
+    \item Use transformer. 
+    \item Go beyond sensor data, include more audio and image data. Include imagecoreset. 2D transformer for sensor/Audo. ViT for image. 
+    \item Focus on designing the edge-transformer. Validate on Jetson.
+    \item One main diagram/ motivation diagram in intro.
+    \item Reduce Intro, background. Directly jump on to the problem. 
+    \item Give ASPLOS flavor. Different from NSDI. 11 pages. Move additional details to appendix.
+\end{enumerate}
+}
+%-------------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------------
+\section{Introduction}
+\label{sec:introduction}
+\input{src/01Introduction}
+
+%-------------------------------------------------------------------------------
+\section{Background and Motivation}
+\label{sec:bg-rw}
+\input{src/02BG-RW}
+
+%-------------------------------------------------------------------------------
+%\section{Design Space Exploration}
+\label{sec:DSE}
+%\input{src/03DesignSpaceExp}
+\input{backups/Anytime}
+
+%-------------------------------------------------------------------------------
+\section{Design Implementation of \emph{Seeker}}
+\label{sec:4}
+\input{src/04Seeker}
+
+%-------------------------------------------------------------------------------
+\section{Evaluation and Results}
+\label{sec:evaluation}
+\input{src/05Evaluation}
+
+%-------------------------------------------------------------------------------
+\section{Conclusion}
+\label{sec:conclusion}
+\input{src/06Conclusion}
+%-------------------------------------------------------------------------------
+% \section{Conclusion}
+% \label{sec:conclusion}
+% \input{5-conclusion}
+%\newpage
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+%{\footnotesize
+
+%}
+%-------------------------------------------------------------------------------
+%------------------------------------------------------------------------------
+\clearpage
+\appendix
+\section{Appendix}
+\label{sec:appendix}
+\input{src/Appendix}
+\section{Appendix}
+\input{backups/Anytime}
+%\begin{appendix}
+
+%\end{appendix}
+\end{document}
+\endinput
+% \begin{verbatim}
+% int main(int argc, char *argv[]) 
+% {
+%     return 0;
+% }
+% \end{verbatim}
+
+%-------------------------------------------------------------------------------
+
+%-------------------------------------------------------------------------------
+
+
+---------------------------
+% \begin{figure}
+% \begin{center}
+% \begin{tikzpicture}
+%   \draw[thin,gray!40] (-2,-2) grid (2,2);
+%   \draw[<->] (-2,0)--(2,0) node[right]{$x$};
+%   \draw[<->] (0,-2)--(0,2) node[above]{$y$};
+%   \draw[line width=2pt,blue,-stealth](0,0)--(1,1)
+%         node[anchor=south west]{$\boldsymbol{u}$};
+%   \draw[line width=2pt,red,-stealth](0,0)--(-1,-1)
+%         node[anchor=north east]{$\boldsymbol{-u}$};
+% \end{tikzpicture}
+% \end{center}
+% \caption{\label{fig:vectors} Text size inside figure should be as big as
+%   caption's text. Text size inside figure should be as big as
+%   caption's text. Text size inside figure should be as big as
+%   caption's text. Text size inside figure should be as big as
+%   caption's text. Text size inside figure should be as big as
+%   caption's text. }
+% \end{figure}
+% % %---------------------------
+
+% \begin{description}
+  
+% \item[fread] a function that reads from a \texttt{stream} into the
+%   array \texttt{ptr} at most \texttt{nobj} objects of size
+%   \texttt{size}, returning returns the number of objects read.
+
+% \item[Fred] a person's name, e.g., there once was a dude named Fred
+%   who separated usenix.sty from this file to allow for easy
+%   inclusion.
+% \end{description}
+
+%-------------------------------------------------------------------------------
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%  LocalWords:  endnotes includegraphics fread ptr nobj noindent
+%%  LocalWords:  pdflatex acks

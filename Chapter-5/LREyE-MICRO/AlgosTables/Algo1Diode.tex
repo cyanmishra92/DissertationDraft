@@ -1,0 +1,29 @@
+\begin{algorithm}
+\caption{Training with Diode-Based Activation Function}
+\begin{algorithmic}[1]
+\Require Training data $\{(x^{(i)}, y^{(i)})\}_{i=1}^{N}$, learning rate $\eta$, number of epochs $E$
+\Ensure Trained weights $\{ w_{ij}^{(l)} \}$ and biases $\{ b_i^{(l)} \}$
+\For{epoch $=1$ to $E$}
+    \For{each mini-batch}
+        \State Initialize gradients: $\Delta w_{ij}^{(l)} = 0$, $\Delta b_i^{(l)} = 0$
+        \For{each training example $(x, y)$ in mini-batch}
+            \State \textbf{Forward Propagation}:
+            \For{each layer $l$}
+                \State Sample $V_{\text{th}}^{(l)} \sim \mathcal{N}(\mu_{V_{\text{th}}}, \sigma_{V_{\text{th}}}^2)$
+                \State Sample $\alpha^{(l)} \sim \mathcal{N}(\mu_{\alpha}, \sigma_{\alpha}^2)$
+                \State Compute $z^{(l)}$ using the weight and bias parameters
+                \State Compute $a^{(l)}$ using the diode activation function with sampled parameters
+            \EndFor
+            \State \textbf{Backward Propagation}:
+            \For{each layer $l$ in reverse}
+                \State Compute $\delta^{(l)}$ for each neuron
+                \State Accumulate gradients for weights and biases
+            \EndFor
+        \EndFor
+        \State \textbf{Update Weights and Biases}:
+        \State Update each weight and bias using the accumulated gradients and the learning rate
+    \EndFor
+\EndFor
+\end{algorithmic}
+\label{algo:diodeLoss}
+\end{algorithm}

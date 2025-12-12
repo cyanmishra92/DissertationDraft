@@ -1,0 +1,45 @@
+% \documentclass{article}
+% \usepackage{algorithm}
+% \usepackage{algpseudocode}
+% \usepackage{amsmath}
+
+% \begin{document}
+
+\begin{algorithm}[ht]
+\caption{DynFit Optimization Algorithm}
+\begin{algorithmic}[1]
+    \State \textbf{Input:} Training data \( (\mathbf{X}, \mathbf{\hat{Y}}) \), initial weights \( \mathbf{W}^{(0)} \), initial dropout rates \( \mathbf{d}^{(0)} \), initial quantization levels \( \mathbf{q}^{(0)} \), initial QuantaTask sizes \( \boldsymbol{\ell}^{(0)} \), energy budget \( E_b \), hyperparameters \( \lambda_1, \lambda_2, \alpha_q, \alpha_d, d_{\max} \), maximum iterations \( T_{\text{max}} \)
+    \State \textbf{Output:} Optimized weights \( \mathbf{W} \), dropout rates \( \mathbf{d} \), quantization levels \( \mathbf{q} \), and QuantaTask sizes \( \boldsymbol{\ell} \)
+    
+    \State \textbf{Initialization:} Set \( t = 0 \) and initialize \( \mathbf{W}^{(0)}, \mathbf{d}^{(0)}, \mathbf{q}^{(0)}, \boldsymbol{\ell}^{(0)} \)
+
+    \While{ \( t < T_{\text{max}} \)}
+        \State \textbf{Optimize Weights \( \mathbf{W} \)}:
+        \For{each batch in training data}
+            \State Apply dropout mask based on \( \mathbf{d}^{(t)} \)
+            \State Quantize weights and activations to \( q_j^{(t)} \) bits
+            \State Compute predictions \( \mathbf{Y} \) and loss \( \mathcal{L} \)
+            \State Update weights using SGD
+        \EndFor
+        \State \textbf{Optimize Dropout Rates \( \mathbf{d} \)}:
+        \For{each neuron \( i \)}
+            \State Compute gradient of objective with respect to \( d_i \)
+            \State Update \( d_i \) using projected gradient descent
+        \EndFor
+        \State \textbf{Optimize Quantization Levels \( \mathbf{q} \)}:
+        \For{each parameter \( j \)}
+            \State Evaluate objective for each \( q_j \in \mathcal{Q} \)
+            \State Select \( q_j^{(t+1)} \) minimizing the objective
+        \EndFor
+        \State \textbf{Optimize QuantaTask Sizes \( \boldsymbol{\ell} \)}:
+        \For{each QuantaTask \( k \)}
+            \State Compute maximum feasible size
+            \State Set \( \ell_k^{(t+1)} \)
+        \EndFor
+        \State Update iteration \( t = t + 1 \)
+    \EndWhile
+    \State \textbf{Return} optimized \( \mathbf{W}, \mathbf{d}, \mathbf{q}, \boldsymbol{\ell} \)
+\end{algorithmic}
+\end{algorithm}
+
+%\end{document}

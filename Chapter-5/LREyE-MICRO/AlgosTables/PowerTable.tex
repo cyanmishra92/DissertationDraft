@@ -1,0 +1,66 @@
+% \begin{table}[!h]
+% \centering
+% \resizebox{\linewidth}{!}{%
+% \begin{tabular}{|clcc|}
+% \hline
+% \multicolumn{4}{|c|}{\textbf{Tile Processing Unit}}                                                                                                                  \\ \hline
+% \multicolumn{1}{|l|}{\textbf{Component}}                   & \multicolumn{1}{l|}{\textbf{Parameter}} & \multicolumn{1}{c|}{\textbf{Specification}}     & \textbf{Power}          \\ \hline
+% \multicolumn{1}{|c|}{\multirow{3}{*}{\textbf{MeF-RAM}}}      & \multicolumn{1}{l|}{Size}           & \multicolumn{1}{c|}{32\,kB}             & \multirow{3}{*}{8.5\,mW} \\ \cline{2-3}
+% \multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Banks}          & \multicolumn{1}{c|}{2}                 &                         \\ \cline{2-3}
+% \multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Bus Width}      & \multicolumn{1}{c|}{128\,bits}              &                         \\ \hline
+% \multicolumn{1}{|c|}{\multirow{3}{*}{\textbf{Activation}}} & \multicolumn{1}{l|}{ReLU}           & \multicolumn{1}{c|}{Diode-based} & 1.37\,\(\mu\)W                  \\ \cline{2-3} \cline{4-4} 
+% \multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Sigmoid (LUT)}  & \multicolumn{1}{c|}{Lookup Table}                  & 0.2\,mW                   \\ \cline{2-3} \cline{4-4} 
+% \multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{OR Gate}             & \multicolumn{1}{c|}{Logic Operation}                  & 250\,\(\mu\)W                   \\ \hline
+% \multicolumn{4}{|c|}{}                                                                                                                                              \\ \hline
+% \multicolumn{4}{|c|}{\textbf{Matrix-Vector Multiplication (MVM) Details (Total 64 Tiles)}}                                                                                                         \\ \hline
+% \multicolumn{1}{|c|}{\multirow{3}{*}{\textbf{ADC}}} & \multicolumn{1}{l|}{Resolution} & \multicolumn{1}{c|}{4 bits} & \multirow{3}{*}{2.3\,mW} \\ \cline{2-3}
+% \multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Frequency}      & \multicolumn{1}{c|}{400\,MSps}          &                         \\ \cline{2-3}
+% \multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Number}         & \multicolumn{1}{c|}{4}                 &                         \\ \hline
+% \multicolumn{1}{|c|}{\multirow{2}{*}{\textbf{DAC}}} & \multicolumn{1}{l|}{Resolution} & \multicolumn{1}{c|}{1 bit}  & \multirow{2}{*}{500\,\(\mu\)W} \\ \cline{2-3}
+% \multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Number}         & \multicolumn{1}{c|}{128 (4$\times$32)}              &                         \\ \hline
+% \multicolumn{1}{|c|}{\multirow{3}{*}{\textbf{ReRAM xBar}}}       & \multicolumn{1}{l|}{Number}         & \multicolumn{1}{c|}{32}                & \multirow{3}{*}{1.34\,mW} \\ \cline{2-3}
+% \multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Size}           & \multicolumn{1}{c|}{32$\times$32}             &                         \\ \cline{2-3}
+% \multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Bits per Cell}  & \multicolumn{1}{c|}{4}                 &                         \\ \hline
+% \end{tabular}%
+% }
+% \caption{Component specifications for the chip design.\vspace{-20pt}}
+% \label{tab:DesignComponents}
+% \end{table}
+
+\begin{table}[!h]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{|clcc|}
+\hline
+\multicolumn{4}{|c|}{\textbf{Tile Processing Unit (38 Tiles Total)}}                                                                                                                  \\ \hline
+\multicolumn{1}{|l|}{\textbf{Component}}                   & \multicolumn{1}{l|}{\textbf{Parameter}} & \multicolumn{1}{c|}{\textbf{Specification}}     & \textbf{Power}          \\ \hline
+\multicolumn{1}{|c|}{\multirow{4}{*}{\textbf{MeF-RAM}}}      & \multicolumn{1}{l|}{Size}           & \multicolumn{1}{c|}{32\,kB per tile, 1.216\,MB total}             & \multirow{4}{*}{8.5\,mW} \\ \cline{2-3}
+\multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Banks}          & \multicolumn{1}{c|}{2}                 &                         \\ \cline{2-3}
+\multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Bus Width}      & \multicolumn{1}{c|}{128\,bits}              &                         \\ \cline{2-3}
+\multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Usage}      & \multicolumn{1}{c|}{Buffering activations, norms}              &                         \\ \hline
+\multicolumn{1}{|c|}{\multirow{4}{*}{\textbf{Activation}}} & \multicolumn{1}{l|}{ReLU}           & \multicolumn{1}{c|}{Diode-based} & 1.37\,\(\mu\)W per channel                  \\ \cline{2-3} \cline{4-4} 
+\multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Channels}  & \multicolumn{1}{c|}{64 per crossbar}                  & 87.7\,\(\mu\)W per crossbar                   \\ \cline{2-3} \cline{4-4} 
+\multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Sigmoid (LUT)}  & \multicolumn{1}{c|}{Lookup Table}                  & 0.2\,mW                   \\ \cline{2-3} \cline{4-4} 
+\multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{OR Gate}             & \multicolumn{1}{c|}{Logic Operation}                  & 250\,\(\mu\)W                   \\ \hline
+\multicolumn{1}{|c|}{\multirow{2}{*}{\textbf{Controller/MCU}}} & \multicolumn{1}{l|}{Function}           & \multicolumn{1}{c|}{Softmax, layer norm, scheduling} & \multirow{2}{*}{5-10\,mW} \\ \cline{2-3}
+\multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Operation}          & \multicolumn{1}{c|}{4-bit or higher precision}                 &                         \\ \hline
+\multicolumn{4}{|c|}{}                                                                                                                                              \\ \hline
+\multicolumn{4}{|c|}{\textbf{Matrix-Vector Multiplication (MVM) Details}}                                                                                                         \\ \hline
+\multicolumn{1}{|c|}{\multirow{4}{*}{\textbf{ADC}}} & \multicolumn{1}{l|}{Resolution} & \multicolumn{1}{c|}{4-bit SAR ADC} & \multirow{3}{*}{1.2\,mW at 200\,MSps} \\ \cline{2-3}
+\multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Frequency}      & \multicolumn{1}{c|}{200\,MSps (time-shared)}          &                         \\ \cline{2-3}
+\multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Per Tile}         & \multicolumn{1}{c|}{4 ADCs (152 total)}                 &                         \\ \cline{2-4}
+\multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Active}         & \multicolumn{1}{c|}{4-12 ADCs per layer}                 & 9.6\,mW (8 ADCs active)                         \\ \hline
+\multicolumn{1}{|c|}{\multirow{3}{*}{\textbf{DAC}}} & \multicolumn{1}{l|}{Resolution} & \multicolumn{1}{c|}{1-bit (bit-serial inputs)}  & \multirow{2}{*}{0.5\,mW per driver} \\ \cline{2-3}
+\multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Number}         & \multicolumn{1}{c|}{64 drivers per active crossbar}              &                         \\ \cline{2-4}
+\multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Total Power}         & \multicolumn{1}{c|}{When all drivers active}              & 32\,mW (typical: partial usage)                         \\ \hline
+\multicolumn{1}{|c|}{\multirow{5}{*}{\textbf{ReRAM xBar}}}       & \multicolumn{1}{l|}{Size}           & \multicolumn{1}{c|}{64$\times$64}             & \multirow{3}{*}{1.34\,mW per crossbar} \\ \cline{2-3}
+\multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Bits per Cell}  & \multicolumn{1}{c|}{4-bit (multi-level)}                 &                         \\ \cline{2-3}
+\multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Per Tile}         & \multicolumn{1}{c|}{32 crossbars}                &                         \\ \cline{2-4}
+\multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Total}         & \multicolumn{1}{c|}{1,220 crossbars (5M weights)}                & \multirow{2}{*}{85\,mW (64 crossbars active)}                         \\ \cline{2-3}
+\multicolumn{1}{|c|}{}                                     & \multicolumn{1}{l|}{Usage}         & \multicolumn{1}{c|}{8-12 tiles active concurrently}                &                         \\ \hline
+\multicolumn{1}{|c|}{\textbf{Total Power}}       & \multicolumn{1}{l|}{Full Inference}         & \multicolumn{1}{c|}{All tiles sequentially active}                & 150-300\,mW average                         \\ \hline
+\end{tabular}%
+}
+\caption{Component specifications for the chip design. Power estimates dominated by ADCs and crossbars during MVM operations, with peaks managed through scheduling.}
+\label{tab:DesignComponents}
+\end{table}

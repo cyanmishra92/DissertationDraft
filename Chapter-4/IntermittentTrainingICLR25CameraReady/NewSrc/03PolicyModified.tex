@@ -1,0 +1,148 @@
+To address the issues with \emph{intermittency-aware} DNN training and inference, we propose NExUME: (\textbf{N}eural \textbf{Ex}ecution \textbf{U}nder Inter\textbf{M}ittent \textbf{E}nvironments). NExUME has three interrelated components: (1) \textbf{DynNAS}: Intermittency- and platform-aware neural architecture search; (2) \textbf{DynFit}: Intermittency- and platform-aware DNN training with dynamic dropouts and quantization; and (3) \textbf{DynInfer}: Intermittency- and platform-aware task scheduling for inference. While each component can individually optimize DNNs for intermittent environments, their combination yields the best results. {Our innovation lies in the integration of energy variability awareness directly into both the training and inference processes, enabling dynamic adaptation to real-time energy conditions, which is not addressed by existing methods~\cite{intermittentNAS, yen2023keep, yen2022stateful, patel2019eperceptive, Zygarde}.}
+To search for the best architecture for the given intermittent environment, DynNAS utilizes the approach proposed by iNAS~\cite{intermittentNAS}. After the network architecture is determined, DynFit is used to train the network considering energy intermittency, and DynInfer is employed to perform inference under intermittent power conditions.
+
+In this section, we elaborate on the key components, focusing on DynFit and DynInfer, and explain how they uniquely adapt DNN training and inference to intermittent power conditions.
+
+\subsection{DynFit: Intermittency-Aware Learning}
+\label{sec:DynFit}
+
+\textbf{DynFit} is designed to optimize deep neural networks (DNNs) for execution in environments characterized by intermittent power supply due to energy harvesting. The primary goal of DynFit is to adapt the DNN's training process to operate efficiently under unpredictable energy budgets while maintaining acceptable accuracy and adhering to predefined service level objectives (SLOs).
+
+DynFit introduces key mechanisms to dynamically adjust computational complexity based on energy availability, thereby enabling energy-efficient execution of DNN models in constrained environments. These mechanisms include: (i) \textbf{Dynamic Dropout}, which adjusts the dropout rates based on available energy to reduce computational load; (ii) \textbf{Dynamic Quantization}, which modifies quantization levels in response to energy constraints to save energy; and (iii) \textbf{QuantaTask} design, which defines atomic computational units that can be executed without interruption given the energy budget.
+
+{Unlike standard implementations where dropout rates and quantization levels are fixed or adjusted solely based on training dynamics, DynFit adjusts these parameters in real-time based on the energy profile of the device. Specifically, during training, we simulate energy variability by incorporating energy traces into the training loop. At each training iteration, the available energy $E_b$ is sampled from these traces. Based on $E_b$, we adjust the dropout rate $d_i$ for each layer $i$ according to:
+\begin{equation}
+d_i = d_{\max} \left(1 - \frac{E_b}{E_{\text{max}}}\right), 
+\end{equation}
+where $d_{\max}$ is the maximum allowable dropout rate, and $E_{\text{max}}$ is the maximum energy observed in the traces. Similarly, the quantization levels $q_j$ are adjusted:
+\begin{equation}
+q_j = q_{\min} + \left(q_{\max} - q_{\min}\right) \frac{E_b}{E_{\text{max}}}.
+\end{equation}
+This ensures that when energy is low, higher dropout rates and lower quantization bit-widths are used to reduce computational load, and vice versa.}
+
+\textbf{Modeling Energy Consumption:} The energy consumption of DNN operations is modeled based on empirical profiling data from the hardware platform. Let $e_{\text{op}}$ denote the energy consumed per computational operation, which varies with operation type and data precision. The total energy consumption of a QuantaTask $q$ is modeled as $E_q = e_{\text{op}} \times \ell_q$, where $\ell_q$ is the number of operations in the task. {By integrating the energy model into the training process, DynFit ensures the adjustments to dropout and quantization directly correspond to actual energy savings on the target hardware.}
+
+A \textit{QuantaTask} is defined as the smallest atomic unit of computation that can be executed entirely without interruption under the current energy and hardware constraints. Each QuantaTask ensures that execution proceeds without partial computation, which would otherwise lead to overhead from checkpointing and potential data corruption. The main properties of QuantaTasks are atomicity and respect for energy constraints. Figure~\ref{Fig:loopFig} illustrates QuantaTask execution with a simple example.
+
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[clip, width=\linewidth]{figs/loop_iter.pdf}
+  \caption{An example of variable QuantaTask in a matrix multiplication scenario. Depending on the available energy, the task (vector inner product) can be divided into multiple iterations such that each QuantaTask is guaranteed to finish given the energy availability. $E$ is available energy, and $E_b$ is the energy required to finish one inner product.}
+  \label{Fig:loopFig}
+  \vspace{-10pt}
+\end{figure}
+
+
+\textbf{Optimization Variables, Constraints, and Objective Function:} The optimization problem is formulated with variables: the weights $\mathbf{W}$, dropout rates $\mathbf{d}$, quantization levels $\mathbf{q}$, and QuantaTask sizes $\boldsymbol{\ell}$. The objective is to minimize the total loss, including prediction loss and regularization terms penalizing energy consumption (subject to energy constraints):
+
+\begin{equation}
+\min_{\mathbf{W}, \mathbf{d}, \mathbf{q}, \boldsymbol{\ell}} \quad \mathcal{L}(\mathbf{\hat{Y}}, \mathbf{Y}) + \lambda_1 \sum_{j=1}^{M} c_q(q_j) + \lambda_2 \sum_{i=1}^{N} c_d(d_i). 
+\end{equation}
+
+\textbf{Formulation of the Composite Optimization Problem:} The problem is non-convex due to the discrete nature of quantization levels and dropout rates. We employ an alternating optimization strategy, iteratively optimizing subsets of variables while keeping others fixed. {Our method differs from standard approaches by integrating energy constraints directly into the optimization, ensuring that the network learns to adapt its parameters based on energy availability.}
+
+\subsubsection{Adaptive Regularization Strategy}
+
+{DynFit introduces an adaptive regularization strategy to address potential overfitting and under-training due to uneven weight updates caused by dynamic dropout and quantization. We monitor the update frequency $F_p$ of each weight $w_p$ over a window of $T$ iterations:
+\begin{equation}
+F_p = \frac{1}{T} \sum_{t=1}^{T} U_p(t), \quad U_p(t) = \begin{cases}
+1, & \text{if } w_p \text{ is updated at iteration } t \\
+0, & \text{otherwise}
+\end{cases}
+\end{equation}
+Weights with $F_p < \theta_{\text{low}}$ are considered under-trained, and those with $F_p > \theta_{\text{high}}$ are considered overfitting. We adjust dropout rates and apply L2 regularization accordingly to balance the training process. This adaptive strategy ensures that all weights are adequately trained despite the dynamic adjustments. Dropout scheduling techniques are incorporated, where dropout rates are increased or decreased over time based on the training progress and energy availability, mitigating potential overfitting introduced by static dropout variations.}
+
+\textbf{Complexity Analysis of DynFit:} {The time complexity of DynFit during training is $O(N \cdot T)$, where $N$ is the number of weights and $T$ is the number of training iterations. The overhead introduced by monitoring update frequencies and adjusting dropout rates is negligible compared to the overall training time, as these operations are simple arithmetic computations per iteration. The space complexity is $O(N)$ for storing the update frequencies and additional parameters. Compared to classical training, DynFit adds minimal overhead, with a tradeoff of $\leq 5\%$ additional compute for significant gains in accuracy under intermittent power conditions.}
+
+\subsection{DynInfer: Intermittency-Aware Inference Scheduling}
+\label{sec:DynInfer}
+
+\textbf{DynInfer} optimizes the inference phase of DNNs operating under intermittent power conditions. Unlike traditional systems with stable power, intermittent environments pose unique challenges for executing inference tasks efficiently and reliably.
+
+The inference process is represented as a set of tasks $\mathcal{T} = \{ T_1, T_2, \dots, T_N \}$, where each task $T_i$ is characterized by its energy requirement $E_i$, execution time $\tau_i$, priority $p_i$, deadline $D_i$, and criticality level $c_i$. At any given time $t$, the available energy is denoted as $E_b(t)$.
+
+\textbf{Task Fusion and Scheduling:} {DynInfer introduces a novel task scheduling algorithm that dynamically adjusts to real-time energy availability. When the energy required for executing multiple QuantaTasks exceeds the available energy budget, DynInfer employs \emph{task fusion} to combine smaller tasks into larger atomic units that can be executed within the energy constraints.}
+
+{\textbf{Formal Definition of Task Fusion:} Let $\mathcal{Q} = \{ q_1, q_2, \dots, q_k \}$ be a set of QuantaTasks with individual energy requirements $E_{q_i}$. If $\sum_{i} E_{q_i} \leq E_b$, the available energy budget, then tasks can be executed sequentially without interruption. However, if $\sum_{i} E_{q_i} > E_b$, we aim to fuse tasks to minimize checkpointing overhead. Task fusion is formalized as finding a partition of $\mathcal{Q}$ into subsets $\mathcal{Q}_1, \mathcal{Q}_2, \dots, \mathcal{Q}_m$ such that, for each subset $\mathcal{Q}_j$, $\sum_{q_i \in \mathcal{Q}_j} E_{q_i} \leq E_b$, and $m$ is minimized. This reduces the number of checkpoints and the overhead associated with task switching.}
+{For example, Consider two convolution operations $C_1$ and $C_2$ with energy requirements $E_{C_1}$ and $E_{C_2}$, respectively. If individually $E_{C_1}, E_{C_2} > E_b$ but $E_{C_1} + E_{C_2} \leq E_b$, we fuse $C_1$ and $C_2$ into a single task. The fused task executes both convolutions atomically within the energy budget, avoiding the overhead of checkpointing between them.}
+
+% {\textbf{Algorithm for Task Fusion:} We employ a greedy algorithm that iteratively selects tasks to fuse based on their energy requirements and dependencies. Pseudocode is provided in Algorithm~\ref{alg:task_fusion}.}
+
+% \begin{algorithm}[h]
+% \caption{Energy-Aware Task Fusion Algorithm}
+% \label{alg:task_fusion}
+% \begin{algorithmic}[1]
+% \STATE \textbf{Input:} Set of tasks $\mathcal{Q}$, available energy $E_b$
+% \STATE \textbf{Output:} Fused task sets $\{\mathcal{Q}_1, \mathcal{Q}_2, \dots\}$
+% \STATE Initialize $\mathcal{Q}_j = \emptyset$, $E_{\text{total}} = 0$
+% \FOR{each task $q_i$ in $\mathcal{Q}$}
+%     \IF{$E_{\text{total}} + E_{q_i} \leq E_b$}
+%         \STATE Add $q_i$ to current $\mathcal{Q}_j$
+%         \STATE $E_{\text{total}} \gets E_{\text{total}} + E_{q_i}$
+%     \ELSE
+%         \STATE Start new fused task set $\mathcal{Q}_{j+1}$
+%         \STATE $E_{\text{total}} \gets E_{q_i}$
+%         \STATE Add $q_i$ to $\mathcal{Q}_{j+1}$
+%         \STATE $j \gets j + 1$
+%     \ENDIF
+% \ENDFOR
+% \end{algorithmic}
+% \end{algorithm}
+
+\textbf{Scheduling Problem Formulation:} The scheduling problem is formulated with decision variables $s_i$ (task start times) and binary variables $x_i \in \{0,1\}$ (indicating whether a task is scheduled). The energy availability constraint over time is expressed as (subject to energy and task constraints):
+% \begin{equation}
+$\sum_{i: s_i \leq t < f_i} E_i \leq E_b(t)$
+% \end{equation}
+The objective is to maximize the total weighted priority of scheduled tasks:
+\begin{equation}
+\max_{\{ x_i, s_i \}} \quad \sum_{i=1}^{N} \left( p_i - \alpha E_i - \beta (f_i - D_i)^+ \right) x_i. 
+\end{equation} 
+
+\textbf{Scheduling Performance Assurance:} {Our scheduling heuristic, \emph{Energy-Aware Priority Scheduling}, while sub-optimal in the theoretical sense, is designed to perform near-optimally in practice for real-time systems. We ensure its performance by:
+1. \emph{Empirical Validation}: We compare the heuristic's performance with the optimal solution on smaller problem instances using exhaustive search and find that the heuristic achieves within 95\% of the optimal task completion rate.
+2. \emph{Theoretical Analysis}: The heuristic prioritizes tasks based on effective priority $P_i^{\text{eff}} = \frac{p_i}{E_i} \times \phi_i$, where $\phi_i$ accounts for deadline urgency. This balances task importance against energy consumption, leading to efficient utilization of available energy.
+3. \emph{Complexity Analysis}: The heuristic has a time complexity of $O(N \log N)$ due to sorting tasks based on $P_i^{\text{eff}}$, which is acceptable for real-time applications.}
+
+\textbf{Complexity Analysis of DynInfer:} {The time complexity of the scheduling algorithm is $O(N \log N)$ due to sorting tasks, and the space complexity is $O(N)$ for storing task parameters. Compared to classical inference, DynInfer introduces additional overhead for scheduling and task fusion, but this is offset by the gains in reliability and efficiency under intermittent power.}
+
+\textbf{Handling Extremely Low or Sporadic Energy Levels:} {In environments with extremely low or sporadic energy levels where consistent dropout and quantization adjustments may not be feasible, NExUME handles this by:
+1. Implementing a minimum viable model configuration that operates at the lowest acceptable energy consumption, achieved by maximizing dropout rates and using the lowest quantization bit-widths.
+2. Prioritizing essential tasks and deferring non-critical computations.
+3. Employing predictive energy harvesting models to anticipate energy availability and adjust computations proactively.
+In extreme cases, the system can enter into a low-power standby mode and resume operation when sufficient energy is available. These strategies ensure that the system remains operational and provides degraded but acceptable performance under severe energy constraints.}
+
+\textbf{Novelty in Energy-Aware Scheduling:} {While energy-aware scheduling is not novel in itself, our contribution lies in adapting scheduling algorithms specifically for intermittent power environments. Existing scheduling algorithms typically assume stable energy availability and do not account for the atomicity constraints imposed by intermittent power supply. Our scheduling approach uniquely integrates:
+1. Real-time energy availability into scheduling decisions.
+2. Task fusion to minimize checkpointing overhead, which is critical in intermittent environments.
+3. Dynamic adjustment of computational tasks based on both energy and task criticality. These innovations enable  efficient and reliable DNN inference under intermittent power conditions, differentiating our work from existing energy-aware schedulers.}
+
+\textbf{Rationale Behind Method Design:} {The overall method design of NExUME is motivated by the need to enable DNNs to function reliably in environments with intermittent and unpredictable energy supply. By integrating energy variability into both training and inference, we allow the DNN to adapt its computational load dynamically, ensuring that critical tasks are completed within energy constraints. This holistic approach addresses the limitations of existing methods that treat training and inference separately or do not account for real-time energy fluctuations.}
+
+% \textbf{Implementation Details:} We design a full software-compiler-hardware co-designed execution framework for commercial devices with non-volatility support (like MSP-EXP430FR5994 with FeRAM). Figure~\ref{Fig:progflow} shows a detailed overview of our execution design.
+% \begin{wrapfigure}{r}{0.4\textwidth} % Adjusts the placement ('r' for right) and width
+%   \centering
+%   \includegraphics[width=0.4\textwidth]{figs/ProgFlow.pdf} % Adjusts the image width to slightly less than the wrap figure width to handle padding issues
+%   \caption{Software-Compiler-Hardware Driven DynInfer Flow.}
+%   \vspace{-10pt}
+%   \label{Fig:progflow}
+% \end{wrapfigure}
+% To support user programs (\ycircled{P1}), we implement a moving window-based power predictor (\ycircled{P2}) which takes its input from the on-board EH capacitor. Considering the energy available, the predictor makes an informed decision on how to proceed. The compiler deconstructs the program into jobs to perform seamless program execution. These jobs form the functional program execution DAG. For example, for a DNN execution, the jobs could be CONV2D (\bcircled{C1}), batch normalization (\bcircled{C2}), etc. However, certain jobs could be too big to execute atomically on harvested energy. Therefore, we profile the tasks using the compute platform (in this case using the MSP-EXP430FR5994 and the LEA in it) to further divide the jobs into Power Atomic Tasks (QuantaTasks). These QuantaTasks are carefully coded with optimized assembly language to maximize their efficiency. We take advantage of the on-board NV FeRAM to perform backup and restore in case of power emergencies. In case of a power emergency, the task is abandoned and a hardware-assisted backup and restore is performed.
+
+\textbf{Implementation Details:} We propose a software-compiler-hardware co-designed framework for 
+\begin{wrapfigure}{r}{0.7\textwidth}
+  \centering
+  \includegraphics[width=0.7\textwidth]{figs/ProgFlow.pdf}
+  \caption{Software-Compiler-Hardware Driven DynInfer Flow.}
+  \vspace{-10pt}
+  \label{Fig:progflow}
+\end{wrapfigure}
+devices with non-volatility (e.g., MSP-EXP430FR5994 with FeRAM). Figure~\ref{Fig:progflow} outlines our design. User programs (\ycircled{P1}) are supported by a moving-window power predictor (\ycircled{P2}) that uses the EH capacitor input to decide execution based on available energy. The compiler decomposes the program into a DAG of jobs (e.g., CONV2D (\bcircled{C1}), batch normalization (\bcircled{C2})). Larger tasks are profiled on the MSP-EXP430FR5994, split into Power Atomic Tasks (QuantaTasks), and optimized in assembly. NV FeRAM is used for backup and restore during power emergencies.
+
+
+% {NExUME makes the following key contributions over the state-of-the-art:
+% \textbf{Integration of Energy Variability into Training and Inference:} Unlike existing methods~\cite{intermittentNAS, liberis2021mnas, yen2023keep, yen2022stateful, patel2019eperceptive, Zygarde}, NExUME uniquely integrates real-time energy variability directly into both the training and inference processes, enabling dynamic adaptation to fluctuating energy conditions.
+% \textbf{Novel Adaptive Training Mechanisms:} DynFit introduces dynamic dropout and quantization adjustments based on energy availability, along with an adaptive regularization strategy to prevent overfitting and under-training, which are not addressed in prior works.
+% \textbf{Intermittency-Aware Scheduling with Task Fusion:} DynInfer provides a scheduling algorithm specifically designed for intermittent power environments, incorporating task fusion to minimize checkpointing overhead, a feature absent in traditional energy-aware schedulers.
+% \textbf{Comprehensive Framework for EH-WSNs:} NExUME offers a holistic solution encompassing NAS, training, and inference, tailored for energy-harvesting wireless sensor networks, advancing beyond methods that focus on individual aspects.
+% \textbf{Empirical Validation and Complexity Analysis:} We provide theoretical and empirical analyses of our methods, demonstrating their effectiveness and efficiency compared to classical training and inference, and ensuring their practicality for real-world applications.

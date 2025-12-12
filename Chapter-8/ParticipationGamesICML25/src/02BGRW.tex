@@ -1,0 +1,39 @@
+\section{Background and Related Work}
+\textcolor{red}{Very basic, just the outline, compact and make robust}
+\subsection{Energy Harvesting Wireless Sensor Networks}
+
+Energy harvesting wireless sensor networks (EH-WSNs) have emerged as a sustainable solution for long-term environmental monitoring, infrastructure surveillance, and IoT applications~\cite{akhtar2017energy}. By harnessing ambient energy sources such as solar, thermal, or kinetic energy, EH sensors can operate indefinitely without the need for battery replacement or external power supplies. However, the intermittent and unpredictable nature of harvested energy introduces significant challenges in maintaining reliable and consistent network performance~\cite{yildiz2019wireless}.
+
+The unreliability of individual EH sensors, due to fluctuations in energy availability, necessitates the deployment of a large number of inexpensive and potentially unreliable devices to ensure network robustness. This redundancy allows for continuous operation despite individual sensor failures or downtime. However, it also introduces complexities in coordinating sensor activities, managing energy resources, and ensuring efficient data collection and processing~\cite{ren2018energy}.
+
+\subsection{Participation Strategies in EH-WSNs}
+
+Efficient participation strategies are critical in EH-WSNs to optimize network performance while conserving limited energy resources. Traditional approaches often assume continuous participation of all sensors, which is impractical in energy-constrained environments~\cite{tan2011survey}. Some methods propose selecting a subset of sensors based on energy levels or predefined schedules~\cite{liu2017energy}, but these can lead to suboptimal performance by not considering the sensors' data quality or potential future contributions.
+
+Several works have explored adaptive participation strategies that consider energy harvesting rates, energy consumption patterns, and application-specific requirements~\cite{luo2019adaptive}. These strategies aim to balance energy expenditure with the need for timely and accurate data, often using heuristic or optimization-based approaches. However, they may not fully exploit the potential for collaboration among sensors or account for the strategic interactions inherent in decentralized networks.
+
+\subsection{Game-Theoretic Models in Sensor Networks}
+
+Game theory provides a powerful framework for modeling and analyzing strategic interactions in distributed systems, including sensor networks~\cite{han2012game}. In the context of EH-WSNs, game-theoretic models have been employed to design distributed algorithms for resource allocation, power control, and cooperative communication~\cite{gao2015game}.
+
+Cooperative game theory has been used to encourage collaboration among sensors to enhance network performance~\cite{saad2009coalitional}. Non-cooperative game models allow sensors to make autonomous decisions while considering the potential actions of others, leading to equilibria that balance individual utility with collective goals~\cite{li2017game}. However, integrating game-theoretic participation strategies with machine learning tasks, particularly in energy-harvesting environments, remains an area with limited exploration.
+
+\subsection{Federated Learning in Resource-Constrained Environments}
+
+Federated learning enables multiple devices to collaboratively train a global model without sharing raw data, preserving privacy and reducing communication overhead~\cite{mcmahan2017communication}. While federated learning has gained significant attention in mobile and IoT devices, applying it to EH-WSNs presents unique challenges due to intermittent participation, limited computational capabilities, and variable data quality~\cite{kairouz2021advances}.
+
+Recent studies have begun to address federated learning in resource-constrained and unreliable networks. Strategies include adaptive aggregation methods, energy-aware training schedules, and robustness to device dropouts~\cite{wang2020optimizing}. However, these approaches often assume some level of reliability or do not fully integrate energy harvesting dynamics into the learning process.
+
+\subsection{Multi-View Learning and Collaborative Inference}
+
+Multi-view learning leverages multiple sources or perspectives to improve learning performance~\cite{xu2013survey}. In EH-WSNs, sensors providing different views of the same scene can enhance inference accuracy through collaborative processing. Techniques such as co-training, consensus learning, and ensemble methods have been explored to combine information from multiple sensors~\cite{li2018survey}.
+
+Collaborative inference in sensor networks involves combining local inferences to achieve a global understanding of the environment~\cite{hu2012distributed}. Challenges include aligning heterogeneous data, managing communication costs, and dealing with unreliable or missing inputs. Existing methods may not account for the energy constraints and participation variability inherent in EH-WSNs.
+
+% \subsection{Contributions and Novelty}
+
+% Our work distinguishes itself from prior research by integrating a game-theoretic participation strategy with a federated learning framework specifically designed for EH-WSNs. Unlike traditional participation strategies that may not consider the strategic interactions among sensors or the impact of future energy availability, our game-theoretic model enables sensors to make optimal decisions that balance individual utility with collective network performance.
+
+% By incorporating energy harvesting dynamics into both the participation strategy and the federated learning process, we address the unique challenges of EH-WSNs. Our approach accounts for intermittent sensor availability, varying data quality, and the need for sustainable operation over time. Furthermore, we provide theoretical analysis, including convergence proofs and equilibrium analysis, demonstrating the efficacy of our methods.
+
+% To the best of our knowledge, this is the first work to propose a comprehensive framework that combines game-theoretic modeling and federated learning for optimizing participation strategies in EH-WSNs performing complex inference tasks.

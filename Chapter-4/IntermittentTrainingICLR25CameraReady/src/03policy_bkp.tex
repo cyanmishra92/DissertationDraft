@@ -1,0 +1,94 @@
+%%%%%%
+
+To address the issues with ``intermittency-aware'' DNN training, we propose NExUME: (\textbf{N}eural \textbf{Ex}ecution \textbf{U}nder Inter\textbf{M}ittent \textbf{E}nvironment). NExUME has different components: We use Intermittency- and platform-aware neural architecture search (DynNAS) for searching for the apt network architecture give the energy budget and task at hand. We design Intermittency- and platform-aware DNN training with dynamic dropouts and quantization (DynFit); and finally, (3) Intermittency and platform aware task scheduling (DynInfer). Each of these components could work individually towards optimizing DNNs for intermittent environment. However, the combination of all of them is expected to provide the best results. 
+
+\subsection{Mathematical Formulation and Deployment of DynFit Policy}
+\label{sec:DynFit}
+DynFit is engineered to optimize deep neural networks (DNNs) for execution in environments characterized by intermittent power supply due to energy harvesting. The primary challenge is to enable the DNN to perform inference tasks within the constraints of an unpredictable energy budget while maintaining acceptable accuracy and adhering to service level objectives (SLOs). This entails defining executable units known as QuantaTasks, optimizing network parameters such as weights, dropout rates, and quantization levels, and formulating an optimization problem that effectively balances accuracy against energy consumption.
+
+\textbf{QuantaTask} represents the smallest computational unit that can be executed without interruption under current energy availability and hardware constraints. It is specifically designed to minimize the risk of failure due to power intermittency and optimize the execution of DNN operations under stringent energy constraints.
+
+\textbf{Mathematical Definition:}
+Let \( \mathcal{Q} \) denote the set of all possible QuantaTasks. Each QuantaTask \( q \in \mathcal{Q} \) is defined as \( q = (l_q, E_q) \), where \( l_q \) is the number of loop iterations or computational operations in task \( q \), and \( E_q \) is the estimated energy required to execute task \( q \) without interruption.
+
+
+The properties we want from a QuantaTask are as follows: \textbf{Atomicity}—Each QuantaTask must be executed in its entirety without interruption; partial execution is not allowed. \textbf{Energy Constraint}—Each QuantaTask must satisfy the condition \( E_q \leq E_b \), where \( E_b \) is the available energy budget at any given time. \textbf{Execution Time Constraint (optional)}—Each QuantaTask must satisfy the condition \( T_q \leq T_b \), where \( T_q \) is the execution time of task \( q \) and \( T_b \) is the allowable time budget. The aim is to determine the optimal set of QuantaTasks \( \mathcal{Q}^* \) that can be executed under the given energy constraints while maximizing the overall performance (e.g., accuracy) of the DNN.
+
+We define the following variables: \( \mathbf{W} \) denotes the network weights, \( \mathbf{d} \) represents the dynamic dropout rates, and \( \mathbf{q} \) refers to the quantization levels. Let \( \mathcal{Q} \) be the set of QuantaTasks \( q = (l_q, E_q) \), and let \( E_b \) denote the available energy budget. The primary constraints in this formulation include the energy constraint \( \sum_{q \in \mathcal{Q}} E_q \leq E_b \), ensuring that the total energy required by all QuantaTasks does not exceed the budget. Each QuantaTask must satisfy the execution constraint \( E_q \leq E_b \), ensuring that each task can be executed without interruption. Additionally, the quantization levels are constrained to \( q_i \in \{4, 8, 12, 16\} \) bits, while the dropout rates are restricted by \( 0 \leq d_i \leq 1 \), where \( d_i \) is the dropout rate for neuron \( i \).
+
+The objective function is defined as a composite loss function that incorporates the standard prediction loss \( \mathcal{L}(\mathbf{Y}, \mathbf{\hat{Y}}) \) along with regularization terms for energy efficiency:
+
+\[
+\min_{\mathbf{W}, \mathbf{d}, \mathbf{q}, \mathcal{Q}} \quad \mathcal{L}(\mathbf{Y}, \mathbf{\hat{Y}}) + \lambda_1 \sum_{i} c_{q_i} + \lambda_2 \sum_{i} c_{d_i},
+\]
+
+where \( \mathbf{Y} = f(\mathbf{W}, \mathbf{X}, \mathbf{m}, \mathbf{q}) \) represents the model predictions, and \( \mathbf{\hat{Y}} \) denotes the ground truth labels. The terms \( c_{q_i} \) and \( c_{d_i} \) capture the costs associated with quantization level \( q_i \) and dropout rate \( d_i \), respectively. The regularization parameters \( \lambda_1 \) and \( \lambda_2 \) are used to balance model accuracy and energy efficiency. The first term \( \mathcal{L}(\mathbf{Y}, \mathbf{\hat{Y}}) \) measures the prediction error, while the second and third terms penalize configurations with higher quantization bit-widths and higher dropout rates, encouraging more energy-efficient configurations.
+
+We also include constraints to optimize the sizes \( l_q \) of QuantaTasks in order to minimize energy consumption while adhering to the energy constraint. Specifically, the optimization problem is defined as:
+
+\[
+\min_{l_q} \quad \sum_{q \in \mathcal{Q}} E_q(l_q),
+\]
+
+subject to \( E_q(l_q) \leq E_b \), where \( l_q \) are positive integers representing loop iterations. This formulation ensures that the energy consumption for each QuantaTask remains within the specified budget, while optimizing the configuration to minimize overall energy use.
+
+
+\subsection{Optimization of Energy Consumption in QuantaTasks}
+
+\textbf{Modeling Energy Consumption:} To estimate the energy consumption \( E_q(l_q) \) for each QuantaTask \( q \), we assume that the energy consumption is proportional to the number of operations, defined as follows:
+\[
+E_q(l_q) = e_{\text{per\_op}} \times l_q
+\]
+where \( e_{\text{per\_op}} \) represents the energy per operation, obtained through profiling using DynAgent.
+
+\textbf{Optimizing QuantaTask Sizes} For each QuantaTask, our objective is to minimize the energy consumption, formulated as:
+\[
+\min_{l_q} \quad E_q(l_q)
+\]
+subject to the constraints that \( E_q(l_q) \leq E_b \) and \( l_q \in \mathbb{Z}^+ \). Given that \( E_q(l_q) \) exhibits a linear relationship with \( l_q \) and \( l_q \) is discrete, we iteratively search for the largest feasible \( l_q \) that meets the energy budget \( E_b \). This approach ensures that each QuantaTask is maximized in size to reduce overhead, while not exceeding the allocated energy budget.
+
+\textbf{Optimizing Dynamic Dropout Rates:} The dropout mask \( \mathbf{m} \) is influenced by the dropout rates \( \mathbf{d} \), which are adaptive to the current energy availability. We model \( \mathbf{m} \) as a Bernoulli random variable, with:
+\[
+m_i \sim \text{Bernoulli}(1 - d_i)
+\]
+The adjustment of \( d_i \) is a function of the energy budget, defined as:
+\[
+d_i = d_{\max} \left(1 - \frac{E_b}{E_{\text{max}}}\right)
+\]
+where \( d_{\max} \) is the maximum allowable dropout rate, and \( E_{\text{max}} \) is the maximum expected energy budget. This relationship allows for dynamic scaling of dropout rates during training, incorporating them into the forward pass and backpropagation.
+
+\textbf{Optimizing Quantization Levels:} Quantization levels \( \mathbf{q} \) are similarly adjusted according to the available energy:
+\[
+q_i = h(E_b)
+\]
+We also introduce a penalty in the loss function corresponding to higher bit-widths, promoting the use of lower bit-widths whenever feasible.
+
+\textbf{Formulating and Solving the Composite Optimization Problem:} Combining the adjustments for dropout rates, quantization levels, and QuantaTask sizes, we establish a composite optimization problem aimed at minimizing the overall loss, while adhering to the energy constraints:
+\[
+\min_{\mathbf{W}, \mathbf{d}, \mathbf{q}, \mathcal{Q}} \quad \mathcal{L}(\mathbf{Y}, \mathbf{\hat{Y}}) + \lambda_1 \sum_{i} c_{q_i} + \lambda_2 \sum_{i} c_{d_i}
+\]
+subject to:
+\[
+\sum_{q \in \mathcal{Q}} E_q(l_q) \leq E_b, \quad E_q(l_q) = e_{\text{per\_op}} \times l_q, \quad l_q \in \mathbb{Z}^+, \quad E_q(l_q) \leq E_b, \quad q_i \in \{4, 8, 12, 16\}, \quad 0 \leq d_i \leq 1
+\]
+We employ an alternating optimization approach due to the non-convex nature of the problem and the involvement of discrete variables. This method involves fixing certain parameters while optimizing others, employing gradient descent for continuous variables and discrete optimization techniques for the discrete ones.
+
+
+\subsubsection{Fine-tuning for Regularization and Prevention of Overfitting}
+\label{sec:fine_tuning_regularization_overfitting}
+Training deep neural networks under intermittent energy conditions introduces unique challenges, particularly in maintaining uniform parameter updates. The implementation of dynamic dropout and quantization, designed to adapt to fluctuating energy levels, can result in certain weights being under-trained. This discrepancy may cause the network to overfit on weights that are consistently updated. To address this issue, we propose an adaptive regularization strategy that actively monitors and adjusts the update frequency of each weight throughout the training process. Define $U_i(t)$ as the update status of weight $i$ at training iteration $t$, with $U_i(t) = 1$ indicating an update and $U_i(t) = 0$ otherwise. A threshold parameter $\theta$ represents the minimum proportion of iterations a weight must be updated to avoid being considered under-trained. The update ratio for weight $i$ is computed as $\text{update\_ratio}_i = \frac{1}{T} \sum_{t=1}^T U_i(t)$. If $\text{update\_ratio}_i < \theta$ after $T$ iterations, these under-trained weights undergo additional training cycles without dropout or quantization, ensuring uniform training across all weights we train additional cycles on $w_i$ if $\text{update\_ratio}_i < \theta$. After completing the standard training process, weights that have met or exceeded the threshold are frozen, and fine-tuning phases focus specifically on the previously under-trained weights. This strategy has been empirically shown to enhance model robustness and improve generalization under varying operational conditions. $\text{Fine-tune on } w_i \text{ for } i \text{ where } \text{update\_ratio}_i < \theta$. This approach not only ensures that all parts of the model receive appropriate training attention but also mitigates the risk of overfitting, thus preserving the model's ability to generalize across diverse energy availability scenarios. 
+
+\subsection{DynInfer: Intermittency Aware Task Scheduling for Inference}
+\label{sec:DynInfer}
+Effective task scheduling in intermittently-powered environments requires precise control over computational tasks to align with fluctuating energy availability. Contrary to the other components of NExUME, \textit{DynInfer} takes a system and architecture-level  approach to implement a task scheduler that adjusts in real-time to the energy conditions reported by \textit{DynAgent}. This ensures that the network operations are not only energy-efficient but also robust against power uncertainties. \textit{DynInfer} utilizes information about the current energy state and computational demands to {\em decompose} deep neural network (DNN) operations into smaller, manageable tasks. These tasks are then scheduled based on their priorities and energy requirements. The primary goals during this decomposition are to minimize latency and avoid SLO violations by prioritizing tasks critical to inference completion and to ensure that no individual task exceeds the current available energy, thus avoiding mid-operation failures.  Tasks are prioritized  according to a dynamically-generated schedule that considers energy profile (predicted short-term energy availability from \textit{DynAgent}), task criticality (importance of the task in contributing to the accuracy and stability of the DNN output, e.g.,  important kernels are scheduled first), and deadline sensitivity (tasks closer to their deadlines are given higher priority to reduce the risk of SLO violations). The scheduler adjusts task execution order in real-time, responding to updated forecasts and actual energy harvests, thus maintaining a balance between operational demands and available resources. To further optimize the processing efficiency, \textit{DynInfer} employs the dynamic task fusion strategy. In anticipation of power failures, \textit{DynInfer} integrates tightly with hardware-level and software-level checkpointing mechanisms. Hardware checkpointing utilizes non-volatile memory components to quickly save the state of computation at minimal energy cost, whereas software checkpointing manages the state of higher-level features and data structures that are not handled by hardware checkpointing. Upon recovery, \textit{DynInfer} coordinates with \textit{DynAgent} to efficiently restore the computation state and resume task execution, minimizing data loss and computational redundancy. \textit{DynInfer}'s effectiveness is enhanced through its integration with \textit{DynAgent}, which provides real-time data on energy availability, and \textit{DynFit}, which adjusts computational tasks according to the current system state and energy forecasts. A detailed description of the DynInfer execution flow with block diagrams are given in Appendix~\ref{appendix:DynInferFlow}
+
+
+%%%%%
+
+
+
+
+
+
+
+

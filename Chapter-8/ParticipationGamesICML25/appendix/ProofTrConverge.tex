@@ -1,0 +1,118 @@
+\section{Appendix: Proof of Theorem 2}
+\label{appendix:theorem2}
+In this appendix, we provide a detailed proof of \textbf{Theorem 2}, establishing the convergence of the federated learning algorithm under the specified conditions.
+
+
+\paragraph{Setup and Notation}
+
+Let \( \theta_G^{(t)} \) denote the global model parameters at training round \( t \). Each sensor \( s_i \) maintains a local model \( \theta_i^{(t)} \) initialized with \( \theta_G^{(t)} \). The local update at sensor \( s_i \) is given by
+\[
+\theta_i^{(t)} = \theta_G^{(t)} - \eta \nabla L_i(\theta_G^{(t)}),
+\]
+where \( \eta \) is the learning rate, and \( \nabla L_i(\theta_G^{(t)}) \) is the gradient of the local loss function at \( \theta_G^{(t)} \).
+
+The model update sent by sensor \( s_i \) is
+\[
+\Delta \theta_i^{(t)} = \theta_i^{(t)} - \theta_G^{(t)} = -\eta \nabla L_i(\theta_G^{(t)}).
+\]
+
+The global model is updated using the aggregated updates from participating sensors \( \mathcal{P}(t) \):
+\[
+\theta_G^{(t+1)} = \theta_G^{(t)} + \sum_{i \in \mathcal{P}(t)} w_i \Delta \theta_i^{(t)} = \theta_G^{(t)} - \eta \sum_{i \in \mathcal{P}(t)} w_i \nabla L_i(\theta_G^{(t)}).
+\]
+
+\paragraph{Assumptions}
+
+1. Each local loss function \( L_i(\theta) \) is convex and has \( L \)-Lipschitz continuous gradients:
+   \[
+   \| \nabla L_i(\theta) - \nabla L_i(\theta') \| \leq L \| \theta - \theta' \|, \quad \forall \theta, \theta'.
+   \]
+2. The learning rate satisfies \( 0 < \eta \leq \frac{1}{L} \).
+3. The aggregation weights \( w_i \) are non-negative and sum to one:
+   \[
+   \sum_{i \in \mathcal{P}(t)} w_i = 1, \quad w_i \geq 0.
+   \]
+4. Each sensor participates infinitely often, ensuring that over time, all local losses influence the global model.
+
+\paragraph{Global Loss Function}
+
+The global loss function is defined as
+\[
+L(\theta) = \frac{1}{N} \sum_{i=1}^N L_i(\theta).
+\]
+
+Our goal is to show that \( \theta_G^{(t)} \) converges to the global minimum \( \theta^* = \arg\min_{\theta} L(\theta) \) as \( t \to \infty \).
+
+\paragraph{Descent Lemma}
+
+Due to the Lipschitz continuity of the gradients, the following inequality holds for each local loss \( L_i(\theta) \):
+\[
+L_i(\theta') \leq L_i(\theta) + \nabla L_i(\theta)^\top (\theta' - \theta) + \frac{L}{2} \| \theta' - \theta \|^2.
+\]
+
+\paragraph{Analysis of the Global Update}
+
+We analyze the expected decrease in the global loss \( L(\theta) \) at each round. For simplicity, we assume that the participation of sensors is independent and identically distributed over time, and the expected aggregation weights converge to the uniform distribution:
+\[
+\lim_{T \to \infty} \frac{1}{T} \sum_{t=1}^T w_i^{(t)} = \frac{1}{N}, \quad \forall i.
+\]
+
+Let \( \theta_G^{(t+1)} = \theta_G^{(t)} - \eta g^{(t)} \), where
+\[
+g^{(t)} = \sum_{i \in \mathcal{P}(t)} w_i \nabla L_i(\theta_G^{(t)}).
+\]
+
+The expected gradient \( \mathbb{E}[g^{(t)}] \) over the randomness of participation is
+\[
+\mathbb{E}[g^{(t)}] = \sum_{i=1}^N \bar{w}_i \nabla L_i(\theta_G^{(t)}) = \bar{g}^{(t)},
+\]
+where \( \bar{w}_i \) is the expected weight for sensor \( s_i \), satisfying \( \sum_{i=1}^N \bar{w}_i = 1 \).
+
+\paragraph{Expected Decrease in Global Loss}
+
+Using the convexity and Lipschitz continuity of \( L(\theta) \), we have
+\begin{align*}
+L(\theta_G^{(t+1)}) &\leq L(\theta_G^{(t)}) - \eta \nabla L(\theta_G^{(t)})^\top \bar{g}^{(t)} + \frac{L \eta^2}{2} \| \bar{g}^{(t)} \|^2 \\
+&= L(\theta_G^{(t)}) - \eta \| \nabla L(\theta_G^{(t)}) \|^2 + \frac{L \eta^2}{2} \| \bar{g}^{(t)} \|^2,
+\end{align*}
+where we have used \( \nabla L(\theta_G^{(t)}) = \frac{1}{N} \sum_{i=1}^N \nabla L_i(\theta_G^{(t)}) \).
+
+\paragraph{Bounding the Gradient Norm}
+
+Since \( \| \bar{g}^{(t)} \|^2 \leq G^2 \), where \( G \) is an upper bound on the gradient norms (due to Lipschitz continuity), we have
+\[
+L(\theta_G^{(t+1)}) \leq L(\theta_G^{(t)}) - \eta \| \nabla L(\theta_G^{(t)}) \|^2 + \frac{L \eta^2 G^2}{2}.
+\]
+
+\paragraph{Choosing the Learning Rate}
+
+With \( \eta \leq \frac{1}{L} \), the term \( \frac{L \eta^2 G^2}{2} \) is minimized, and we can write
+\[
+L(\theta_G^{(t+1)}) \leq L(\theta_G^{(t)}) - \frac{\eta}{2} \| \nabla L(\theta_G^{(t)}) \|^2.
+\]
+
+\paragraph{Summing Over Iterations}
+
+Summing both sides over \( t = 1 \) to \( T \), we obtain
+\[
+L(\theta_G^{(T+1)}) \leq L(\theta_G^{(1)}) - \frac{\eta}{2} \sum_{t=1}^T \| \nabla L(\theta_G^{(t)}) \|^2.
+\]
+
+Since \( L(\theta_G^{(T+1)}) \geq L^* = L(\theta^*) \), we have
+\[
+\sum_{t=1}^T \| \nabla L(\theta_G^{(t)}) \|^2 \leq \frac{2 [ L(\theta_G^{(1)}) - L^* ] }{ \eta }.
+\]
+
+\paragraph{Convergence to Optimality}
+
+As \( T \to \infty \), the sum \( \sum_{t=1}^T \| \nabla L(\theta_G^{(t)}) \|^2 \) is bounded, implying that \( \| \nabla L(\theta_G^{(t)}) \| \to 0 \) as \( t \to \infty \).
+
+Since \( L(\theta) \) is convex, and \( \nabla L(\theta_G^{(t)}) \to 0 \), it follows that \( \theta_G^{(t)} \to \theta^* \), the global minimum.
+
+Therefore, under the specified conditions, the federated learning algorithm converges to the global minimum \( \theta^* \) as the number of rounds increases.
+
+\hfill \qedsymbol
+
+The proof relies on the convexity of the loss functions and Lipschitz continuity of the gradients to ensure the descent property and boundedness of the gradient norms.
+The assumption that each sensor participates infinitely often ensures that the aggregated gradient \( \bar{g}^{(t)} \) approximates the true gradient \( \nabla L(\theta_G^{(t)}) \) over time.
+In practice, participation may be random due to energy constraints. Incorporating probabilistic models of participation can extend the analysis to more general settings.

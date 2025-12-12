@@ -1,0 +1,60 @@
+\chapter{Leveraging Coresets for Performing Energy-Efficient and Feature-Rich Communication}
+\label{ch:coreset}
+
+In the previous chapter, we explored methods for combining intelligent scheduling and ensemble learning to shift inference computations onto EH sensor nodes for distributed wearable tasks, such as HAR. However, given the limitations of an EH budget, such approaches usually end up dropping many samples entirely, and there by, significantly hurting the accuracy.  To deal with this, current devices adapt in one of three ways: \emph{1) Send all the sensor data to a connected host device, or cloud, to offload the compute and act only as a sensing and display device (Fig.~\ref{Fig:introFig-a}). 2) Process data on the device itself, potentially dropping or delaying tasks due to energy shortfalls (\ref{Fig:introFig-b} ).  3) A mix of the two models, where some computations do happen on the device while others are offloaded to balance compute, energy, and communication resources.}
+
+\begin{figure*}
+\centering
+    \hfill
+	\subfloat[HAR in a conventional setting]
+	{
+	\includegraphics[width=0.4\linewidth]{figs/28.pdf}\label{Fig:introFig-a}
+	}
+	\hfill
+    \subfloat[On-device HAR using EH-WSNs]
+    {
+    \includegraphics[width=0.4\linewidth]{figs/29.pdf}\label{Fig:introFig-b}
+    }
+    \hfill
+    \vspace{-0.1cm}
+    \caption{A representation of edge computation (with Human Activity Recognition (HAR) as an example). Fig.~\ref{Fig:introFig-a} represents the conventional setup where the barely intelligent battery backed edge devices/ sensors stream data to the host or cloud for inference which is inefficient in terms of both latency and power. Fig.~\ref{Fig:introFig-b} shows a desired set-up, where the energy harvesting wireless sensor network work in cohesion to get a more accurate inference while maximizing compute at the edge and making minimum and efficient communication with a host.}\vspace{-6pt}
+    \label{Fig:introFig}  
+\end{figure*}
+
+Typically, the latter is preferred, but it is non-trivial to find the optimal balance between what is to be done on the edge and what should be offloaded~\cite{kang2017neurosurgeon, taylor2018adaptive, zhao2018deepthings, eshratifar2018energy}. Since recent works~\cite{spendthrift,ResiRCA} show processing at the edge is more efficient, when there are appropriate acceleration resources, we will explore strategies that push more compute to the edge sensors and rely less on more powerful coordinating devices., neither inferring from them locally nor transmitting the raw data due to a lack of sufficient energy. Conventional edge devices have relied on compression techniques to minimize data communication overheads and help cover this gap. However, when applied to low dimensional sensor data,  classical lossy compression techniques tend to discard important features to achieve a higher compression ratio, which significantly degrades the inference accuracy (see Table \ref{tab:compression-table}). To mitigate this problem, recent works~\cite{bachem2015coresets, Ting-He-ArXiv, Ting-He-IEEE} propose using \textit{coresets}, a data representation technique from computational geometry that preserves important, representative features when building a compressed form of the data, for efficient edge communication. However, performing accurate inference on coresets can still be challenging.
+
+\begin{table}
+\vspace{-8pt}\centering
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Algorithm}    & \textbf{Compression Ratio} & \textbf{Accuracy Loss (\%)} \\ \hline
+Fourier Decomposition & 3 - 5                      & 9.1 - 18.3                  \\ \hline
+DCT                   & 3 - 5                      & 5.8 - 16.2                  \\ \hline
+DWT                   & 3 - 6                      & 5.3 - 12.7                 \\ \hline
+Coreset               & 3 - 10                     & 0.02 - 0.76                 \\ \hline
+\end{tabular}
+\end{adjustbox}
+\caption{Accuracy trade-off of different compression techniques: Low-dimensional data loses important features under lossy compression, dropping inference accuracy significantly compared to the original data.}
+\label{tab:compression-table}
+% \vspace{-12pt}
+\end{table}
+
+Towards this, in this chapter, we propose \emph{Seeker}, a novel approach that leverages and extends coresets to efficiently execute DNN inference, specifically HAR, across a set of EH-WSN nodes and a host mobile device. \textit{Seeker} builds on top of \textit{Origin}, and applies coreset techniques to both increase the number of inferences that can be performed locally and make transmission viable in more cases where computation cannot be performed on-node. Moreover, Seeker augments its coreset formation with application-awareness and provides hardware support for coreset formation acceleration to make them sufficiently computationally efficient, adaptive, and accuracy-preserving for low-power, latency critical embedded applications.
+
+\section{Preliminary Experimental Evaluation and Results}
+%takes it one step ahead to finish maximum computation at the edge EH sensors and to enable collaborative intelligence. 
+\begin{itemize}
+
+\item We propose to develop extensions to traditional coreset formation that enhance their applicability to EH-WSN inference scenarios. Specifically, we plan to introduce an \emph{activity-aware coreset construction} technique to dynamically adapt to both the activity and the available harvested power, while conserving maximum features of the data. We also propose a \emph{recoverable coreset construction} technique, which helps reconstruct the original data from the compressed form with minimum \textit{inference loss}. This combination should achieve superior accuracy-compression tradeoffs compared to classical compression techniques like DCT and DWT.  
+%\textcolor{red}{THE PRIOR COMPRESSION TECHNIQUES, or at least the number thereof}. % for further classification.
+%We use coresets to build a compressed representative form of the sensor data for efficient communication with the host, in the cases where the sensors are not able to perform inference with harvested energy.
+
+\item We propose simple, low power, and low latency hardware to efficiently build coresets from the raw data, further increasing the number of samples that can be inferred or transmitted under a fixed EH budget. %and hence barring the requirement of any power hungry general purpose processor or micro-controller for the same - thus keeping our sensors running on harvested energy only. %We evaluate the area and power numbers for the proposed hardware.
+
+\item We also propose design augmentations for the sensors to employ data memoization for skipping unnecessary compute, and the use of low precision ReRAM x-bar based DNN-engines for energy efficient inference. 
+%Like~\cite{Origin}, we use ensemble learning to enable collective intelligence and perform HAR as accurate as a fully powered system, while running on harvested energy only.
+
+\item We plan to provide a detailed evaluation of our system and an accelerator design. Preliminary evaluation shows that, even when powered by an unreliable EH source, {\em Seeker}'s coreset-based optimizations result in better accuracy than that of a fully-powered system running a state-of-the-art classifier optimized for energy efficiency. Specifically, \emph{Seeker} reaches  86.8\% top-1 accuracy in comparison to the 81.2\% accuracy of \emph{Origin}, while reducing the data communication by $\approx 8.9\times$ compared to the state-of-the-art optimization techniques proposed for EH-WSNs.   
+
+\end{itemize}

@@ -1,0 +1,60 @@
+\section{Appendix: Proof of Theorem 1}
+\label{appendix:theorem1}
+In this appendix, we provide a detailed proof of Theorem 1. The goal is to show that under the specified conditions, the distributed decision-making algorithm leads to a Nash equilibrium.
+
+\paragraph{Setup and Notation}
+We consider a finite game where each sensor \( s_i \) has a finite action set \( \mathcal{A}_i = \{ \text{P}, \text{NP} \} \). The utility function \( U_i(t) \) depends on the action \( a_i(t) \) and, possibly, on the actions of other sensors through \( \Delta A_i(t) \).
+
+\paragraph{Step 1: Quasi-Concavity of Utility Functions}
+
+We first establish that the utility functions \( U_i(t) \) are quasi-concave in \( a_i(t) \). Since \( a_i(t) \) is binary, we can consider the two possible values:
+
+1. \( a_i(t) = \text{P} \)
+2. \( a_i(t) = \text{NP} \)
+
+The utility difference between participating and not participating is
+\[
+\Delta U_i(t) = U_i^{\text{P}}(t) - U_i^{\text{NP}}(t).
+\]
+Substituting the expressions for \( U_i^{\text{P}}(t) \) and \( U_i^{\text{NP}}(t) \), we have
+\[
+\Delta U_i(t) = [ \gamma \cdot \Delta A_i(t) - e_{\text{total}} ] - [ -\eta ],
+\]
+where \( e_{\text{total}} = e_{\text{cap}} + e_{\text{inf}} + e_{\text{comm}} \).
+
+Simplifying,
+\[
+\Delta U_i(t) = \gamma \cdot \Delta A_i(t) + \eta - e_{\text{total}}.
+\]
+
+Since \( \Delta A_i(t) \) is dependent on \( a_i(t) \) and possibly on \( \mathbf{a}_{-i}(t) \), but given that sensors have consistent estimates of \( \Delta A_i(t) \), we treat \( \Delta A_i(t) \) as known for the purpose of this proof.
+
+Thus, \( \Delta U_i(t) \) is a linear function of \( \Delta A_i(t) \), and the utility \( U_i(t) \) depends linearly on \( a_i(t) \). With only two actions, the utility function is trivially quasi-concave.
+
+\paragraph{Step 2: Best Response Dynamics}
+
+The best response for sensor \( s_i \) is to choose \( a_i(t) = \text{P} \) if \( \Delta U_i(t) \geq 0 \) and \( B_i(t) \geq e_{\text{total}} \), and \( a_i(t) = \text{NP} \) otherwise.
+
+Given that all sensors have consistent estimates of \( \Delta A_i(t) \), and their decisions depend on their own utilities, the game becomes one of strategic complements, where the incentive to participate increases with others' participation.
+
+\paragraph{Step 3: Existence of Nash Equilibrium}
+
+Since the action sets are finite and the utility functions are quasi-concave (indeed, linear in this case), and assuming complete information about \( \Delta A_i(t) \), standard game theory results guarantee the existence of at least one Nash equilibrium in pure strategies.
+
+\paragraph{Step 4: Convergence of the Algorithm}
+
+The distributed decision-making algorithm essentially implements best response dynamics. At each iteration (time slot \( t \)), each sensor chooses its best response given its estimates.
+
+Under the assumption of consistent estimates and quasi-concave utilities, best response dynamics converge to a Nash equilibrium in finite games (see \cite{monderer1996potential}).
+
+\paragraph{Step 5: Uniqueness and Stability}
+
+While the existence of a Nash equilibrium is established, uniqueness is not guaranteed without additional assumptions. However, the convergence to an equilibrium implies that the algorithm will reach a stable state where no sensor has an incentive to unilaterally deviate.
+
+Therefore, under the conditions that \( U_i(t) \) are quasi-concave in \( a_i(t) \) and sensors have consistent estimates of \( \Delta A_i(t) \), the distributed decision-making algorithm converges to a Nash equilibrium.
+
+\hfill \qedsymbol
+
+
+
+The assumption of consistent estimates of \( \Delta A_i(t) \) is critical. In practice, sensors may have estimation errors. Incorporating learning mechanisms can help sensors refine their estimates over time. The proof relies on properties of finite games and best response dynamics. In more complex settings with continuous action spaces or incomplete information, additional analysis would be required. The convergence rate of the algorithm is not specified but is expected to be rapid in finite games with binary action sets.

@@ -1,0 +1,119 @@
+%%%%% %%%%% %%%%%
+Thank you for the constructive and insightful feedback on our manuscript. We have revised the paper to address the reviewers’ concerns regarding Section~\ref{sec:eval}’s organization, the evaluation of modern DNN models, and clarity on circuit-level details. We summarize the main revisions and respond to the core concerns.
+%, and clarify both what we have done and why our approach makes sense.
+
+\section*{Revision Summary}
+We restructured Section~\ref{sec:eval} to provide a clearer flow of the experimental setup, figures, and baseline comparisons. We now consistently label subplots, unify color schemes, and explicitly reference each bar or marker in the text to eliminate any ambiguity regarding the improvements presented. In addition, we evaluated our design on transformer models offering a more contemporary evaluation beyond LeNet and MicroNet. We also elaborate on how we achieve the claimed 25\% latency saving by skipping an ADC/DAC cycle after every second layer, leading to a substantial reduction in end-to-end inference time for multilayer networks. We added explanations on trainable parameters, quantization and driver circuit details to further clarify the concerns. 
+
+\section*{General Concerns}
+Some reviewers noted that our dual emphasis on analog circuit design and model training could appear more machine learning centric than architectural. To address this, we clarified in Sections~\ref{sec:Activation}--\ref{sec:SystemIntegration} how tile sizing, quantization, domain conversion, and I/O overheads are central to an ISCA-level architectural discussion. We refined the circuit descriptions to explicitly indicate when the ReRAM columns output current, how transimpedance amplifiers convert this current to a voltage domain for Schottky diode thresholding, and how multi-bit cell variability, environmental impact, and other noises are managed by modeling device mismatches as random variables during training rather than by physically modifying hardware. We believe these revisions not only improve clarity, but also reinforce the architectural rigor and motivation behind our design choices.
+
+\section*{Specific Questions}
+\noindent
+\textbf{Reviewer A.}  
+We have majorly restructured Section~\ref{sec:eval} to improve readability, unify the legends of the figures, and ensure that every sub-figure, bar and marker is clearly referenced in the text. Figures that previously lacked color consistency are now reorganized with textures for better visualizations and text-to-figure corelation.
+
+\noindent
+\textbf{Reviewer B.}  
+We clarify our use of a 4-bit quantization baseline, arguing that many low-power ReRAM PIM systems adopt a similar small bit-width quantization to minimize overhead and reduce data movement costs. We also explicitly break down the 25\% latency (Page-10, Figure~\ref{fig:pipelineLatency}) reduction—attributable to the removal of one ADC/DAC cycle every two layers—and discuss how our approach can be extended to more advanced transformer based models (Page--13, Section~\ref{sec:transformerEval}) through additional analog fine-tuning/retraining.
+%, which we leave for future work. 
+
+\noindent
+\textbf{Reviewer C.}  
+We cite and contrast LeCA (ISCA 2023), emphasizing that although the in-sensor compressive acquisition differs from our crossbar-based diode activation, both approaches leverage hardware-aware training to improve robustness. We have added a discussion to explain how sampling device parameters for temperature, power fluctuation, and IR drop during training enables a single retrained model to operate reliably under diverse conditions (Pages--6, 7, and Algorithm~\ref{alg:unified_training}).
+
+\noindent
+\textbf{Reviewer D.}  
+We include evaluations on modern CNNs, such as MobileNetV2 and SqueezeNet, and clarify the comparisons between baseline FP32 and 4-bit performance~\ref{fig:accuracy_comparison}. We note that only ReLU is natively supported in the analog domain, while other activation functions (e.g., Softmax, Sigmoid) are performed digitally. The circuit design could be augmented (e.g. with clipper and clamper circuits) to represent leaky-Relu, and Relu6 etc. We justify limiting analog processing to two layers by highlighting the effects of IR drop accumulation, acknowledging that additional analog amplification might allow more layers at increased cost (Page--7). %For the case study in Section~6.4, we provide further details on variable solar power conditions and associated energy consumption. 
+                              
+\noindent
+\textbf{Reviewer E.}  
+We have updated the circuit explanation in Section~\ref{sec:Activation} and Figure~\ref{fig:DiodeDriver}, clarifying that the crossbar output is a current, which is then converted to a voltage domain by a transimpedance amplifier. We show that parameters such as $V_{\text{th}}$, $\alpha$, and the IR drop factor $\gamma$ are sampled during training to model device variability, while remaining fixed in hardware (Page-7, and new Algorithm~\ref{alg:unified_training}). 
+
+Reprogramming ReRAM cells for large models is primarily a technology-dependent process, 
+involving voltage pulses and program--verify loops to set each cell's resistance levels. Recent works~\cite{IMBNature} shows that the reprogramming cost/tile could be $\le 110pJ$. Our tile-based design supports layer-by-layer loading when the entire model (e.g., MobileNetV2) cannot fit into on-chip ReRAM simultaneously.
+
+%We also address multi-bit ReRAM noise modeling, define SNR clearly, and include the overhead of weight reloading for larger networks like SqueezeNet and MobileNetV2. The revised Section~6 now contains improved figures with consistent legends to eliminate any confusion about which data correspond to which approach.
+
+\section*{Modern Networks and Hardware}
+Our work majorly focuses on performing popular ReLU activation entirely on analog domain, and incorporating hardware aware training for ReRAM xBars. Therefore, we believe, any hardware optimizations proposed in newer works~\cite{wu2024autohet, ma2025sipt} could be integrated into our design. To showcase generalization of the proposed activation function (Equation~\ref{eqn:DiodeActivation}), we evaluated the software only deployment of modern transformer based models~\cite{jiao2019tinybert, setyawan2025microvit} with the proposed activation function at different quantization levels (Page--13, Section~\ref{sec:transformerEval}). The results (Table~\ref{tab:transformerAcc1}) shows neglegible accuracy loss compared to the baseline.
+
+\section*{Relevance for ISCA}
+Our work addresses a critical architectural challenge: integrating analog processing-in-memory with hardware-aware training to overcome non-idealities such as IR drop, diode variability, and supply fluctuations. By combining a techniques like tile dropout with innovative analog circuit design (Schottky diode activation and reduced ADC/DAC conversions), we demonstrate up to 66\% higher power efficiency and a 25\% reduction in latency compared to existing ReRAM PIM baselines. The amalgamation of hardware-software-model co-design approach align directly with ISCA’s focus on specialized accelerators, energy-efficient designs, and emerging memory technologies. We believe that the revised version of our paper
+%—featuring enhanced clarity and evaluations on modern netowrks—
+provides a compelling and well-motivated case for advancing the state of ultra-low-power ReRAM-based systems.
+
+
+%%%%% %%%%% %%%%%
+
+%%%%% %%%%% %%%%%
+\clearpage
+% \textcolor{blue}{
+% THE TEXT BELOW ARE SOME ADDITIONAL CLARIFICATIONS AND CAN BE INTEGRATED ABOVE FOR ADDITIONAL CLARIFICATIONS.
+% }
+
+% \begin{verbatim}
+% %%%% %%%%% %%%%% %%%% %%%%% %%%%% %%%% %%%%% %%%%%
+% \end{verbatim}
+
+% \section*{Additional Clarifications on Our Design Choices}
+% \noindent
+% \textbf{Focus on 4-bit Quantization.}  
+% We select a 4-bit baseline because it strikes an optimal balance between achieving acceptable model accuracy and meeting the extremely tight energy and memory constraints typical in remote deployments. Although higher precision may yield better accuracy, it also increases the overhead of DAC/ADC conversions, undermining our goal of reducing energy consumption through minimized domain transfers.
+
+
+% \noindent
+% \textbf{Two Consecutive Layers in Analog.}  
+% Due to cumulative effects such as IR drop, diode voltage drop, and analog noise, chaining more than two layers in the analog domain can lead to unacceptable signal degradation. Our empirical evaluations indicate that processing two consecutive layers in analog delivers significant ADC/DAC savings—reducing overall latency by approximately 25\%—without incurring a prohibitive accuracy loss. Future work may explore analog amplification techniques to support additional layers, but our current design presents a robust and practical compromise.
+
+
+% \noindent
+% \textbf{Diode-Based ReLU Implementation.}  
+% A Schottky diode’s low forward voltage and rapid switching make it an ideal candidate for an analog approximation of the ReLU function. This implementation obviates the need for off-chip activation computations, thus reducing both power consumption and latency. We incorporate diode parameters (e.g., $V_\text{th}$, $\alpha$) as random variables during training to capture device variability, ensuring that the model remains robust even under non-ideal real-world conditions.
+
+
+% \noindent
+% \textbf{Model-Hardware Co-Design.}  
+% Our approach integrates analog non-idealities—including IR drop, additive noise, and multi-bit device variability—directly into the training pipeline. This allows the neural network to learn compensatory mechanisms, achieving higher energy efficiency and robustness compared to conventional digital designs that require frequent transfers back to the MCU domain.
+
+
+% \noindent
+% \textbf{Tile Architecture and Scheduling.}  
+% We employ a $32 \times 32$ crossbar tile architecture that balances manageable IR drops with high computational parallelism. Our scheduling strategy processes two consecutive layers within the same tile, thereby minimizing data transfers and maximizing the benefits of in-situ analog operations. This design is scalable, as additional tiles can be added or weight reloading optimized to accommodate larger networks or deeper models.
+
+
+% \noindent
+% \textbf{Why Our Approach Makes Sense.}  
+% By reducing the number of analog--digital conversions and incorporating hardware imperfections into the training process, our design simultaneously enhances power efficiency and maintains high accuracy across varying operational environments. The diode-based activation seamlessly integrates with the analog multiply--accumulate operations of ReRAM crossbars, enabling us to skip at least one conversion cycle per two layers. In ultra-low-power deployments—such as wildlife or industrial monitoring—this leads to significant improvements (up to 66\% higher power efficiency and 25\% latency savings) over traditional digital or single-layer analog designs.
+% %%%%% %%%%% %%%%%
+
+%%%%% %%%%% %%%%%
+
+% %%%%% %%%%% %%%%%
+% Thank you for the constructive and insightful feedback on our manuscript. We have significantly revised the paper to address the reviewers’ concerns about Section~6’s organization, the evaluation of modern DNN models, clarity on circuit-level details, and deeper comparisons to state-of-the-art ReRAM-based platforms. Below, we summarize the main revisions, respond to the core issues raised, and clarify why this work is best suited for ISCA.
+
+% \section*{Revision Summary}
+% We restructured Section~6 to provide a clearer flow of the experimental setup, figures, and baseline comparisons. We now consistently label subplots, unify color schemes, and explicitly reference each bar or marker in the text to eliminate confusion regarding which improvements are shown. In addition, we expanded our benchmarks to include SqueezeNet and MobileNetV2, offering a more contemporary evaluation beyond LeNet and MicroNet. We also elaborate on how we achieve the claimed 25\% latency saving, explaining that skipping an ADC/DAC cycle after every second layer leads to an end-to-end reduction in inference time for multi-layer networks. Finally, we incorporated references to works like LeCA (ISCA 2023) and recent ReRAM accelerators to position our work relative to in-sensor methods and advanced crossbar designs.
+
+% \section*{General Concerns}
+% Some reviewers noted the work’s dual emphasis on analog circuit design and model training could appear more machine-learning-centric than architectural. To address this, we clarified in Sections~3–5 how tile sizing, scheduling logic, partial sum reloading, and domain conversion overheads are central to an ISCA-level architecture discussion. We likewise refined the circuit descriptions, ensuring that it is explicit when the ReRAM columns output current, how it converts to a voltage domain for the Schottky diode threshold, and how we handle multi-bit cell variability in training. Furthermore, we detailed that we only “train” these parameters in software as random variables reflecting device mismatch, not physically change them on chip.
+
+% \section*{Specific Questions}
+% \noindent
+% \textbf{Reviewer A.} We have thoroughly rewritten Section~6 to improve readability, unify figure legends, and ensure each sub-figure, bar, and marker is clearly referenced in the text. Figures that previously lacked color consistency or partial legends are now reorganized so that the paragraph explanations match precisely with what is shown.
+
+% \noindent
+% \textbf{Reviewer B.} In clarifying the 4-bit baseline, we argue that many low-power ReRAM PIM systems adopt 4-bit or similar small bit-width quantization to minimize overhead and data movement costs. We also explicitly break down our 25\% latency reduction, attributing it to removing one ADC/DAC step after each second layer. We discuss how our approach could extend to larger or more advanced models (e.g., transformers), although these remain future work.
+
+% \noindent
+% \textbf{Reviewer C.} We cite and contrast LeCA (ISCA 2023), emphasizing that while in-sensor compressive acquisition differs from our crossbar-based diode activation, both use hardware-awareness in training. We expand the “extreme environments” discussion, explaining how sampling device parameters for temperature, power fluctuation, and IR drop during training allows one retrained model to handle wide operating conditions in practice.
+
+% \noindent
+% \textbf{Reviewer D.} We now evaluate modern CNNs, such as MobileNetV2 and SqueezeNet, clarifying how we measure baseline FP32 vs. 4-bit performance. We also note that only ReLU is natively supported in analog, but final layers (Softmax, Sigmoid) can be done digitally. We justify limiting analog processing to two layers by referencing IR drop accumulation, though additional amplification could enable more layers at added cost. For the case study (Section~6.4), we add more detail on variable power conditions and the associated energy consumption.
+
+% \noindent
+% \textbf{Reviewer E.} We provide an updated circuit explanation in Section~3, clarifying that the crossbar output is current, which is then converted to a voltage domain for diode thresholding. We show how parameters like $V_{\text{th}}$, $\alpha$, and the IR-drop factor $\gamma$ are sampled during training but not physically altered in hardware. We also address multi-bit ReRAM noise modeling, SNR definitions, and the overhead of weight reloading for larger networks such as SqueezeNet and MobileNetV2. The final revised Section~6 includes improved figures with consistent legends to address confusion about which data correspond to which approach.
+
+% \section*{Relevance for ISCA}
+% Our work tackles a prominent architecture challenge: how to integrate analog processing-in-memory with domain-specific training to overcome non-idealities such as IR drop, diode variability, and partial supply fluctuations. By bridging a tile-based scheduling methodology (tile dropout, partial weight reloading) and analog circuit design (Schottky diode activation, skipping frequent ADC/DAC conversions), we achieve up to 66\% higher power efficiency and 25\% latency savings over ReRAM PIM baselines. These findings resonate with ISCA’s focus on specialized accelerators, energy-efficient designs, and emerging memory technologies. We believe the revised version of this paper demonstrates both the architectural rigor and the real-world practicality needed to advance the state of ultra-low-power ReRAM-based systems.
+% %%%%% %%%%% %%%%%

@@ -1,0 +1,25 @@
+After finalizing the training set for the continuous learning, the next challenge is to perform learning within the power and time budget. Given enough time even a na\"ive  low power hardware can finish the training, but will have longer periods where the drift is exposed. The more preferable solution is to get rid of the drift as quickly as possible, i.e. finish training on the exemplars (described in \S\ref{subsec:exemplar}) as soon as possible and also reach the desired accuracy. The catch is to do this within the harvested budget. Prior works~\cite{hyperband,hyperparam, optimus} suggest that selecting the right hyper-parameters (like batch size, learning rate, number of layers to train etc.) have a huge impact on the convergence and accuracy of the models. Considering each of the edge servers is supposed to handle multiple steams with multiple drifts, we need to jointly optimize the the hyper-parameters to maximize the accuracy with minimum power and resource  budget. 
+
+To achieve this, we design a ``micro-profiler'', which can look into the drift of the models as well as the power availability and decide the right hyperparameters to train the models. Prior works~\cite{optimus,chameleon, ekya} have designed micro-profilers to predict the right set of hyper-parameters. However, they never considered an intermittent power source, nor explored jointly optimizing multiple models with power, accuracy and latency constraints. Furthermore, each model might contribute differently to the overall accuracy. Observing this, we propose a ``weighted accuracy metric'', where the weight of each of the model is a function of the accuracy, time needed and power availability. Furthermore, we allow some slack to the weighted accuracy so that the optimizer can choose a better set of hyperparameters if we can reach \textbf{close to} the weighted accuracy with much less resource (power or compute) consumption. Typically, there is an inverse correlation of the convergence of the stochastic gradient descent (SGD) algorithm, the most popular training algorithm for DNNs, over the number of iterations ($n_i$)~\cite{optimus}: $l \propto \mathcal{O}(1/n_i)$ and $l = \frac{1}{\beta_0 . n_i + \beta_1} + \beta_2$, where $l$ is the loss of the SGD and $\beta_i$ is an non-negative real number. Therefore, by running few iterations of the SGD algorithms with various other hyperparameters,  we can easily {\em predict} the convergence of the models. Note that this needs to be done every time one of the constraints (accuracy, power etc.) changes. 
+
+ \begin{figure} 
+ \centering
+    \subfloat[Decision flow]
+    {
+     \includegraphics[width=0.35\linewidth]{figs/HPFC.pdf}%
+    \label{Fig:HPFC}
+    }
+    \subfloat[Micro-profiler block diagram]
+    {
+     \includegraphics[width=0.55\linewidth]{figs/HPFD.pdf}%
+    \label{Fig:HPFD}
+    }
+    \vspace{-8pt}\caption{Design of the micro-profiler.}
+    \label{fig:HPSEL} 
+    \vspace{-22pt}
+\end{figure}
+
+Figure~\ref{fig:HPSEL} shows the design of our micro-profiler. It optimizes the weighted accuracy ($A_w = \frac{W_i}{A_i}/\sum W_i; \forall i \le \#models; W_i = f(time,drift,compute)$ with a user-defined slack value of $\delta$), with respect to available power ($P_{av}$): $\max A_w$; $s.t. \vspace{2pt} P \le P_{av}$. Available power is predicted using a moving average power predictor~\cite{resiRCA,Origin}. The micro-profiler, having run multiple sweeps, returns a set of hyperparameters ($\Psi_i$) for each model which is then stored in a history table. This helps us avoid unnecessary profiling (up to 41\%). When introduced to new constraints (change of power availability, accuracy etc.), the micro-profiler first looks in the history table to find a configuration and runs profiling iff it could not find one. 
+%For efficiency, parts of the micro-profiler are also offloaded to hardware (see \S\ref{sec:HW}).
+
+%%%%%

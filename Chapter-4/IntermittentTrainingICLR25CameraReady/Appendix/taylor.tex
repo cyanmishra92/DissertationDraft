@@ -1,0 +1,78 @@
+\subsection{Taylor Expansion Dropout with QuantaTask Optimization}
+\label{appendix:taylor}
+Taylor Expansion Dropout uses Taylor expansion (Li et al., 2016) to evaluate the impact of neurons on loss for dropout adjustments, combined with the QuantaTask optimization to handle energy constraints in intermittent systems.
+
+\textbf{Mathematical Formulation:}
+Let \(\mathbf{W}\) be the weight matrix of a layer. The impact of neuron \(i\) on the loss function \(\mathcal{L}\) can be approximated using the first-order Taylor expansion:
+\[
+\Delta \mathcal{L}_i \approx \left| \frac{\partial \mathcal{L}}{\partial \mathbf{a}_i} \mathbf{a}_i \right|
+\]
+where \(\mathbf{a}_i\) is the activation of neuron \(i\), and \(\frac{\partial \mathcal{L}}{\partial \mathbf{a}_i}\) is the gradient of the loss with respect to the activation.
+
+Define the dropout probability \(p_i\) for neuron \(i\) based on the Taylor expansion approximation of its impact on the loss:
+\[
+p_i = \frac{\lambda}{\left| \frac{\partial \mathcal{L}}{\partial \mathbf{a}_i} \mathbf{a}_i \right| + \epsilon}
+\]
+where \(\lambda\) is a scaling factor to adjust the overall dropout rate, and \(\epsilon\) is a small constant to avoid division by zero.
+
+Define a binary dropout mask \(\mathbf{m} = [m_1, m_2, \ldots, m_n]\) where \(m_i \in \{0, 1\}\). Each element of the mask is determined by sampling from a Bernoulli distribution with probability \(1 - p_i\):
+\[
+m_i \sim \text{Bernoulli}(1 - p_i)
+\]
+
+Apply the dropout mask during the forward pass. Let \(\mathbf{a}_i\) denote the activation of neuron \(i\):
+\[
+\mathbf{a}_i^{\text{dropout}} = \mathbf{a}_i \cdot m_i
+\]
+
+\textbf{Training with Taylor Expansion Dropout and QuantaTask Optimization:}
+Initialize the network parameters \(\mathbf{W}\), dropout mask \(\mathbf{m}\), and scaling factor \(\lambda\). Define the energy budget \(E_b\) for a single quanta and for the entire inference. Initialize the loop iteration parameters \(l\).
+
+Compute the activations \(\mathbf{a}\) and apply the dropout mask:
+\[
+\mathbf{a}_i^{\text{dropout}} = \mathbf{a}_i \cdot m_i
+\]
+
+Compute the loss \(\mathcal{L}(\mathbf{Y}, \mathbf{\hat{Y}})\) where \(\mathbf{Y}\) is the output of the network and \(\mathbf{\hat{Y}}\) is the target output.
+
+Calculate the gradients of the loss with respect to the activations:
+\[
+\frac{\partial \mathcal{L}}{\partial \mathbf{a}_i}
+\]
+
+For each layer \(L\) and loop \(i\) within the layer, estimate the energy \(E_i\) required for the current quanta size \(l_i\):
+\[
+E_i \gets \text{DynAgent.estimateEnergy}(L, i, l_i)
+\]
+If \(E_i > E_b\), fuse tasks to reduce the overhead:
+\[
+\text{FuseTasks}(L, i, l_i, E_b)
+\]
+Update \(E_i\) after task fusion:
+\[
+E_i \gets \text{DynAgent.estimateEnergy}(L, i, l_i)
+\]
+
+Update the dropout mask \(\mathbf{m}\) based on the Taylor expansion approximation:
+\[
+p_i = \frac{\lambda}{\left| \frac{\partial \mathcal{L}}{\partial \mathbf{a}_i} \mathbf{a}_i \right| + \epsilon}
+\]
+\[
+m_i = 
+\begin{cases} 
+0 & \text{if } \text{Bernoulli}(1 - p_i) = 0 \\
+1 & \text{otherwise}
+\end{cases}
+\]
+
+Perform the backward pass to update the network weights, considering the dropout mask:
+\[
+\mathbf{W} \leftarrow \mathbf{W} - \eta \frac{\partial \mathcal{L}}{\partial \mathbf{W}} \odot \mathbf{m}
+\]
+where \(\eta\) is the learning rate and \(\odot\) denotes element-wise multiplication.
+
+\textbf{Inference with Taylor Expansion Dropout and QuantaTask Optimization:}
+Check the available energy using DynAgent.
+If energy is below a threshold, increase the dropout rate to ensure the inference can be completed within the energy budget. Otherwise, maintain or reduce the dropout rate to improve accuracy.
+Perform the forward pass with the updated dropout mask to obtain the output \(\mathbf{Y}\).
+This approach ensures that the network is robust to varying energy conditions by incorporating dynamic dropout influenced by the Taylor expansion approximation of the neurons' impact on the loss, along with the QuantaTask optimization to handle energy constraints.

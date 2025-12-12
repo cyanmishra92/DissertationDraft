@@ -1,0 +1,54 @@
+% \documentclass{article}
+% \usepackage{algorithm}
+% \usepackage{algpseudocode}
+% \usepackage{xcolor} % For colored text
+
+%\begin{document}
+
+\begin{algorithm}[th]
+\caption{Training with Diode Activation and IR Drop}
+\label{alg:unified_training}
+\begin{algorithmic}[1]
+
+\Require Activations \(\{a_i^{(l)}\}\) from forward propagation, training targets \(\{y^{(i)}\}\)
+\Ensure Updated weights \(\{ w_{ij}^{(l)} \}\), biases \(\{ b_i^{(l)} \}\), attenuation factors \(\{ \gamma^{(l)} \}\), and activation parameters \(\{ \alpha^{(l)}, V_{\text{th}}^{(l)} \}\)
+
+\State \textbf{{Forward Propagation (not shown):}}
+\State \hspace{2em} Sample \(V_{\text{th}}^{(l)}\), \(\alpha^{(l)}\), and \(\gamma^{(l)}\) from their respective distributions to simulate device variability and IR drop. \par
+\State \hspace{2em} For each layer, compute analog MVM outputs with the diode-based activation. \\
+\State \hspace{2em} If it is the second consecutive analog layer, apply 4-bit quantization to the activations for quantization-aware training.
+
+\State \textbf{Backward Propagation}:
+\For{each training example \((x, y)\) in mini-batch}
+    \State Compute loss \(\mathcal{L}\) using Eq.~\eqref{eq:total_loss_updated}
+    \State Compute gradient of loss w.r.t. output activation: \\
+    \hspace{4em} \( \delta_i^{(L)} = \frac{\partial \mathcal{L}}{\partial a_i^{(L)}} \)
+    \For{each layer \( l \) from \( L \) down to \( 1 \)}
+        \State Compute derivative of activation function:
+        \[
+        f_{\text{diode}}'(z_i^{(l)}) = 
+        \begin{cases}
+        0, & z_i^{(l)} \leq V_{\text{th}}^{(l)} \\
+        \alpha^{(l)}, & z_i^{(l)} > V_{\text{th}}^{(l)}
+        \end{cases}
+        \]
+        \State Compute error term for each neuron: \\
+        \hspace{4em} \( \delta_i^{(l)} = \left( \sum_{k} w_{ik}^{(l+1)} \delta_k^{(l+1)} \right) \gamma^{(l)} \cdot f_{\text{diode}}'(z_i^{(l)}) \)
+        \State Accumulate gradients for weights, biases, and other parameters:
+        \State \hspace{2em} Update \( \Delta w_{ij}^{(l)} \), \( \Delta b_i^{(l)} \)
+        \State \hspace{2em} Update \( \Delta \gamma^{(l)} \) (IR-drop factor), \( \Delta \alpha^{(l)} \), \( \Delta V_{\text{th}}^{(l)} \)
+    \EndFor
+\EndFor
+
+\State \textbf{Update Parameters}:
+\For{each layer \( l \)}
+    \State Update weights and biases using accumulated gradients:
+    \State \hspace{2em} Apply learning rate \( \eta \) and regularization if applicable
+    \State Update activation parameters:
+    \State \hspace{2em} Adjust \( \alpha^{(l)} \), \( V_{\text{th}}^{(l)} \), \( \gamma^{(l)} \) based on gradients
+\EndFor
+
+\end{algorithmic}
+\end{algorithm}
+
+%\end{document}

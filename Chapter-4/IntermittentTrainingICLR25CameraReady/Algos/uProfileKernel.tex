@@ -1,0 +1,20 @@
+\begin{algorithm}[H]
+\caption{Profile Execution Time of Essential DNN Kernels}
+\begin{algorithmic}[1]
+\STATE Define the set of kernels to profile: GeMM, Convolution, ReLU, SoftMax
+\STATE Initialize data structures for input, weights, and output appropriate for each kernel
+\FOR{each kernel in the set}
+    \STATE Prepare input data and weights specific to the kernel
+    \STATE Warm up the system by running the kernel multiple times
+    \STATE Reset and start the high-resolution timer
+    \STATE Execute the kernel with the prepared data
+    \STATE Stop the timer and record the execution time
+    \STATE Store the execution time in a results array or dictionary
+    \IF{kernel requires additional setup for different scenarios (e.g., different input sizes)}
+        \STATE Repeat steps 4-8 for each scenario to measure how changes affect performance
+    \ENDIF
+    \STATE Output the execution times for each scenario or input size
+\ENDFOR
+\STATE Analyze the collected data to determine the performance bottlenecks and efficiency of each kernel
+\end{algorithmic}
+\end{algorithm}

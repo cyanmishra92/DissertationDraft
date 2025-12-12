@@ -1,0 +1,101 @@
+In this section, we describe our methodology to evaluate \textit{Seeker}. We start with implementing \textit{Seeker} using the CotS  Adafruit ItsyBitsy nRF52840 Express~\cite{adafruitI} as the sensor compute node and a Google Pixel 6 Pro as the host node. Further, we describe how the design performs in simulated state-of-the-art hardware accelerator specifically designed for EH purpose. We look into two different applications: multi sensor human activity recognition (HAR), and bearing fault detection for predictive maintenance and compare the results with multiple baselines designed for ultra-low-power as well as EH environments. 
+\begin{figure}
+  \centering 
+  \includegraphics[width=\linewidth]{figs/40.pdf}
+  \caption{\textit{Seeker} vs other compression techniques}
+  \label{Fig:seekercots}
+\end{figure}
+\subsection{\textit{Seeker} on Commercial Hardware}
+Although Seeker is designed for EH-WSNs, the efficient communication mechanism for low dimensional sensor data can still be useful for the current commercial devices. 
+Most of the ultra-low-power ($\le 30mW$) micro-controllers are not equipped with complex multiply-accumulate units to efficiently perform DNN computations, and hence are suited to collect, compress and send the data to a host (Pixel 6 Pro) and then the host  decompresses (or recovers) the data and performs the inference. We used the inertial measurement unit data of MHEALTH~\cite{mHealth} dataset as the sensor data, which is pre-processed and compressed at the Adafruit compute node and then sent over Bluetooth low-energy to the host. We used Circuit Python~\cite{CircuitPy} and Mu Editor~\cite{MuE} to implement the compression and the communication algorithms in the Adafruit board, and TensorFlow lite~\cite{tensorflow} to deploy the DNN inference at the host. We evaluate the efficiency, both in terms of compression ratio, energy consumption and accuracy preservation, of the recoverable clustering and recoverable importance sampling algorithms against three other popular methods: 1) sending raw data without compression; 2) compression using DCT; 3) Compression using DWT. We measure the energy consumption and inference accuracy over 1000 iterations to provide an average fair estimate. As depicted in Figure~\ref{Fig:seekercots}, \textit{Seeker} out performs both DCT and DWT in compression ratio, and the recovery feature of \textit{Seeker} helps preserving inference accuracy close to the original raw data.
+
+\subsection{\textit{Seeker} for Activity Recognition}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ \begin{figure*} 
+    \subfloat[Data volume with dynamic coresets]
+    {%
+     \includegraphics[clip,width=0.3\linewidth, height=3cm]{figs/41.pdf}%
+    \label{Fig:clusters-datavol}
+    }
+    \hfill
+    \subfloat[Fraction of inferences completed with different EH sources]
+    {%
+     \includegraphics[clip,width=0.3\linewidth, height=3cm]{figs/42.pdf}%
+    \label{Fig:Sensitivity-fracCompleted}
+    }
+    \hfill
+    \subfloat[Distribution of compute off-load to different components]
+    {%
+  \includegraphics[clip,width=0.3\linewidth, height=3cm]{figs/20.pdf}%
+  \label{Fig:Sensitivity-fracOffloaded}
+    }
+    \caption{Accuracy and communication efficiency of \emph{Seeker} with different data sets and its sensitivity towards various EH sources.}
+    %\vspace{-0.1cm}
+    \label{fig:AllSensitivity}  
+    %\vspace{-0.5cm}
+\end{figure*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure*}[ht]
+\centering
+    \subfloat[Accuracy with MHEALTH dataset]
+    {
+    \includegraphics[width=0.48\linewidth
+    , height=2.5cm
+    ]{figs/8.pdf}\label{Fig:MHEALTH-accuracy}
+    }
+    \hfill
+    \subfloat[Accuracy with PAMAP2 dataset]
+    {
+    \includegraphics[width=0.48\linewidth
+    , height=2.5cm
+    ]{figs/9.pdf}\label{Fig:PAMAP-accuracy}
+    }
+\caption{Accuracy and communication efficiency of \emph{Seeker} with different data sets and sensitivity study.}
+    %\vspace{-0.1cm}
+    \label{fig:AllAccuracy}  
+    %\vspace{-0.5cm}
+\end{figure*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Human Activity Recognition (HAR) using body area network is becoming mainstream on most of the warble devices. Moreover, the pervasive nature of HAR along with ample opportunities to harvest energy, makes HAR on body area network quite interesting. Therefore, as a case study, we simulate an entirely EH body area network using all the components of \textit{Seeker}; specifically, to leverage intermittent computing using EH only, we simulate HAR on the hardware described in Section~\ref{hardwaresupport}. This includes three different sensors located at left ankle, right arm, and chest. Each sensor has (i) sensing element a.k.a Inertial Measurement Unit that collects acceleration data), (ii) two DNN Re-RAM crossbar (16bit \& 12bit) built using XB-SIM~\cite{XBSIM}, (iii) two coreset computation engines synthesized using Design Compiler~\cite{SynDC}, (iv) an energy harvester unit which is modeled after real-world energy harvester trace data obtained from the works by Qiu et al.\cite{ResiRCA} and Geissdoerfer et al.~\cite{batteryfree} (the specifics of the energy-harvesting mechanism producing the power trace are beyond the scope of this work.t), (v) a simple moving average power predictor power predictor and, (vi) low energy communication unit which uses IEEE 802.15.6. We model the communication energy based on the current state-of-the-art low energy communication systems~\cite{ulpComm1, batteryfree}. We utilize a simulation driven approach as multiple components, including the crossbar, coreset engine etc., are specialized hardware that are not commercially available. System development in the ultra-low-power space fundamentally spans the device technology, microarchitecture, architecture, and networking fields, and understanding the design space of next-generation EH-WSNs requires incorporating proposed advances from all areas. The crossbar simulator~\cite{XBSIM, ResiRCA} accurately measure the power consumption and the latency of the operations, and the same is true for Design Compiler's modeling of the coreset engine. The simulation tools used in our experiment are widely used and accepted in both industry and research.   We evaluate our simulation using two different datasets, MHEALTH~\cite{mHealth,mHealthDroid}, and
+PAMAP2~\cite{PAMAP21,PAMAP22}. The coreset re-construction GAN and DNN models are trained and quantized using tensorflow~\cite{tensorflow}. Furthermore, we also leverage the temporal nature of HAR by designing a dynamic coreset construction algorithm.
+
+\noindent \textbf{\underline{Activity Aware Coreset Construction}:~}
+\label{subsubsec:AAC}
+In our experiments on HAR sensor data, we observe that not all the activities are equally complex and hence may or may not need a certain number of clusters to represent every feature. While activities like walking and running do not lose much accuracy even when represented with as low as eight clusters, complex activities are more sensitive and need more number of clusters to preserve their geometry. As the communication overhead depends on the number of clusters, which, in turn, depends on the complexity of the activity, we propose an \emph{activity aware clustering} which ensures that coresets for the current activity are represented with just sufficient number of clusters to preserve accuracy. We determine the number of clusters required as a function of current energy availability and accuracy trade off of using a lesser number of clusters. However, naively framed, this approach requires knowledge of what activity is being performed in order to encode the data that will be used to perform inference to determine what activity is being performed. To break this circular dependency, we take inspiration from prior work in HAR~\cite{Origin}, and use the highly stable temporal continuity of human activity (relative to the tens of milliseconds timescales for HAR inferences) to predict the current activity based on previously completed local inferences. We use temporal continuity to our advantage, and make sure that if the system does not have enough energy to form the default 12 clusters, it will resort to forming a smaller number of clusters with minimum accuracy loss. We implement a small lookup table to carry the information on accuracy trade-off for different activities with respect to the number of clusters used to form the coresets (similar to the data represented Fig.~\ref{Fig:AAC-Accuracy}).
+We observe that AAC communicates about \textbf{11\%} data compared to sending the full raw data (refer Figure~\ref{Fig:clusters-datavol}). Note that we only resort to activity awareness while forming coresets using clustering, as importance sampling based coreset construction does not require much energy. Furthermore, dropping the number of samples in importance sampling method, even with recovery, significantly hampers the accuracy, which is not the case for recoverable-clustering based coreset construction. 
+
+\noindent \textbf{\underline{Baseline}:~}We choose three points of comparison for our accuracy evaluation. \textbf{Baseline-1 (Baseline: Large DNN)} consists of a full precision (without any pruning) DNN built on the lines of~\cite{HARHaChoi}. \textbf{Baseline-2 (Baseline: EAP)} optimizes (using~\cite{netadapt}) Baseline-1 to design a power-aware DNN tuned to for the average harvested power of our EH source. \textbf{Baseline-3 (Baseline: Origin)} uses the system design proposed in~\cite{Origin}. Baseline-1 and Baseline-2 run on fully powered systems where as Baseline-3 runs on the same EH source as \textit{Seeker}. For communication, we consider a system which transmits the entire raw data to the host as the baseline.   
+
+\noindent \textbf{\underline{Analysis of Results on HAR}:~}Figure~\ref{Fig:MHEALTH-accuracy} and ~\ref{Fig:PAMAP-accuracy} show the accuracy of various policies described in Section~\ref{sec:4}, along with the accuracy of \emph{Seeker} - which applies all policies together, along with ensemble learning. Figure~\ref{Fig:clusters-datavol} shows the normalized data communication volume with different numbers of clusters, along with activity-aware clustering. We make the following observations:
+
+\noindent \textbf{Seeker at Edge Finishes More Work:~}Equipped with multiple decision options, \emph{Seeker} could finish close to 60\% (58.67\% using one of the RE sources; refer Figure~\ref{Fig:Sensitivity-fracCompleted}) of the inferences at the edge itself, thanks to the two efficient and quantized DNNs and the correlation engine. Both the DNNs share the load of the inference depending on the available energy, while correlation engine gets rid of close to 6\% of the redundant compute (refer Figure~\ref{Fig:Sensitivity-fracOffloaded}).  
+
+\noindent \textbf{Seeker at Edge Efficiently Offloads:~}For the unfinished compute, \emph{Seeker} converts the data into coresets for communicating them to the host with minimum payload footprint. The activity aware coresets, thanks to their dynamic nature, reduces the communication volume $8.9\times$ (refer to Figure~\ref{Fig:clusters-datavol}) compared to sending the raw data, and up to $3\times$ compared to the classical compression techniques.% while delivering highly accurate inferences. 
+
+\noindent \textbf{The Recovered Coresets Give Accurate Inference:~}Even with a specialized DNN tranined with coreset data, compressed coresets give less accuracy, evidently because of the loss of features during the coreset formation. However, with the reconstruction (via GAN or cluster redistribution), the accuracy reaches 86.8\% compared to 76.4\% for the former. The GAN modeled the lost signals with a very correlation ($\ge 0.9$ in most cases and $0.6$ in some of the worst cases).
+% ; refer Figure~\ref{Fig:gen} for an example).
+
+\noindent \textbf{Seeker is Close to a Fully Powered System:~} \emph{Seeker}, thanks to synergistic computation, achieves 87.05\% accuracy with MHEALTH (0.18\% less accurate than a DNN running at full precision with full power) data set and similarly reaches 74.2\% accuracy on the PAMAP2 data set. This gives us $\approx7\%$ more accuracy than~\cite{Origin} on MHEALTH and $\approx3\%$ more accuracy for PAMAP2 dataset. The accuracy improvement is because of three reasons : 1. the DNNs at the edge are more fine-tuned towards delivering accurate results and are $\approx1.5\%$ more accurate than the prior state-of-the-art~\cite{Origin}; 2. the recovered coresets imitate the original data with a great accuracy, and hence the inference accuracy at the host is as good as it would have been with the original data. 3. because \emph{Seeker} could finish more number of inferences (either at the edge or by offloading to a host), greatly reducing the scheduled task from $\approx 40\%$ to $\approx5\%$ in best case, $\approx8\%$ in worst case, and $\approx6.15\%$ in average case (all experiments on RF power trace). To compare with a battery operated energy optimized (to the average energy harvested by the RF sources) system, \emph{Seeker} is $5.89\%$ more accurate on MHEALTH dataset, and $4.98\%$ more accurate on PAMAP2 dataset.
+
+\noindent \textbf{\underline{Sensitivity Study}:~}Our experiments with other EH sources show the versatility of \emph{Seeker}, which outperforms a HAR classifier designed for EH~\cite{Origin} across multiple (piezo-electric, RF) harvested energy sources and demonstrate that it can easily be scaled to work with any number of sensors. Fig.~\ref{Fig:Sensitivity-fracCompleted} shows the comparison of scheduled inferences completed while using \emph{Seeker} and the state-of-the-art~\cite{Origin}. Further, we demonstrate how \emph{Seeker} leverages \textbf{all} the proposed design components (including memoization, DNN inference and coreset) to complete maximum compute at the edge and offload minimum to the host device. Fig.~\ref{Fig:Sensitivity-fracOffloaded} shows the compute breakdown among components under different EH sources.
+
+\begin{figure}
+  \centering
+  %\dummyfig{Sensor Setup}
+  \includegraphics[width=\linewidth]{figs/38.pdf}
+  \caption{Accuracy of Seeker on Bearing Data set}
+  \label{Fig:bearingdata}
+%\end{figure}
+ \end{figure}
+\vspace{-12pt}
+\subsection{\textit{Seeker} for Predictive Maintenance} 
+With the advent of automation and industry 4.0~\cite{industry4, industry40}, predictive maintenance is once of the most sorted after problems in industrial IoT domain. Predictive maintenance is a condition-driven preventive maintenance program where, instead of replying on failure to schedule maintenance activities, predictive maintenance uses direct monitoring of the plant to preemptively schedule maintenance and possibly take measures to prevent them from occurring~\cite{predictive}.  For continuous monitoring, the machines are typically fitted with sensors (vibration, force, magnetic, acoustic etc.), and the plant performs continuous analytics on those sensor data for preemptively maintenance scheduling. Vibration based condition monitoring is one of the most common scenarios~\cite{bearing}. Since there are multiple machines, and each machine is fitted with one or more sensors, this is a perfect example of wireless sensor network. The rise of Industry 4.0~\cite{industry4} has lead to an exponential explosion of such sensors in industries, especially in remote or hostile locations, calling for energy harvesting as a solution, and hence need for EH-WSNs. 
+
+\noindent \textbf{\underline{Baseline}:~}Towards this we take Case Western Bearing Fault data set~\cite{bearing} where the vibrations from the different bearings are collected to analyse the fault patterns (e.g. size of a crack in the bearing with respect to operating load, speed etc.). There has been a large body of work~\cite{BearingCNN1,BearingCNN2,BearingCNN3,BearingCNN4} in industrial engineering domain to develop DNN classifer for this task. In our experiments, we took inspirations from the work of ~\cite{BearingCNN4,BearingCNN2} to build a classifier, and applied further optimizations, as we did for HAR evaluation, to make the DNN edge-friendly. We also tweaked AAC to be energy aware only, i.e. the number of clusters formed depends only the energy available. We redesigned (few changes in the hyper parameters) and trained the GAN to adapt to the bearing data for recovering the importance sampling coresets.
+
+\noindent \textbf{\underline{Results}:~}As the base design of \textit{Seeker} can adapt to any sensor based communication, most of the arguments made for HAR still holds true in the case of bearing fault detection. As depicted on Figure~\ref{Fig:clusters-datavol} and~\ref{Fig:Sensitivity-fracCompleted}, \textit{Seeker} reduces the communication overhead by $\approx7\times$ while finishing $\ge 80\%$ of the scheduled compute using WiFi sources. Further, as shown in Figure~\ref{Fig:bearingdata}, Seeker, on an average, delivers an accuracy of $84.73\%$ which is only $0.66\%$ less than a fully powered system. It is note worthy that the bearing data is much susceptible to the real-world nuances and machine part interactions yet, the accuracy of fault prediction is extremely essential towards the production continuity and quality. To portray an example of scale, for a typical grinding job in a manufacturing industry that takes about 8.2 seconds~\cite{grindtime}, and the $5\%$ improvement we observe (in Figure~\ref{Fig:bearingdata}) over the prior state of the art~\cite{Origin} impacts $\approx 46k$ parts per year per machine (working 8 hours/day). Therefore, in large scale industries, both saving communication overhead while maximizing accuracy directly impact the economics of production.  
+
+\vspace{-8pt}

@@ -1,0 +1,79 @@
+\section{Training and Aggregation Framework}
+\label{sec:training_framework}
+
+Having established the equilibrium participation strategies and the underlying reward-based utility functions, we now consider the training process that fine-tunes the global inference model \(\theta \in \mathbb{R}^d\) within this EH, multi-sensor environment. Initially, \(\theta\) is pre-trained offline and deployed to all sensors, enabling them to perform basic inference tasks. However, this initial model may not be optimally adapted to the complex operational reality of the network, where sensors strategically choose SNR levels, participate intermittently according to equilibrium strategies, and generate data distributions that deviate from the original training set.
+
+The goal of the training process is to adjust \(\theta\) to these conditions, effectively \emph{fine-tuning} the model to the nonstationary data distribution \(\mathcal{D}\) induced by the sensors’ equilibrium behaviors. At equilibrium, sensors strike a balance between accurate data contribution and energy conservation, resulting in a stable pattern of participation and SNR choices. Over time, this induces a stationary, albeit non-trivial, effective data distribution \(\mathcal{D}\).
+
+\paragraph{Learning Approach:}
+Our approach diverges from classical Learning paradigms. We adopt a hybrid strategy where periodic or event-triggered updates refine the model parameters based on equilibrium-driven data collection. This hybrid approach mitigates the high communication overhead and energy consumption, making it more suitable for resource-constrained EH-WSNs.
+While traditional methods require persistent communication between sensors and the aggregator, our framework leverages the established equilibrium strategies to determine optimal times for model updates. By aligning update events with periods when sensors are most likely to participate meaningfully, we ensure that the global model is refined efficiently without imposing excessive energy demands on the sensors.
+
+\paragraph{Training Objective and Regularization:}
+To enhance robustness and efficiency, we incorporate regularizers that penalize undesirable model properties. Specifically, we introduce two regularizers:
+\textbf{(1) } \(\Omega_{\text{SNR}}(\theta)\): Encourages the model to maintain performance across varying SNR levels, preventing over-reliance on high-SNR data.
+\textbf{(2) }\(\Omega_{\text{complexity}}(\theta)\): Controls model complexity, reducing computational and communication overheads by discouraging overly intricate models.
+The full training objective is formulated as:
+\[
+J(\theta) = L(\theta) + \lambda_1 \Omega_{\text{SNR}}(\theta) + \lambda_2 \Omega_{\text{complexity}}(\theta),
+\]
+where
+\[
+L(\theta) = \mathbb{E}_{(x,y)\sim \mathcal{D}}[\ell(f_{\theta}(x), y)],
+\]
+and \(\lambda_1, \lambda_2 \geq 0\) are hyperparameters that balance accuracy, robustness, and efficiency.
+
+\paragraph{Gradient Computation and Backpropagation:}
+Integrating regularizers into the training process is straightforward due to their known closed-form gradients. During backpropagation, each sensor computes the gradient of the loss function \(\nabla \ell(f_{\theta}(x), y)\) with respect to \(\theta\) based on locally available samples from \(\mathcal{D}\). Additionally, the gradients of the regularizers, \(\nabla \Omega_{\text{SNR}}(\theta)\) and \(\nabla \Omega_{\text{complexity}}(\theta)\), are analytically derived and added to the local gradient estimates. Since both regularizers are convex and smooth, their inclusion ensures that the overall objective \(J(\theta)\) maintains desirable convexity and smoothness properties, facilitating the convergence of stochastic gradient descent (SGD).
+
+\paragraph{Periodic Equilibrium-Aware Training:}
+Model updates are performed periodically at an aggregator node that collects gradient estimates from participating sensors. Participation during training follows the same equilibrium model: sensors decide whether to compute and send gradients based on their current energy states, predicted future utilities, and the established reward structure. By aggregating these gradient updates over multiple training rounds, the aggregator approximates the gradient \(\nabla J(\theta)\) and performs an SGD step.
+Our training framework is encapsulated in Algorithm~\ref{alg:equilibrium_training}, which outlines the periodic equilibrium-aware training process. This training framework is intrinsically linked to the game-theoretic participation strategies. Sensors participate in training rounds based on their equilibrium-driven decisions, ensuring that gradient updates are contributed by those sensors most capable and willing to improve the global model. This alignment minimizes unnecessary energy expenditure and maximizes the efficacy of each training round.
+
+
+\begin{algorithm}[h]
+\caption{Periodic Equilibrium-Aware Training Algorithm}
+\label{alg:equilibrium_training}
+\begin{algorithmic}[1]
+\STATE \textbf{Initialization:} Initialize \(\theta_0\). Broadcast \(\theta_0\) to all sensors. Set a diminishing step-size schedule \(\{\alpha_k\}_{k\ge0}\).
+    
+\FOR{each training round \( k = 0,1,2,\ldots \)}
+    \STATE The aggregator signals that a training update round is imminent.
+    \STATE Sensors decide on participation. Participation involves:
+    \begin{enumerate}
+       \item Determining if they have enough energy and incentive (based on the established equilibrium strategy and reward parameters \(\gamma,\delta,\eta\)).
+       \item If participating: capturing data at their chosen SNR, performing inference, and computing local gradients \(\nabla \ell(f_{\theta_k}(x), y)\) on their locally available samples drawn from \(\mathcal{D}\).
+       \item Adding regularizer gradients \(\lambda_1 \nabla \Omega_{\text{SNR}}(\theta_k)\) and \(\lambda_2 \nabla \Omega_{\text{complexity}}(\theta_k)\).
+    \end{enumerate}
+    \STATE A subset of sensors, determined by the equilibrium, send their gradient estimates to the aggregator.
+    \STATE The aggregator forms an unbiased estimate of the full gradient:
+    \[
+    \widehat{\nabla} J(\theta_k) = \widehat{\nabla}L(\theta_k) + \lambda_1 \nabla \Omega_{\text{SNR}}(\theta_k) 
+    \]
+    \[
+    + \lambda_2 \nabla \Omega_{\text{complexity}}(\theta_k).
+    \]
+    \STATE Update model parameters:
+    \[
+    \theta_{k+1} = \theta_k - \alpha_k \widehat{\nabla} J(\theta_k).
+    \]
+    \STATE Broadcast \(\theta_{k+1}\) to all sensors.
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+%\paragraph{Integration with Equilibrium Strategies}
+
+
+\paragraph{Regularizers and SGD Convergence:}
+The chosen regularizers \(\Omega_{\text{SNR}}(\theta)\) and \(\Omega_{\text{complexity}}(\theta)\) are both convex and smooth, with known closed-form gradients. This property guarantees that the inclusion of regularizers does not compromise the convexity or smoothness of the overall objective \(J(\theta)\). Consequently, the stochastic gradient descent (SGD) updates retain their convergence properties, ensuring that the training process reliably optimizes \(J(\theta)\).
+
+% \paragraph{Complexity and Scalability Considerations}
+
+% As the number of sensors \(N\) grows large, computing equilibria or aggregating gradient updates from numerous sensors can become computationally intensive. To address scalability, the framework can incorporate methods such as clustering sensors into manageable groups or employing approximation algorithms that reduce the computational burden without significantly compromising performance. These strategies enable the framework to maintain efficiency and effectiveness even in expansive sensor networks.
+
+% \paragraph{Limitations and Future Work}
+
+% While our hybrid federated learning approach effectively balances periodic model updates with energy constraints, it assumes that equilibrium strategies lead to a sufficiently stationary data distribution \(\mathcal{D}\). In dynamic environments where ambient energy availability or sensor conditions change rapidly, maintaining equilibrium and ensuring model robustness may require additional adaptive mechanisms. Future work could explore dynamic equilibrium models or integrate online learning techniques to enhance adaptability in non-stationary settings. Additionally, incorporating uncertainty-aware models for estimating \(\Delta A_i(t)\) and \(\hat{E}_i(t+1)\) could further improve the framework's resilience and performance.
+
+%Our training and aggregation framework presents a novel integration of game-theoretic participation strategies with a federated learning paradigm tailored for EH wireless sensor networks. By leveraging equilibrium-driven data collection and periodic fine-tuning, the framework ensures that global model updates are both energy-efficient and performance-optimizing. The incorporation of convex and smooth regularizers further enhances model robustness and efficiency, while scalability considerations ensure applicability to large-scale networks. This unified approach addresses the critical challenges of sensor unreliability and energy scarcity, paving the way for sustainable and intelligent EH-WSN deployments.

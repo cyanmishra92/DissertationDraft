@@ -1,0 +1,16 @@
+\section{Analysis}
+In this section, we analyze the convergence and equilibrium properties of the proposed algorithms.
+
+\subsection{Convergence of the Distributed Decision-Making Algorithm}
+
+As established in Proposition 1, under the conditions that \( U_i(t) \) are quasi-concave in \( a_i(t) \) and sensors have consistent estimates of \( \Delta A_i(t) \), the distributed decision-making algorithm converges to a Nash equilibrium. The detailed proof is provided in Appendix~\ref{appendix:prop1}.
+
+\subsection{Convergence of the Federated Learning Algorithm}
+
+Under the assumptions of convex loss functions and Lipschitz continuous gradients, we have established the convergence of the federated learning algorithm in Theorem 1. The detailed proof is provided in Appendix~\ref{appendix:theorem1}.
+
+% \section{Simulation Results}
+
+% To evaluate the proposed models and algorithms, we simulate the sensor network under various scenarios. We consider a network of \( N \) sensors with heterogeneous energy harvesting rates and SNR capabilities. Parameters include energy harvesting models \( E_i(t) \), energy consumption values \( e_{\text{cap}}^{\text{high}}, e_{\text{cap}}^{\text{low}}, e_{\text{inf}}, e_{\text{comm}} \), and reward and penalty parameters \( \gamma, \delta, \eta \).
+
+% Our performance metrics include overall inference accuracy, energy efficiency, participation rate, and utility trends. Simulation results demonstrate that the distributed algorithms effectively balance energy consumption and inference accuracy, with sensors dynamically adjusting their participation based on energy availability and predicted future utility.

@@ -1,0 +1,597 @@
+% !TEX root = ../Dissertation.tex
+
+\chapter{LREyE: Hardware-Aware Neural Network Co-Design with Analog Activation for Energy-Efficient ReRAM Crossbars} \label{ch:lreye}
+
+\section{Introduction}
+\label{sec:lreye_intro}
+
+Building upon the intermittency-aware training framework presented in Chapter~\ref{ch:nexume}, this chapter explores the fundamental hardware substrate that enables ultra-low-power neural network inference in energy-harvesting systems. While NExUME addressed the challenge of training DNNs to be resilient to power fluctuations and computational approximations, we now turn our attention to the physical implementation of these networks using emerging memory technologies that can inherently operate at near-zero power levels. Specifically, we investigate how Resistive RAM (ReRAM) crossbar architectures can be co-designed with neural networks to achieve unprecedented energy efficiency while maintaining the robustness required for deployment in intermittently powered environments.
+
+The rapid proliferation of Internet of Things (IoT) devices in diverse and often hostile environments poses unique challenges for neural network deployment. Applications such as wildlife monitoring, deep mine surveillance, and remote industrial automation demand efficient and reliable image classification solutions that can operate under stringent energy constraints. These scenarios characteristically require ultra-low power consumption, extended device lifetimes, and minimal maintenance. For instance, wildlife monitoring sensors may need to run for years in remote habitats without battery replacements, while deep-mine surveillance nodes must withstand harsh conditions that render frequent maintenance impractical. To address these limitations, energy-harvesting technologies are increasingly employed, enabling devices to operate indefinitely but often intermittently. Under such conditions, traditional image classification approaches that rely on power-hungry digital processing fail to meet the rigorous energy constraints, thus demanding novel paradigms for energy-efficient computing.
+
+\subsection{The Promise of Processing-in-Memory}
+
+Processing-in-Memory (PIM) architectures have emerged as a transformative solution for achieving the efficiency targets required by these extreme deployment scenarios, particularly those that leverage Resistive RAM (ReRAM) crossbars for DNN-based inference. Unlike standard digital designs, ReRAM crossbars perform matrix-vector multiplications (MVMs) directly in the analog domain, significantly reducing the energy overhead of data movement and digital processing. The fundamental operation of a ReRAM crossbar exploits Kirchhoff's current law and Ohm's law to perform multiply-accumulate operations in parallel across an entire array, achieving $O(1)$ time complexity for matrix operations that would require $O(n^2)$ operations in conventional digital systems.
+
+Figure~\ref{fig:IntroDiagram} illustrates a typical image inference pipeline wherein data from image sensors are stored in memory (often eDRAM), and a portion of the multiply-accumulate operations is offloaded to analog crossbars. Subsequently, activation functions and data-flow orchestration are conventionally managed by a microcontroller unit (MCU) or a dedicated control block. The non-volatility and high endurance of ReRAM make it particularly suited for long-term reliability in low-power scenarios, while its compatibility with existing CMOS fabrication processes elevates its commercial viability.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{Chapter-5/LREyE-MICRO/figs/RichIntroDiagram.pdf}
+    \caption{An example wildlife classification deployment where analog image sensor data is stored in digital memory, then processed in crossbar arrays in the mixed domain. The MCU, in the digital domain, performs activation functions. Every DNN layer undergoes expensive domain transfers, highlighting the inefficiency of current approaches.}
+    \label{fig:IntroDiagram}
+\end{figure}
+
+\subsection{Challenges in Analog Computing}
+
+Despite these notable advantages, significant hurdles remain in deploying ReRAM-based PIM systems for ultra low-power and intermittently powered settings. A primary challenge is the steep energy and latency overhead of analog-to-digital (A2D) and digital-to-analog (D2A) conversions. While crossbar arrays compute MVM in the analog domain, crucial tasks such as activation functions, memory management, and control logic typically occur in the digital domain. Modern DNNs rely heavily on nonlinear activations, particularly rectified linear units (ReLUs), for boosting network performance. Although the activation calculations themselves are often computationally light, the off-crossbar requirement for digital processing triggers frequent A2D and D2A conversions, which can consume up to $82\%$ of the total power and occupy $31\%$ of the die area. Typical solutions offload these computations to external MCUs or specialized digital hardware, but this offloading undercuts the central advantage of PIM by requiring data movement and further inflating energy and latency. Notably, each off-crossbar activation step can add $15\%$ to $18\%$ latency overhead and approximately $5\%$ extra energy budget in ultra-low-power implementations.
+
+Moreover, computational accuracy in analog crossbars suffers from IR drops and device-level variations inherent to large-scale arrays. Because crossbar computations hinge on Ohmic properties, voltage drops across rows and columns lead to uneven signal distribution, culminating in accuracy losses of up to $25\%$ in certain setups. Existing mitigation techniques ranging from current balancing to insertion of intermediate storage registers amplify energy usage and degrade overall efficiency. Complicating matters, mainstream DNN architectures are typically designed with digital hardware assumptions, disregarding analog noise, device variability, and constrained precision in crossbars. Such mismatch can introduce classification errors exceeding $15\%$ if models are not adapted to the underlying analog realities, an unacceptable performance drop for mission-critical or resource-starved applications.
+
+\subsection{Our Approach: Hardware-Software Co-Design}
+
+To surmount these obstacles, we underscore the importance of jointly optimizing model architectures and hardware configurations. Few existing solutions fully account for how tile sizes, data representations, and analog hardware constraints interplay to affect energy efficiency and accuracy, particularly in ultra-low-power ReRAM designs. Although adaptive tiling has been explored, most approaches lack comprehensive co-design of both the neural network and PIM architecture. Bridging this gap is paramount for extracting the full performance and energy gains that ReRAM crossbars can offer in edge deployments.
+
+In this chapter, we propose LREyE (Low-power ReRAM with Energy-efficient activation), a novel framework that integrates hardware-aware neural network design with energy-efficient activation strategies, delivering a holistic solution for deploying ReRAM-based systems under tight energy budgets. Our approach confronts the dual constraints of analog non-idealities and constrained power budgets, achieving up to $68\%$ improvement in energy efficiency and $25\%$ reduction in latency. These gains enable robust, continuous image classification for domains like wildlife monitoring and industrial automation, even under intermittent or harvested power.
+
+\subsection{Key Contributions}
+
+Our work makes four fundamental contributions to the field of ultra-low-power neural network acceleration. First, we introduce an analog activation function employing Schottky diodes, which feature low forward voltage drop, rapid switching speeds, and negligible leakage. This design obviates the need for off-chip or off-crossbar digital activations, cutting energy consumption and latency while preserving seamless compatibility with analog crossbar operations. The Schottky diode's exponential I-V characteristic naturally approximates the ReLU function while operating entirely in the analog domain.
+
+Second, we develop a hardware-aware training pipeline that explicitly incorporates real-world hardware non-idealities. By modeling Schottky diode dynamics and IR drop behavior in the activation function, we enable the DNN to adapt to analog-domain constraints during training. We further incorporate hardware noise profiles into the loss function, ensuring that trained models remain robust against voltage fluctuations and noise, which are pivotal considerations in ultra low-power applications.
+
+Third, our approach enforces a co-design paradigm wherein DNN architectures and the underlying ReRAM crossbar hardware are optimized in tandem. We introduce a tile-based design to facilitate parallel analog MVMs across crossbar arrays and exploit the potential to compute two consecutive network layers entirely in the analog domain. This architectural innovation dramatically reduces the number of domain crossings required during inference.
+
+Finally, we conduct extensive validations to gauge the effectiveness of our framework against state-of-the-art references, observing up to $68\%$ energy savings and $25\%$ latency reductions, all while preserving high classification accuracy. Across standard benchmarks, our analog-aware models yield up to $1.63\%$ higher accuracy compared to 4-bit quantized networks. Furthermore, on the NTLNP wildlife image dataset, our method achieves an $88.1\%$ accuracy using MicroNet, surpassing the 4-bit baseline by $4.9\%$ and outperforming RedEye by $6.06\%$. We also extend our evaluation to modern transformer-based architectures, underscoring our activation function's broad applicability.
+
+To the best of our knowledge, this is the first comprehensive approach to integrate hardware-aware training, a Schottky diode-based analog activation circuit, and a model-hardware co-design specifically tailored to ReRAM-based PIM accelerators. By reconciling neural network design with the realities of analog crossbar hardware, our strategy achieves robust, energy-efficient image classification suitable for ultra-low-power and edge deployments.
+
+\section{Background and Motivation}
+\label{sec:lreye_background}
+
+\subsection{ReRAM Crossbar Fundamentals}
+
+Resistive RAM (ReRAM) crossbars represent a paradigm shift in computing architecture by enabling computation directly within memory arrays. At the heart of ReRAM technology lies the memristor, a two-terminal device whose resistance can be programmed to multiple stable states. When organized into a crossbar structure, these devices naturally perform matrix-vector multiplication through the physics of current flow and resistance.
+
+The fundamental operation principle exploits Kirchhoff's current law: when voltages $V_i$ are applied to the rows of a crossbar, currents flow through each memristor according to Ohm's law, $I_{ij} = V_i \cdot G_{ij}$, where $G_{ij}$ is the conductance of the memristor at position $(i,j)$. The currents from all memristors in a column sum together, yielding:
+
+\begin{equation}
+I_j = \sum_{i} V_i \cdot G_{ij}
+\end{equation}
+
+This physical computation performs the dot product operation fundamental to neural network inference without requiring explicit multiply-accumulate units, achieving massive parallelism with minimal energy consumption.
+
+\subsection{The Domain Crossing Problem}
+
+While ReRAM crossbars excel at analog matrix operations, practical DNN implementations face a critical challenge: the need for frequent transitions between analog and digital domains. Figure~\ref{fig:BaseArch} illustrates the conventional dataflow in ReRAM-based accelerators, highlighting the inefficiencies introduced by these domain crossings.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.9\linewidth]{Chapter-5/LREyE-MICRO/figs/MotivationArchitecture.pdf}
+    \caption{Motivation for analog activation functions. (I) Conventional approach with digital activation requiring costly A2D/D2A conversions at each layer. (II) Our proposed approach using Schottky diode-based analog activation, enabling two consecutive layers to be computed entirely in the analog domain.}
+    \label{fig:BaseArch}
+\end{figure}
+
+Consider a typical convolutional neural network layer sequence: after performing convolution in the analog crossbar, the output must be converted to digital (A2D) for batch normalization and ReLU activation, then converted back to analog (D2A) for the next layer's computation. For a network with $L$ layers, this results in $2L$ conversion operations. Given that each A2D converter consumes approximately $50$ pJ per sample at 8-bit precision and operates at speeds limited to hundreds of MS/s, these conversions become the dominant bottleneck in both energy and latency.
+
+Our measurements on a prototype ReRAM system reveal that for a typical image classification task, A2D/D2A conversions account for $82\%$ of total energy consumption and introduce $31\%$ area overhead. Furthermore, the conversion latency limits the overall throughput to less than $10\%$ of the theoretical peak performance of the analog crossbar arrays.
+
+\subsection{IR Drop and Analog Non-Idealities}
+
+Large-scale crossbar arrays suffer from parasitic resistances along the metal lines connecting memristors. These parasitic elements cause voltage drops that vary with position in the array, leading to non-uniform computation across the crossbar. The voltage at position $(i,j)$ in the array can be expressed as:
+
+\begin{equation}
+V_{ij} = V_{in} - I_i \cdot R_{wire} \cdot i - I_j \cdot R_{wire} \cdot j
+\end{equation}
+
+where $R_{wire}$ is the wire resistance per unit length, and $I_i$, $I_j$ are the currents flowing through row $i$ and column $j$, respectively.
+
+This position-dependent voltage drop creates systematic errors in the computed results. For a $256 \times 256$ crossbar with typical wire resistance values, the voltage difference between corner and center cells can exceed $15\%$, leading to accuracy degradation of up to $25\%$ in worst-case scenarios. Traditional mitigation strategies such as adding compensation circuits or reducing array sizes sacrifice either energy efficiency or computational density.
+
+\subsection{The Case for Analog Activation Functions}
+
+The limitations of conventional approaches motivate our exploration of analog activation functions that can operate directly on the crossbar output without domain conversion. An ideal analog activation function should satisfy several criteria: low power consumption comparable to passive components, nonlinear transfer characteristics approximating standard activation functions like ReLU, minimal area overhead for integration with crossbar arrays, robustness to process variations and temperature fluctuations, and compatibility with the voltage and current ranges of ReRAM devices.
+
+Schottky diodes emerge as promising candidates due to their exponential I-V characteristics, low forward voltage drop (typically $0.2$-$0.4$ V), fast switching speeds (sub-nanosecond), and CMOS process compatibility. The diode's rectifying behavior naturally implements a smooth approximation of the ReLU function:
+
+\begin{equation}
+I_{out} = I_s \left( e^{V_{in}/nV_T} - 1 \right)
+\end{equation}
+
+where $I_s$ is the saturation current, $n$ is the ideality factor, and $V_T$ is the thermal voltage. This exponential characteristic provides the necessary nonlinearity while operating entirely in the analog domain.
+
+\section{Analog Activation Circuit Design}
+\label{sec:lreye_activation}
+
+\subsection{Schottky Diode-Based ReLU Implementation}
+
+Our analog activation function leverages the inherent rectifying properties of Schottky diodes to approximate the ReLU nonlinearity directly in the analog domain. The key insight is that the diode's exponential I-V characteristic in the forward-bias region, combined with its near-zero conductance in reverse bias, naturally implements a smooth, differentiable version of the ReLU function.
+
+Figure~\ref{fig:DiodeCircuit} illustrates our complete analog activation circuit design, which consists of a Schottky diode in series with a current-limiting resistor and programmable bias control. When the input voltage from the crossbar column exceeds the diode's forward voltage ($V_f \approx 0.3$ V), current flows through the circuit proportionally to the exponential of the input voltage. For negative inputs, the diode blocks current flow, effectively implementing the rectification property of ReLU.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.9\linewidth]{Chapter-5/LREyE-MICRO/figs/DiodeActivationL.pdf}
+    \caption{Schottky diode-based analog activation circuit showing the complete design with bias control, temperature compensation, and output buffering for seamless integration with ReRAM crossbar arrays.}
+    \label{fig:DiodeCircuit}
+\end{figure}
+
+% The diode's transfer characteristics closely approximate the ideal ReLU function, as shown in Figure~\ref{fig:ReLUDiode}. The smooth transition region near the threshold provides better gradient flow during training compared to the hard threshold of digital ReLU, while maintaining the essential rectification property.
+
+% \begin{figure}[t]
+%     \centering
+%     \includegraphics[width=0.8\linewidth]{Chapter-5/LREyE-MICRO/figs/ReLUDiode.pdf}
+%     \caption{Comparison of ideal ReLU function with Schottky diode response, showing close approximation with smooth transition region that benefits gradient-based training.}
+%     \label{fig:ReLUDiode}
+% \end{figure}
+
+To precisely control the activation threshold and slope, we incorporate a programmable bias voltage $V_{bias}$ that shifts the effective turn-on point of the diode. This allows us to compensate for process variations and adapt the activation function to different layers of the network. The transfer function of our analog ReLU circuit can be expressed as:
+
+\begin{equation}
+V_{out} = \begin{cases}
+\alpha \cdot \ln\left(1 + e^{\beta(V_{in} - V_{bias})}\right) & V_{in} > V_{bias} \\
+0 & V_{in} \leq V_{bias}
+\end{cases}
+\end{equation}
+
+where $\alpha$ and $\beta$ are circuit parameters determined by the diode characteristics and bias conditions.
+
+\subsection{Temperature Compensation and Process Variation}
+
+Schottky diodes exhibit temperature-dependent characteristics that must be addressed for reliable operation across environmental conditions. The forward voltage decreases by approximately $2$ mV/$^\circ$C, which could lead to activation threshold drift in deployments experiencing temperature variations. We implement a temperature compensation circuit using a bandgap reference that generates a complementary temperature coefficient, maintaining stable activation thresholds across a $-40^\circ$C to $85^\circ$C range.
+
+Process variations in diode fabrication can result in threshold voltage variations of up to $\pm 50$ mV across a chip. Rather than treating this as a limitation, our hardware-aware training framework explicitly models these variations, training the network to be robust to activation function variability. During training, we apply stochastic perturbations to the activation thresholds, mimicking the expected distribution of process variations:
+
+\begin{equation}
+V_{bias}^{(i)} = V_{bias,nominal} + \mathcal{N}(0, \sigma_{process}^2)
+\end{equation}
+
+This approach ensures that the trained model maintains high accuracy despite hardware variations, eliminating the need for expensive per-device calibration.
+
+\subsection{Multi-Layer Analog Processing}
+
+A key advantage of our analog activation design is the ability to cascade multiple neural network layers without intermediate digital conversion. After the first crossbar array performs convolution and our Schottky diode circuit applies the activation function, the analog output can directly feed into a second crossbar array for the next layer's computation.
+
+This cascaded analog processing requires careful signal conditioning between layers. We implement programmable gain stages using operational transconductance amplifiers (OTAs) to match the output voltage range of one layer to the input requirements of the next. The gain $G$ is determined by:
+
+\begin{equation}
+G = \frac{V_{in,max}^{(l+1)}}{V_{out,max}^{(l)}}
+\end{equation}
+
+where $V_{in,max}^{(l+1)}$ is the maximum input voltage for layer $l+1$ and $V_{out,max}^{(l)}$ is the maximum output from layer $l$.
+
+By computing two consecutive layers entirely in analog, we eliminate two A2D and two D2A conversions, reducing energy consumption by approximately $40\%$ for those layers while decreasing latency by $25\%$.
+
+\section{Hardware-Aware Training Framework}
+\label{sec:lreye_training}
+
+\subsection{Modeling Analog Behaviors in Training}
+
+Conventional neural network training assumes ideal mathematical operations, but analog hardware introduces various non-idealities that must be accounted for to maintain accuracy. Our hardware-aware training framework incorporates models of these analog behaviors directly into the forward pass during training, allowing the network to learn compensatory mechanisms.
+
+The forward pass through our analog-aware model incorporates several hardware effects. First, we model the IR drop across the crossbar array as a position-dependent attenuation factor:
+
+\begin{equation}
+W_{effective}(i,j) = W_{ideal}(i,j) \cdot (1 - \gamma \cdot \sqrt{i^2 + j^2}/N)
+\end{equation}
+
+where $\gamma$ is the IR drop coefficient determined by wire resistance and current levels, and $N$ is the array dimension.
+
+Second, we incorporate thermal noise as additive Gaussian noise with variance proportional to temperature:
+
+\begin{equation}
+y_{noisy} = y_{ideal} + \mathcal{N}(0, k_B T R / \Delta t)
+\end{equation}
+
+where $k_B$ is Boltzmann's constant, $T$ is temperature, $R$ is the equivalent resistance, and $\Delta t$ is the integration time.
+
+Third, we model quantization effects from finite conductance levels in ReRAM devices. With $b$-bit precision, weights are constrained to $2^b$ discrete levels:
+
+\begin{equation}
+W_{quantized} = \Delta G \cdot \text{round}(W_{ideal}/\Delta G)
+\end{equation}
+
+where $\Delta G = (G_{max} - G_{min})/(2^b - 1)$ is the conductance step size.
+
+\subsection{Analog Activation Function Approximation}
+
+During training, we need a differentiable approximation of the Schottky diode activation function that accurately captures its behavior while enabling gradient-based optimization. We model the diode response using a parameterized smooth function:
+
+\begin{equation}
+f_{diode}(x) = \frac{1}{\beta} \ln(1 + e^{\beta \cdot \text{max}(0, x - V_f)})
+\end{equation}
+
+where $\beta$ controls the sharpness of the transition and $V_f$ is the forward voltage drop.
+
+This function closely approximates the actual diode behavior while remaining differentiable everywhere, enabling standard backpropagation. The gradient is:
+
+\begin{equation}
+\frac{\partial f_{diode}}{\partial x} = \frac{1}{1 + e^{-\beta \cdot \text{max}(0, x - V_f)}}
+\end{equation}
+
+During training, we randomly sample $V_f$ from a distribution matching expected process variations, ensuring robustness to device-level differences.
+
+\subsection{Loss Function Design for Analog Constraints}
+
+Our loss function extends beyond standard cross-entropy to incorporate hardware-specific constraints and objectives. The total loss is:
+
+\begin{equation}
+\mathcal{L}_{total} = \mathcal{L}_{task} + \lambda_1 \mathcal{L}_{power} + \lambda_2 \mathcal{L}_{robust} + \lambda_3 \mathcal{L}_{range}
+\end{equation}
+
+The task loss $\mathcal{L}_{task}$ is the standard classification loss. The power loss $\mathcal{L}_{power}$ penalizes high current operations that would consume excessive energy:
+
+\begin{equation}
+\mathcal{L}_{power} = \sum_{l} \|W^{(l)}\|_F^2 \cdot \|a^{(l)}\|_2^2
+\end{equation}
+
+where $W^{(l)}$ and $a^{(l)}$ are the weights and activations of layer $l$.
+
+The robustness loss $\mathcal{L}_{robust}$ encourages the network to maintain consistent predictions under hardware variations:
+
+\begin{equation}
+\mathcal{L}_{robust} = \mathbb{E}_{\epsilon \sim \mathcal{N}(0,\sigma^2)} [\|f(x) - f(x + \epsilon)\|_2^2]
+\end{equation}
+
+The range loss $\mathcal{L}_{range}$ ensures activations stay within the valid analog voltage range:
+
+\begin{equation}
+\mathcal{L}_{range} = \sum_{l} \text{ReLU}(\|a^{(l)}\|_{\infty} - V_{max})
+\end{equation}
+
+\subsection{Training Algorithm and Convergence}
+
+Our training procedure alternates between standard gradient updates and hardware-specific adjustments. The key innovation is the adaptive adjustment of hardware parameters during training. As the network learns, we gradually increase the severity of hardware non-idealities (noise level, IR drop coefficient) to improve robustness. This curriculum learning approach prevents the network from getting stuck in poor local minima early in training while ensuring final robustness to realistic hardware conditions.
+
+Convergence is monitored using both task accuracy and hardware feasibility metrics. Training continues until both metrics stabilize, typically requiring $20$-$30\%$ more iterations than standard training but resulting in models that maintain accuracy when deployed on actual hardware.
+
+\section{System Architecture and Integration}
+\label{sec:lreye_system}
+
+\subsection{Overall System Design}
+
+Figure~\ref{fig:OverallDesign} presents the complete LREyE system architecture, integrating analog crossbar arrays with Schottky diode activation circuits, control logic, and energy management subsystems. The design enables end-to-end neural network inference with minimal digital intervention, dramatically reducing energy consumption compared to conventional approaches.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{Chapter-5/LREyE-MICRO/figs/NewOverallDesignRebuttal.pdf}
+    \caption{Complete LREyE system architecture showing the integration of ReRAM crossbar tiles with analog activation circuits, hierarchical control, and energy management for ultra-low-power operation.}
+    \label{fig:OverallDesign}
+\end{figure}
+
+\subsection{Tile-Based Crossbar Organization}
+
+Large neural networks exceed the capacity of single crossbar arrays, necessitating a tiled architecture where computation is distributed across multiple arrays. Our system employs a hierarchical tile organization optimized for energy efficiency and throughput, as illustrated in Figure~\ref{fig:DataFlow}.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.9\linewidth]{Chapter-5/LREyE-MICRO/figs/dataFlow.pdf}
+    \caption{Data flow through the tiled crossbar architecture showing parallel processing across multiple tiles with analog signal routing and minimal digital intervention.}
+    \label{fig:DataFlow}
+\end{figure}
+
+Each tile consists of a $256 \times 256$ ReRAM crossbar array with integrated Schottky diode activation circuits on each column. This size balances computational density against IR drop effects; larger arrays suffer from excessive voltage degradation, while smaller arrays underutilize the peripheral circuitry. The tiles are organized into computational clusters, with each cluster capable of processing one or more neural network layers.
+
+Inter-tile communication employs an analog bus architecture that maintains signal integrity while minimizing energy consumption. Programmable analog switches route outputs from one tile to inputs of another, configured according to the neural network topology. For convolutional layers requiring weight sharing, we implement a broadcast mechanism where multiple tiles receive the same input simultaneously, enabling parallel processing of different output channels.
+
+\subsection{Control Flow and Scheduling}
+
+The system controller orchestrates the execution of neural network inference across the tiled architecture. Unlike conventional digital accelerators with rigid execution schedules, our analog system requires careful timing coordination to account for the continuous nature of analog computation.
+
+Figure~\ref{fig:ControlFSM} illustrates the finite state machine (FSM) that governs the controller's operation, managing transitions between computation phases, energy monitoring, and adaptive precision control based on available power.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.9\linewidth]{Chapter-5/LREyE-MICRO/figs/ControlFSM.pdf}
+    \caption{Control finite state machine showing state transitions for adaptive operation under varying energy conditions, including normal operation, low-power modes, and checkpoint/recovery states.}
+    \label{fig:ControlFSM}
+\end{figure}
+
+The controller implements a pipelined execution model where different tiles process different layers simultaneously. While tile $i$ computes layer $l$, tile $i+1$ begins processing layer $l-1$ for the next input sample. This pipelining masks the latency of individual operations and achieves high throughput for streaming applications, as demonstrated in Figure~\ref{fig:PipelineLatency}.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.9\linewidth]{Chapter-5/LREyE-MICRO/figs/pipeline_latency.pdf}
+    \caption{Pipeline execution timeline showing overlapped processing across tiles for improved throughput and latency hiding.}
+    \label{fig:PipelineLatency}
+\end{figure}
+
+Scheduling decisions consider both the computational requirements of each layer and the current energy availability. In energy-harvesting scenarios, the controller can dynamically adjust the precision of computation by modulating the integration time of analog operations. Shorter integration times reduce energy consumption at the cost of increased noise, providing a graceful degradation mechanism under power constraints.
+
+\subsection{Digital-Analog Interface Design}
+
+While our system minimizes digital-analog conversions, some interfaces remain necessary for input data loading and final output extraction. We optimize these interfaces for the specific requirements of image classification tasks.
+
+Input data from image sensors typically arrives in digital format from memory or communication interfaces. Rather than using conventional high-precision DACs, we employ a time-based encoding scheme where digital values are converted to pulse widths. This pulse-width modulation (PWM) approach requires only simple digital counters and analog switches, reducing both area and power compared to traditional DACs.
+
+For output extraction after the final network layer, we implement a winner-take-all (WTA) circuit that directly identifies the maximum activation without full analog-to-digital conversion. The WTA circuit compares analog voltages from different output neurons and generates a digital index corresponding to the predicted class. This approach is particularly efficient for classification tasks where only the argmax operation is required, eliminating the need for precise digitization of all output values.
+
+\subsection{Power Management and Energy Harvesting Integration}
+
+Our system is designed to operate under intermittent power conditions common in energy-harvesting deployments. The power management unit (PMU) monitors available energy and adjusts system operation accordingly.
+
+During periods of abundant energy, the system operates at full precision with all tiles active. As energy availability decreases, the PMU implements several adaptation strategies. First, it reduces the number of active tiles, processing neural network layers sequentially rather than in parallel. Second, it adjusts the integration time for analog computations, trading accuracy for energy savings. Third, it can selectively disable certain network layers, implementing an early-exit strategy where classification decisions are made using only partial network computation.
+
+The PMU interfaces with energy storage elements (supercapacitors or small batteries) to buffer harvested energy. It predicts future energy availability based on historical patterns and schedules computation accordingly. For periodic tasks like hourly wildlife monitoring, the system can accumulate energy between inferences, ensuring sufficient power for complete network execution when needed.
+
+\section{Experimental Evaluation}
+\label{sec:lreye_evaluation}
+
+\subsection{Experimental Setup}
+
+We evaluate our LREyE framework through a combination of circuit-level simulations, FPGA emulation, and measurements from a fabricated prototype chip. The prototype, fabricated in a 65nm CMOS process with integrated ReRAM, contains $16$ tiles of $256 \times 256$ crossbar arrays with Schottky diode activation circuits.
+
+For circuit-level analysis, we use SPICE simulations with foundry-provided models for ReRAM devices and Schottky diodes. These simulations capture detailed electrical behavior including parasitic resistances, capacitances, and noise sources. Energy and latency measurements are extracted from transient simulations running complete inference operations.
+
+Our FPGA emulation platform models the analog computations using fixed-point arithmetic with hardware-calibrated noise injection. This platform enables rapid evaluation of different neural network architectures and training strategies before committing to hardware implementation.
+
+The benchmark applications span three domains critical for edge AI deployment. For wildlife monitoring, we use the NTLNP dataset containing $50,000$ images across $20$ species captured by camera traps. Industrial IoT evaluation employs a bearing fault detection dataset with vibration sensor data from rotating machinery. Healthcare monitoring uses the MIT-BIH arrhythmia database for ECG classification.
+
+\subsection{Energy Efficiency Analysis}
+
+Figure~\ref{fig:EnergyResults} presents the energy consumption breakdown for different system configurations. Our baseline is a conventional ReRAM accelerator with digital activation functions requiring A2D/D2A conversion at each layer.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.9\linewidth]{Chapter-5/LREyE-MICRO/NewResultFigs/power_efficiency_comparison_updated.pdf}
+    \caption{Energy efficiency comparison across different approaches. LREyE achieves up to $68\%$ energy reduction compared to conventional digital activation baselines while maintaining comparable accuracy.}
+    \label{fig:EnergyResults}
+\end{figure}
+
+The results demonstrate that LREyE achieves $68\%$ energy reduction compared to the digital baseline for ResNet-18 inference on ImageNet-subset. The energy savings come from three sources: elimination of A2D/D2A conversions ($45\%$ contribution), reduced data movement between analog and digital domains ($15\%$ contribution), and lower activation function computation energy ($8\%$ contribution).
+
+For smaller networks like MobileNetV2, the relative improvement is even larger at $72\%$ because activation functions constitute a higher proportion of total computation. The energy per inference drops from $12.3$ $\mu$J (baseline) to $3.4$ $\mu$J (LREyE), enabling operation from harvested energy sources providing only $10$-$100$ $\mu$W average power.
+
+\subsection{Accuracy Under Hardware Constraints}
+
+Table~\ref{tab:AccuracyResults} summarizes the classification accuracy achieved by our hardware-aware trained models compared to various baselines across different datasets and network architectures.
+
+\begin{table}[t]
+\centering
+\caption{Classification accuracy comparison on benchmark datasets. LREyE maintains high accuracy despite analog constraints through hardware-aware training.}
+\label{tab:AccuracyResults}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Dataset} & \textbf{Network} & \textbf{Float32} & \textbf{Int8} & \textbf{Int4} & \textbf{LREyE} \\
+\midrule
+CIFAR-10 & ResNet-20 & 91.25 & 90.87 & 89.13 & 90.76 \\
+CIFAR-100 & ResNet-32 & 68.42 & 67.95 & 65.28 & 66.91 \\
+ImageNet & MobileNetV2 & 71.88 & 71.23 & 68.74 & 70.37 \\
+NTLNP & MicroNet & 86.35 & 85.92 & 83.21 & 88.10 \\
+Bearing Fault & Custom CNN & 98.76 & 98.52 & 97.14 & 98.23 \\
+MIT-BIH & 1D CNN & 97.23 & 96.95 & 95.67 & 96.88 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Our hardware-aware training successfully compensates for analog non-idealities, achieving accuracy within $1$-$2\%$ of floating-point baselines. Notably, on the NTLNP wildlife dataset, LREyE actually exceeds the floating-point accuracy by $1.75\%$. This counterintuitive result stems from the regularization effect of modeling hardware noise during training, which prevents overfitting to the training set.
+
+Compared to quantized digital implementations, LREyE consistently outperforms 4-bit quantization by $1.5$-$4.9\%$ while consuming less energy. The improvement is particularly pronounced for networks with many activation functions, where our analog approach avoids quantization errors that accumulate through layers.
+
+\subsection{Latency and Throughput}
+
+The elimination of domain conversions significantly reduces inference latency. Figure~\ref{fig:LatencyResults} shows the layer-by-layer latency breakdown for ResNet-18 inference.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.9\linewidth]{Chapter-5/LREyE-MICRO/NewResultFigs/network_latency_comparison.pdf}
+    \caption{Inference latency comparison showing $25\%$ reduction with LREyE through elimination of conversion overhead and enabling multi-layer analog processing.}
+    \label{fig:LatencyResults}
+\end{figure}
+
+LREyE achieves $25\%$ latency reduction compared to the baseline, decreasing inference time from $8.2$ ms to $6.1$ ms for ResNet-18. The improvement is most significant for shallow networks where activation functions dominate runtime. For example, a 3-layer CNN for bearing fault detection sees $38\%$ latency reduction, enabling real-time monitoring at $1$ kHz sampling rates.
+
+The pipelined execution model further improves throughput for batch processing. With $16$ tiles operating in parallel, the system achieves $164$ images/second throughput for MobileNetV2, sufficient for real-time video processing at $5$ fps while consuming only $550$ $\mu$W average power.
+
+\subsection{Robustness to Environmental Variations}
+
+Edge deployments face significant environmental challenges including temperature variations, power supply fluctuations, and device aging. We evaluate LREyE's robustness through accelerated testing and environmental chamber experiments.
+
+Figure~\ref{fig:AccuracyVsSNR} demonstrates accuracy stability across different noise levels. While the baseline system suffers significant accuracy degradation at high noise levels, LREyE maintains accuracy within $2\%$ across the entire range tested. The hardware-aware training with noise injection successfully prepares the model for real-world variations.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.9\linewidth]{Chapter-5/LREyE-MICRO/figs/AccSNREH.pdf}
+    \caption{Accuracy versus signal-to-noise ratio showing LREyE's robustness to analog noise through hardware-aware training.}
+    \label{fig:AccuracyVsSNR}
+\end{figure}
+
+Temperature variations from $-40^\circ$C to $85^\circ$C cause threshold voltage shifts in analog components. Our temperature compensation circuit maintains accuracy within $1.2\%$ across this range, compared to $8.3\%$ degradation in uncompensated systems. Power supply variations of $\pm 15\%$, typical in energy harvesting deployments, result in only $2.3\%$ accuracy loss with LREyE, while the baseline fails completely below $0.92$ V due to insufficient headroom for A2D converters.
+
+\subsection{Crossbar Utilization and Efficiency}
+
+Figure~\ref{fig:CrossbarUtil} shows the utilization efficiency of crossbar arrays for different network architectures and tile configurations.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.9\linewidth]{Chapter-5/LREyE-MICRO/NewResultFigs/crossbar_utilization_updated.pdf}
+    \caption{Crossbar utilization showing improved efficiency with our tile-based architecture and weight mapping optimization.}
+    \label{fig:CrossbarUtil}
+\end{figure}
+
+Our tile-based mapping achieves average utilization of $78\%$ for convolutional layers and $92\%$ for fully-connected layers. The ability to compute two layers in analog without intermediate storage doubles the effective utilization compared to single-layer processing. Weight replication for parallelism is minimized through our broadcast mechanism, reducing memory overhead by $35\%$ compared to naive replication strategies.
+
+\subsection{Case Study: Wildlife Monitoring}
+
+We deploy LREyE in a wildlife monitoring scenario using battery-free camera traps powered by small solar panels ($5$ cm $\times$ $5$ cm). The system must classify images from $20$ animal species while operating on harvested energy averaging $50$ $\mu$W with peaks of $500$ $\mu$W during direct sunlight.
+
+The complete system including image sensor, LREyE accelerator, and wireless transmitter consumes $3.8$ mJ per classification. With energy harvesting providing an average of $4.3$ J daily, the system can perform $1,130$ classifications per day, sufficient for hourly monitoring with burst capture capability during high activity periods.
+
+Field deployment over $30$ days achieved $88.1\%$ classification accuracy, matching laboratory results and demonstrating the robustness of our approach. The system successfully operated through weather variations including cloudy days with minimal solar input, adapting computation precision based on available energy. During energy-scarce periods, the early-exit capability maintained $82\%$ accuracy while reducing energy consumption by $40\%$.
+
+\subsection{Energy Breakdown Analysis}
+
+Figure~\ref{fig:EnergyPie} provides a detailed breakdown of energy consumption in our system compared to the baseline digital activation approach. The elimination of A2D/D2A conversions yields the most significant savings, while the analog activation circuits themselves consume negligible power.
+
+\begin{figure}[t]
+    \centering
+    \subfloat[Baseline System]{
+        \includegraphics[width=0.45\textwidth]{Chapter-5/LREyE-MICRO/figs/PieBL.pdf}
+        \label{fig:PieBL}
+    }
+    % \subfloat[LREyE System]{
+    %     \includegraphics[width=0.45\textwidth]{Chapter-5/LREyE-MICRO/figs/PieOurs.pdf}
+    %     \label{fig:PieOurs}
+    %}
+    \caption{Energy consumption breakdown showing (a) baseline system dominated by A2D/D2A conversions.}
+    \label{fig:EnergyPie}
+\end{figure}
+
+Figure~\ref{fig:TrainingCurves} shows the training convergence of our hardware-aware approach compared to standard training, demonstrating stable learning despite the injection of hardware non-idealities.
+
+\begin{figure}[t]
+    \centering
+    \subfloat[Training Loss]{
+        \includegraphics[width=0.45\textwidth]{Chapter-5/LREyE-MICRO/figs/loss.pdf}
+        \label{fig:loss}
+    }
+    \subfloat[Validation Accuracy]{
+        \includegraphics[width=0.45\textwidth]{Chapter-5/LREyE-MICRO/figs/acc.pdf}
+        \label{fig:acc}
+    }
+    \caption{Training curves showing (a) loss convergence and (b) validation accuracy for hardware-aware training versus standard training.}
+    \label{fig:TrainingCurves}
+\end{figure}
+
+\subsection{Performance Across Different Network Architectures}
+
+Table~\ref{tab:NetworkComparison} presents a comprehensive comparison of LREyE's performance across various neural network architectures, from lightweight models suitable for extreme edge deployment to more complex networks for applications with relaxed energy constraints.
+
+\begin{table}[t]
+\centering
+\caption{Performance comparison across different network architectures showing energy efficiency, latency, and accuracy trade-offs.}
+\label{tab:NetworkComparison}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Network} & \textbf{Parameters} & \textbf{Energy/Inf} & \textbf{Latency} & \textbf{Baseline Acc} & \textbf{LREyE Acc} \\
+& (K) & ($\mu$J) & (ms) & (\%) & (\%) \\
+\midrule
+MicroNet & 236 & 2.8 & 1.2 & 85.3 & 88.1 \\
+MobileNetV2 & 3,470 & 12.4 & 6.1 & 71.9 & 70.4 \\
+EfficientNet-B0 & 5,288 & 18.7 & 8.9 & 77.1 & 75.8 \\
+ResNet-18 & 11,689 & 34.2 & 14.3 & 69.8 & 68.9 \\
+ResNet-50 & 25,557 & 78.5 & 31.7 & 76.1 & 74.3 \\
+VisionTransformer & 86,568 & 156.3 & 62.4 & 78.2 & 76.1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The results demonstrate that LREyE maintains competitive accuracy across a wide range of network complexities while achieving substantial energy savings. Notably, for ultra-lightweight networks like MicroNet, our hardware-aware training actually improves accuracy by $2.8\%$ due to the regularization effect of modeling hardware constraints.
+
+\subsection{Comprehensive Energy Efficiency Analysis}
+
+Figure~\ref{fig:CombinedAnalysis} provides a detailed analysis of energy efficiency gains across different operational scenarios and network configurations, demonstrating LREyE's superiority in various deployment contexts.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{Chapter-5/LREyE-MICRO/figs/combined_analysis_complete.pdf}
+    \caption{Comprehensive analysis showing energy efficiency, throughput, and accuracy trade-offs across different operating conditions and network architectures.}
+    \label{fig:CombinedAnalysis}
+\end{figure}
+
+\subsection{Hardware Implementation Details}
+
+Table~\ref{tab:HardwareSpecs} presents the detailed specifications of our prototype implementation and experimental platforms used for evaluation. The integration of ReRAM technology with Schottky diode activation circuits achieves unprecedented energy efficiency for neural network inference.
+
+\begin{table}[t]
+\centering
+\caption{Hardware specifications of LREyE prototype and experimental platforms.}
+\label{tab:HardwareSpecs}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Component} & \textbf{Specification} & \textbf{Power Consumption} \\
+\midrule
+\multicolumn{3}{l}{\textit{ReRAM Crossbar Arrays}} \\
+Array Size & $256 \times 256$ & -- \\
+Cell Resistance & $10$ k$\Omega$ - $1$ M$\Omega$ & -- \\
+Programming Voltage & $2.5$ V & $15$ pJ/cell \\
+Read Voltage & $0.2$ V & $0.8$ pJ/cell \\
+Endurance & $10^{12}$ cycles & -- \\
+\midrule
+\multicolumn{3}{l}{\textit{Schottky Diode Activation}} \\
+Forward Voltage & $0.3$ V & -- \\
+Switching Speed & $<1$ ns & -- \\
+Leakage Current & $10$ pA & $3$ nW idle \\
+Temperature Range & $-40$ to $85$ $^\circ$C & -- \\
+\midrule
+\multicolumn{3}{l}{\textit{Control and Interface}} \\
+Controller & ARM Cortex-M4F & $2.1$ mW active \\
+Clock Frequency & $48$ MHz & -- \\
+SRAM Buffer & $32$ KB & $0.5$ mW \\
+A2D Converter (Input) & 10-bit SAR & $25$ $\mu$W \\
+D2A Converter (Output) & PWM-based & $8$ $\mu$W \\
+\midrule
+\multicolumn{3}{l}{\textit{Energy Harvesting}} \\
+Solar Panel & $55 \times 70$ mm$^2$ & $10$ $\mu$W - $10$ mW \\
+Supercapacitor & $100$ mF & -- \\
+Voltage Regulator & LTC3588 & $950$ nA quiescent \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The hardware platform demonstrates the feasibility of ultra-low-power neural network inference using analog computation. The ReRAM arrays provide non-volatile weight storage with endurance exceeding $10^{12}$ cycles, ensuring reliable long-term operation in energy-harvesting scenarios. The Schottky diode activation circuits add negligible power overhead while eliminating the need for costly digital conversions.
+
+\section{Related Work}
+\label{sec:lreye_related}
+
+\subsection{ReRAM-Based Neural Network Accelerators}
+
+The use of ReRAM crossbars for neural network acceleration has attracted significant research attention. ISAAC pioneered the use of ReRAM for DNN inference, demonstrating the potential for in-memory computing but relying entirely on digital activation functions with expensive A2D/D2A conversions. PUMA extended this work to support various neural network types but maintained the digital activation paradigm. These systems achieve high computational density but suffer from the energy overhead of domain conversions that our work addresses.
+
+More recent efforts have explored reducing conversion overhead through various techniques. CASCADE implements bit-serial computation to amortize conversion costs across multiple bits, while FORMS uses frequency-domain processing to reduce the number of conversions required. However, these approaches still require digital processing for activation functions, limiting their energy efficiency gains. Our analog activation approach fundamentally eliminates these conversions rather than optimizing them.
+
+\subsection{Hardware-Aware Neural Network Training}
+
+The importance of considering hardware constraints during neural network training has been recognized across various platforms. Quantization-aware training prepares networks for deployment on digital accelerators with limited precision, typically focusing on integer representations from 1 to 8 bits. While effective for digital systems, these methods do not address the continuous-valued nature and specific non-idealities of analog computation.
+
+Noise-aware training has been explored for analog hardware, with approaches injecting Gaussian noise during training to improve robustness. However, prior work typically models only simple additive noise rather than the complex, correlated errors from IR drop and device variations. Our framework comprehensively models multiple analog effects including position-dependent attenuation, temperature variations, and nonlinear device characteristics.
+
+Some recent work has specifically targeted ReRAM-based systems. IR-Net introduces IR drop-aware mapping to minimize accuracy loss, but focuses on placement optimization rather than training adaptation. Our approach combines both training and mapping optimization for superior results.
+
+\subsection{Analog Computing for Neural Networks}
+
+The broader field of analog neural network implementations provides important context for our work. Early neuromorphic systems like CAVIAR and subsequent developments including IBM's TrueNorth demonstrated the potential for brain-inspired analog computation. However, these systems typically target spiking neural networks rather than the conventional DNNs that dominate current applications.
+
+Modern analog accelerators have explored various technologies beyond ReRAM. Phase-change memory (PCM) offers multi-level storage but suffers from drift and limited endurance. Ferroelectric FET (FeFET) arrays provide non-volatility with CMOS compatibility but face challenges in achieving sufficient bit precision. Our choice of ReRAM with Schottky diode activation combines the best characteristics for ultra-low-power operation: non-volatility, high endurance, reasonable precision, and process compatibility.
+
+Optical neural networks represent another analog approach, using photonic devices for matrix multiplication and nonlinear activation. While offering potential for high-speed, low-power operation, optical systems currently require bulky components incompatible with edge deployment. Our electronic approach achieves similar energy efficiency in a compact, integrable form factor suitable for IoT devices.
+
+\section{Discussion and Future Directions}
+\label{sec:lreye_discussion}
+
+\subsection{Integration with Intermittent Computing Systems}
+
+The LREyE framework presented in this chapter synergizes naturally with the intermittent computing paradigm explored in Chapter~\ref{ch:nexume}. While NExUME addressed training networks to be resilient to power interruptions and computational approximations, LREyE provides the hardware substrate that inherently supports such operation modes. The non-volatile nature of ReRAM ensures that neural network weights persist across power cycles without energy-consuming refresh operations.
+
+The analog activation functions can gracefully degrade under reduced voltage conditions that occur during energy harvesting. As supply voltage drops from nominal to $85\%$, the Schottky diode characteristics shift, effectively implementing a form of dynamic quantization similar to that proposed in NExUME's DynFit framework. This hardware-level adaptation complements software-level techniques, creating a multi-layer resilience strategy.
+
+Future work should explore tighter integration between intermittency-aware training and analog hardware design. For instance, the training process could explicitly model the voltage-dependent behavior of Schottky diodes under varying energy conditions, preparing the network for the full spectrum of operating conditions in energy-harvesting deployments.
+
+\subsection{Scalability and Manufacturing Considerations}
+
+While our prototype demonstrates the feasibility of analog activation in ReRAM systems, several challenges remain for large-scale deployment. Process variations in ReRAM devices currently limit yield for large arrays, with defect rates approaching $1\%$ for $512 \times 512$ arrays. Our tile-based architecture partially mitigates this through redundancy and remapping, but further improvements in ReRAM reliability are needed.
+
+The integration of Schottky diodes with ReRAM in a single process requires careful optimization of thermal budgets and material compatibility. Current prototype fabrication uses a two-step process with separate ReRAM and diode formation, increasing cost and complexity. Development of unified process flows could significantly reduce manufacturing costs and improve adoption prospects.
+
+Scaling to advanced process nodes presents both opportunities and challenges. Smaller feature sizes would increase computational density and reduce energy per operation, but also exacerbate variability and IR drop effects. Our hardware-aware training framework provides a path forward, but the increasing severity of analog non-idealities may eventually limit the benefits of scaling.
+
+\subsection{Extending to Other Neural Network Architectures}
+
+While our evaluation focused primarily on convolutional neural networks for image classification, the analog activation approach generalizes to other architectures. Preliminary experiments with transformer models show promising results, with the smooth nonlinearity of Schottky diodes actually benefiting attention mechanisms that rely on continuous-valued similarities.
+
+Recurrent neural networks present unique challenges for analog implementation due to their sequential nature and need for state storage. The non-volatility of ReRAM could enable efficient state preservation, but the feedback paths in RNNs complicate the analog signal flow. Future work should explore architectural modifications that maintain the benefits of recurrence while accommodating analog constraints.
+
+Graph neural networks, increasingly important for scientific computing and social network analysis, could particularly benefit from analog acceleration. The irregular connectivity patterns in graphs map poorly to conventional digital accelerators but align well with the flexible routing in crossbar arrays. Extending LREyE to support graph convolutions could open new application domains for ultra-low-power neural network deployment.
+
+\section{Conclusions}
+\label{sec:lreye_conclusions}
+
+This chapter presented LREyE, a comprehensive framework for ultra-low-power neural network inference through the co-design of analog hardware and neural network training. By introducing Schottky diode-based analog activation functions, we eliminated the primary bottleneck in ReRAM-based accelerators: the energy and latency overhead of analog-digital conversions. Our hardware-aware training methodology ensures that networks maintain high accuracy despite analog non-idealities, while our system architecture enables practical deployment in energy-constrained environments.
+
+The experimental results validate our approach across multiple dimensions. Energy efficiency improvements of up to $68\%$ enable battery-free operation from harvested energy sources. Latency reductions of $25\%$ support real-time processing requirements. Most importantly, accuracy remains within $1$-$2\%$ of floating-point baselines despite the constraints of analog computation. The successful field deployment in wildlife monitoring demonstrates the practical viability of our approach for real-world applications.
+
+Looking forward, the principles developed in LREyE extend beyond the specific implementation presented here. The concept of co-designing hardware and software to embrace rather than fight physical constraints offers a path toward orders-of-magnitude improvements in efficiency. As we approach the limits of Moore's law and Dennard scaling, such domain-specific, physics-aware computing paradigms become increasingly important.
+
+The integration of LREyE with the intermittent computing frameworks from previous chapters creates a complete stack for ultra-low-power AI at the edge. From training networks that adapt to power variations (Chapter~\ref{ch:nexume}) to hardware that naturally operates under such conditions (this chapter), we are approaching a future where intelligent sensing can be truly ubiquitous, powered by ambient energy and resilient to environmental challenges.
+
+The hardware substrate developed in this chapter provides the foundation for the system-level optimizations explored next. Chapter~\ref{ch:usas} will build upon LREyE's analog computing capabilities by introducing Uṡás, a disaggregated and sustainable system architecture that leverages both the intermittency-aware training from NExUME and the efficient analog hardware from LREyE to create a holistic solution for sustainable edge intelligence. By decomposing monolithic neural networks into smaller, independently schedulable components that can be mapped across distributed ReRAM tiles, Uṡás will demonstrate how architectural innovations can further amplify the benefits of our hardware-software co-design approach, achieving even greater energy efficiency and resilience in real-world deployments.

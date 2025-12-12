@@ -1,0 +1,123 @@
+\section{Training Distributed Sensor Networks in Energy-Harvesting Environments}
+
+In energy-harvesting (EH) sensor networks, devices rely on ambient energy sources, leading to intermittent availability and constrained computational resources. These limitations pose significant challenges for training machine learning models that require substantial energy and consistent participation. To enable robust inference while preserving energy efficiency, we propose a federated learning framework tailored for EH sensor networks. This framework allows sensors to collaboratively train a global model without sharing raw data, accommodating intermittent participation and varying data quality.
+
+\subsection*{Problem Formulation}
+
+Consider a set of \( N \) energy-harvesting sensors \( \mathcal{S} = \{ s_1, s_2, \dots, s_N \} \), each collecting local data \( D_i \) and equipped with a computationally lightweight model \( \mathcal{M}_i \) for inference tasks (e.g., object detection). The sensors aim to collaboratively train a global model \( \mathcal{M}_G \) that generalizes well across the network, despite individual differences in data distribution and quality.
+
+Each sensor \( s_i \) operates under energy constraints due to its reliance on harvested energy \( E_i(t) \) at time \( t \). The energy buffer \( B_i(t) \) evolves as
+\[
+B_i(t+1) = B_i(t) + E_i(t) - e_i(t),
+\]
+where \( e_i(t) \) is the energy consumed at time \( t \) for computation and communication. Sensors predict future energy availability \( \hat{E}_i(t+1) \) to inform their participation decisions.
+
+The objective is to minimize the global loss function \( L(\mathcal{M}_G) \) over the combined data \( D = \bigcup_{i=1}^N D_i \), without centralizing the data:
+\[
+\min_{\mathcal{M}_G} \quad L(\mathcal{M}_G) = \frac{1}{N} \sum_{i=1}^N L_i(\mathcal{M}_G),
+\]
+where \( L_i(\mathcal{M}_G) \) is the local loss computed at sensor \( s_i \) using its data \( D_i \).
+
+\subsection*{Federated Learning Framework}
+
+To address the challenges of EH sensor networks, we adopt a federated learning approach that allows sensors to perform local training and contribute to the global model updates when energy permits. The framework accommodates intermittent participation and emphasizes energy efficiency.
+
+\subsubsection*{Local Training}
+
+Each sensor \( s_i \) maintains a local model \( \mathcal{M}_i \) initialized with the current global model parameters \( \theta_G \). The sensor performs local training by minimizing its local loss \( L_i(\theta_i) \) over its data \( D_i \):
+\[
+\theta_i \leftarrow \theta_G - \eta \nabla L_i(\theta_G),
+\]
+where \( \eta \) is the learning rate, and \( \nabla L_i(\theta_G) \) is the gradient of the loss with respect to the model parameters.
+
+\subsubsection*{Energy-Aware Participation}
+
+Due to energy constraints, sensors decide whether to participate in each training round based on their current and predicted energy levels. Sensor \( s_i \) participates in round \( t \) if
+\[
+B_i(t) \geq e_{\text{comp}} + e_{\text{comm}} + \beta e_{\text{future}},
+\]
+where \( e_{\text{comp}} \) and \( e_{\text{comm}} \) are the energy costs of computation and communication, respectively, and \( \beta e_{\text{future}} \) accounts for the expected future energy needs.
+
+\subsubsection*{Model Update and Aggregation}
+
+Participating sensors send their local model updates \( \Delta \theta_i = \theta_i - \theta_G \) to a central server or aggregator. The global model is updated using a weighted aggregation of the received updates:
+\[
+\theta_G \leftarrow \theta_G + \sum_{i \in \mathcal{P}(t)} w_i \Delta \theta_i,
+\]
+where \( \mathcal{P}(t) \) is the set of participating sensors at time \( t \), and \( w_i \) is the aggregation weight for sensor \( s_i \).
+
+\subsection*{Algorithm Description}
+
+Algorithm~1 outlines the training procedure for the EH federated learning framework.
+
+\begin{algorithm}[h]
+\caption{Energy-Aware Federated Learning in EH Sensor Networks}
+\begin{algorithmic}[1]
+\STATE \textbf{Initialization}: Central server initializes global model parameters \( \theta_G \).
+\FOR{each training round \( t = 1, 2, \dots \)}
+    \STATE Server broadcasts \( \theta_G \) to all sensors.
+    \FOR{each sensor \( s_i \) in parallel}
+        \IF{ \( B_i(t) \geq e_{\text{comp}} + e_{\text{comm}} + \beta e_{\text{future}} \)}
+            \STATE Sensor updates local model: \( \theta_i \leftarrow \theta_G - \eta \nabla L_i(\theta_G) \).
+            \STATE Sensor computes model update: \( \Delta \theta_i = \theta_i - \theta_G \).
+            \STATE Sensor sends \( \Delta \theta_i \) to server.
+            \STATE Sensor updates energy buffer: \( B_i(t+1) = B_i(t) + E_i(t) - (e_{\text{comp}} + e_{\text{comm}}) \).
+        \ELSE
+            \STATE Sensor skips participation and conserves energy.
+            \STATE Sensor updates energy buffer: \( B_i(t+1) = B_i(t) + E_i(t) \).
+        \ENDIF
+    \ENDFOR
+    \STATE Server aggregates updates: \( \theta_G \leftarrow \theta_G + \sum_{i \in \mathcal{P}(t)} w_i \Delta \theta_i \).
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Aggregation Weight Design}
+
+The aggregation weights \( w_i \) play a critical role in accommodating varying data quality and participation frequency. We design \( w_i \) to reflect the reliability and contribution of each sensor:
+\[
+w_i = \frac{\alpha_i}{\sum_{j \in \mathcal{P}(t)} \alpha_j},
+\]
+where \( \alpha_i \) is a reliability factor computed as
+\[
+\alpha_i = \frac{|D_i|}{\bar{D}} \cdot \frac{q_i}{\bar{q}},
+\]
+with \( |D_i| \) being the size of the local dataset, \( q_i \) representing data quality (e.g., average SNR), and \( \bar{D} \) and \( \bar{q} \) being the average dataset size and data quality among participating sensors.
+
+\subsection*{Energy Consumption Analysis}
+
+We analyze the energy consumption to ensure that sensors do not deplete their energy buffers, compromising future participation. The expected energy consumption for sensor \( s_i \) in a training round is
+\[
+e_i(t) = \mathbb{E}[e_{\text{comp}} + e_{\text{comm}}] = e_{\text{comp}} + e_{\text{comm}}.
+\]
+By incorporating energy predictions \( \hat{E}_i(t+1) \), sensors estimate \( e_{\text{future}} \) to reserve energy for essential operations.
+
+\subsection*{Model Robustness to Participation Variations}
+
+To handle intermittent participation and data heterogeneity, we design the global model \( \mathcal{M}_G \) to be robust to missing inputs and varying data distributions.
+
+\subsubsection*{Modular Model Architecture}
+
+The model consists of modular components corresponding to each sensor's data features. When certain sensors do not participate, the model can still function using the available modules. The architecture employs shared weights where appropriate to generalize across different input configurations.
+
+\subsubsection*{Regularization Techniques}
+
+We apply regularization methods to enhance model robustness:
+
+- \emph{Dropout}: Randomly deactivate neurons during training to prevent overfitting and improve generalization.
+- \emph{Data Augmentation}: Simulate missing data scenarios by randomly omitting inputs during local training.
+
+\subsection*{Convergence and Performance Guarantees}
+
+Under standard assumptions of convex loss functions and bounded gradients, we can establish convergence guarantees for the federated learning algorithm. Specifically, if the learning rate \( \eta \) satisfies certain conditions, the global model parameters \( \theta_G \) will converge to an optimal solution \( \theta^* \) minimizing \( L(\theta) \).
+
+\textbf{Theorem 1.} \emph{Assuming each local loss function \( L_i(\theta) \) is convex and has \( L \)-Lipschitz continuous gradients, and the learning rate \( \eta \) satisfies \( 0 < \eta \leq \frac{1}{L} \), the federated learning algorithm converges to the global minimum \( \theta^* \) as the number of rounds increases.}
+
+% \subsection*{Simulation Results}
+
+% We conduct simulations to evaluate the proposed framework's performance. Sensors are modeled with realistic energy harvesting profiles and data distributions. Key performance metrics include:
+
+% - \emph{Inference Accuracy}: The global model achieves high accuracy despite intermittent participation.
+% - \emph{Energy Efficiency}: Sensors maintain sustainable energy levels, enabling long-term operation.
+% - \emph{Convergence Speed}: The algorithm converges within a reasonable number of rounds.
+

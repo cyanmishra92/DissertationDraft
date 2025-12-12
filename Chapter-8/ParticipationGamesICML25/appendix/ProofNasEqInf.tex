@@ -1,0 +1,58 @@
+\section{Appendix: Proof of Proposition 2}
+
+In this appendix, we provide the proof of Proposition 2, establishing the existence of a pure-strategy Nash equilibrium in the inference participation game.
+
+\subsection*{Proof of Proposition 2}
+
+\paragraph{Setup and Definitions}
+
+The inference participation game is defined by:
+
+- Players: Sensors \( s_i \in \mathcal{S} \).
+- Strategies: \( a_i \in \{ \text{P}, \text{NP} \} \).
+- Utility functions: \( U_i(a_i, a_{-i}) \), where \( a_{-i} \) denotes the actions of other sensors.
+
+We aim to show that the game has a pure-strategy Nash equilibrium by demonstrating that the utility functions exhibit supermodularity in \( a_i \).
+
+\paragraph{Supermodularity and Strategic Complementarities}
+
+A game is supermodular if the following conditions hold:
+
+1. The strategy spaces are compact subsets of \( \mathbb{R} \) (trivially satisfied with binary strategies).
+2. The utility functions \( U_i(a_i, a_{-i}) \) have increasing differences in \( (a_i, a_{-i}) \).
+
+\emph{Increasing differences} means that for any \( a_i' > a_i \) and \( a_{-i}' > a_{-i} \),
+\[
+U_i(a_i', a_{-i}') - U_i(a_i, a_{-i}') \geq U_i(a_i', a_{-i}) - U_i(a_i, a_{-i}).
+\]
+
+In our context, participation (\( a_i = 1 \)) is greater than non-participation (\( a_i = 0 \)).
+
+\paragraph{Utility Function with Increasing Differences}
+
+The utility function for sensor \( s_i \) is
+\[
+U_i(a_i, a_{-i}) = \gamma \cdot a_i \cdot \Delta A_i(a_{-i}) - C_i(a_i),
+\]
+where \( \Delta A_i(a_{-i}) \) depends on others' actions.
+
+Assuming \( \Delta A_i(a_{-i}) \) is increasing in \( a_{-i} \), we have that the marginal benefit of participation increases as more sensors participate. This reflects \emph{strategic complementarities}.
+
+\paragraph{Verifying Increasing Differences}
+
+For \( a_i' = 1 \) and \( a_i = 0 \), and \( a_{-i}' \geq a_{-i} \), we have
+\begin{align*}
+&U_i(1, a_{-i}') - U_i(0, a_{-i}') - [ U_i(1, a_{-i}) - U_i(0, a_{-i}) ] \\
+&= \gamma [ \Delta A_i(a_{-i}') - \Delta A_i(a_{-i}) ] \geq 0,
+\end{align*}
+since \( \Delta A_i(a_{-i}') \geq \Delta A_i(a_{-i}) \).
+
+Therefore, the utility functions exhibit increasing differences, satisfying the condition for supermodularity.
+
+\paragraph{Existence of Nash Equilibrium}
+
+By Topkis's theorem (see \cite{topkis1998supermodularity}), in supermodular games with finite strategy spaces, there exists at least one pure-strategy Nash equilibrium.
+
+The inference participation game is supermodular, and thus, a pure-strategy Nash equilibrium exists.
+
+\hfill \qedsymbol

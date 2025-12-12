@@ -1,0 +1,159 @@
+\documentclass[10pt,conference]{IEEEtran}
+%\usepackage{cite}
+\usepackage[sort]{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+%\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage[hyphens]{url}
+\usepackage{fancyhdr}
+%\usepackage{hyperref}
+\usepackage{mathptmx} % This is Times font
+
+%\usepackage{fancyhdr}
+\usepackage[normalem]{ulem}
+%\usepackage[sort,nocompress]{cite}
+%\usepackage[final]{microtype}
+\usepackage[keeplastbox]{flushend}
+
+
+%%%%%%%%%%%%%% By Cyan %%%%%%%%%%%%%%
+% Begin %%%%%% %%%%%%% %%%%%%%%%%%%%%
+\usepackage{macros}
+\usepackage{subcaption}
+\usepackage{color}
+% to be able to draw some self-contained figs
+%\usepackage{tikz}
+%\usepackage{amsmath,amssymb,amsfonts}
+%\usepackage{algorithmic}
+%\captionsetup{justification=raggedright,singlelinecheck=false}
+\usepackage{subcaption}
+%\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{array,multirow,rotating}
+\usepackage{mathtools, halloweenmath}
+%\usepackage{algorithm}
+%\usepackage[linesnumbered]{algorithmic}
+\usepackage{algpseudocode}
+%\usepackage[linesnumbered]{algorithm2e}
+%\usepackage{amssymb}
+\usepackage{tikz}
+\usepackage{adjustbox}
+\usepackage{float}
+\usepackage{tabularray}
+\usepackage{mathtools}
+\usepackage{lipsum}
+\usepackage{tablefootnote}
+\usepackage{soul}
+\usepackage{footnote}
+\usepackage{wrapfig}
+%\usepackage{textcomp}
+\usepackage[hyphens]{url}
+%\usepackage{xcolor}
+\usepackage[subfigure]{tocloft}
+% Always include hyperref last
+\usepackage[bookmarks=true,breaklinks=true,colorlinks,citecolor=blue,linkcolor=blue,urlcolor=blue]{hyperref}
+% Ensure letter paper
+\pdfpagewidth=8.5in
+\pdfpageheight=11in
+
+\newcommand{\hpcayear}{2024}
+
+%%%%%%%%%%%%%% %%%%%%% %%%%%%%%%%%%%%
+\newcommand{\USS}{\textit{U\d{s}\'{a}s}}
+\newcommand{\US}{U\d{s}\'{a}s}
+\newcommand{\xref}[1]{\S\ref{#1}}
+\newcommand{\fixme}[1]{{\textcolor{red}{#1}}}
+\DeclarePairedDelimiter\ceil{\lceil}{\rceil}
+\DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
+% \setlength{\subfigcapmargin}{0.1cm} % Adjust the horizontal spacing
+% \setlength{\subfigcapskip}{0.1cm} % Adjust the vertical spacing
+%%%%%%%%%%%%%% %%%%%%% %%%%%%%%%%%%%%
+%: End %%%%%%%% %%%%%%% %%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%% -- UPDATE -- %%%%%%%%%%%%%%%
+\newcommand{\hpcasubmissionnumber}{760}
+\title{\US{}: A Sustainable Continuous-Learning Framework for  Edge Servers}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%% -- ONLY FOR CAMERA READY -- %%%%%%%%
+\def\hpcacameraready{} % Uncomment to build camera-ready version
+\newcommand{\hpcapubid}{0000--0000/00\$00.00}
+\newcommand\hpcaauthors{Cyan Subhra Mishra, Jack Sampson, Mahmut Taylan Kandemir, Vijaykrishnan Narayanan and Chita R Das}
+\newcommand\hpcaaffiliation{Department of Computer Science and Engineering, The Pennsylvania State University, University Park, USA.}
+\newcommand\hpcaemail{\{cyan, jms1257, mtk2, vijaykrishnan.narayanan, cxd12\}@psu.edu}
+
+%%%%% -- ARTEFACT EVALUATION RESULTS -- %%%%%%
+% Uncomment the following based on the badges that were awarded to this paper
+%\def\aeopen{}           % The artifact is publically available
+%\def\aereviewed{}     % The artefact has been reviewed
+%\def\aereproduced{} % The results have been reproduced
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\input{hpca-template}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%% -- PAPER CONTENT STARTS -- %%%%%%%%%
+
+\begin{abstract}
+\input{src/00abstract}
+\end{abstract}
+
+%-------------------------------------------------------------------------------
+\section{Introduction}
+\label{sec:introduction}
+\input{src/001Introduction}
+
+% %-------------------------------------------------------------------------------
+\vspace{-4pt}\section{Background and Motivation}
+\label{sec:bg-rw}
+\input{src/02BgMotivation.tex}
+
+% %-------------------------------------------------------------------------------
+\section{Continuous Learning}
+\label{sec:CL}
+\input{src/03ContinuousLearning.tex}
+
+% %-------------------------------------------------------------------------------
+\subsection{Hyperparameters: The Right Way to Learn}
+\label{sec:HP}
+\input{src/04HyperParamConfig.tex}
+
+% %-------------------------------------------------------------------------------
+\section{The MORPHABLE Hardware}
+\label{sec:HW}
+\input{src/05HWDesign.tex}
+
+% %-------------------------------------------------------------------------------
+\section{Implementation and Evaluation}
+\label{sec:eval}
+\input{src/06Methodology.tex}
+% %-------------------------------------------------------------------------------
+
+
+% %-------------------------------------------------------------------------------
+\section{Discussion}
+\label{sec:disc}
+\input{src/07Discussion}
+% %-------------------------------------------------------------------------------
+\section{Concluding Remarks}
+\label{sec:conclusion}
+\input{src/08Concusion.tex}
+
+% %-------------------------------------------------------------------------------
+\section{Acknowledgments}
+\label{sec:ack}
+\input{src/09Ack.tex}
+
+%%%%%%% -- PAPER CONTENT ENDS -- %%%%%%%%
+
+
+%%%%%%%%% -- BIB STYLE AND FILE -- %%%%%%%%
+\bibliographystyle{IEEEtranS}
+\bibliography{refs}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}

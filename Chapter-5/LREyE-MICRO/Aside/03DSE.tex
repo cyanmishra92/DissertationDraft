@@ -1,0 +1,775 @@
+\section{Deep Neural Network Design and Training under ReRAM Crossbar Constraints}
+
+The integration of Deep Neural Networks (DNNs) with Resistive Random-Access Memory (ReRAM) crossbar (xBar) arrays presents significant opportunities for energy-efficient and high-throughput computation. However, the inherent hardware constraints, such as limited xBar size, IR voltage drops, and energy/time limitations, necessitate specialized algorithmic strategies. In this section, we present the design and training methodologies for a DNN tailored to operate within a 16×16 ReRAM xBar array, addressing the challenges posed by IR drop and tile dropout through novel regularization and dropout mechanisms.
+
+%%\subsection{DNN Architecture Design}
+\textbf{Tiling Strategy}
+To accommodate the limited size of the ReRAM xBar arrays, input images are partitioned into smaller, manageable tiles. For instance, a 192$\times$144 pixel image is divided into 32$\times$32 pixel tiles, resulting in a total of 27 tiles per image. This tiling approach enables parallel processing of tiles while ensuring that each tile fits within the 16×16 xBar constraints.
+
+\textbf{Feature Extraction via Convolutional Layers}
+Each tile undergoes feature extraction through two convolutional layers, each comprising 16 kernels of size 5$\times$5. The convolutional layers are designed to operate independently on each tile, allowing for parallel computation and efficient mapping onto the xBar arrays.
+
+\textbf{Feature Aggregation and Classification}
+Post feature extraction, the features from all tiles are aggregated into a unified representation. This aggregated feature vector is then processed through two Multi-Layer Perceptron (MLP) layers to perform the final classification. The aggregation step is crucial for synthesizing information from disparate tiles into a cohesive understanding of the input image.
+
+% \begin{figure}[ht]
+%     \centering
+%     \includegraphics[width=\linewidth]{dnn_architecture.png}
+%     \caption{Architecture of the DNN optimized for a 16×16 ReRAM xBar array. Each tile is processed independently through convolutional layers, followed by feature aggregation and classification via MLP layers.}
+%     \label{fig:dnn_architecture}
+% \end{figure}
+
+%%\subsection{Incorporating Hardware Constraints into Training}
+
+\textbf{Modeling IR Drop with Learnable Decay Parameters}
+IR voltage drops within the ReRAM xBar arrays can lead to signal degradation, adversely affecting the computation accuracy. To mitigate this, we introduce \textit{learnable decay parameters} within the network architecture that simulate the voltage decay effects during training. These parameters adjust the activations post-convolution to emulate the impact of IR drops.
+
+\begin{equation}
+    \mathbf{A}_{l,i} = \gamma_l \cdot \mathbf{A}_{l,i}^0
+    \label{eq:ir_decay}
+\end{equation}
+where:
+\begin{itemize}
+    \item $\mathbf{A}_{l,i}^0$ denotes the activation output of the $i^{th}$ convolutional layer before decay.
+    \item $\gamma_l$ represents the learnable decay parameter for the $l^{th}$ layer.
+    \item $\mathbf{A}_{l,i}$ is the activation output after applying IR drop simulation.
+\end{itemize}
+
+These decay parameters are optimized during training, allowing the network to learn compensatory mechanisms for voltage drops.
+
+\textbf{Tile Dropout for Robustness}
+Given the possibility of energy or time constraints leading to incomplete tile processing, we implement a \textit{tile dropout} mechanism. This stochastic dropout randomly omits the processing of certain tiles during training, encouraging the network to develop robustness against missing tile computations during inference.
+
+\begin{equation}
+    \mathbf{T}' = \mathbf{T} \odot \mathbf{M}
+    \label{eq:tile_dropout}
+\end{equation}
+where:
+\begin{itemize}
+    \item $\mathbf{T}$ is the set of all tiles.
+    \item $\mathbf{M}$ is a binary mask matrix where each element $m_{j}$ is sampled from a Bernoulli distribution $\text{Bernoulli}(1 - p)$ with dropout probability $p$.
+    \item $\mathbf{T}'$ represents the subset of tiles after dropout.
+\end{itemize}
+
+%\subsection{Loss Function and Regularization}
+
+To train the DNN effectively under the influence of IR drop and tile dropout, we formulate a specialized loss function that incorporates both classification accuracy and regularization terms accounting for hardware-induced degradations.
+
+\textbf{Combined Loss Function}
+The total loss $\mathcal{L}$ is a weighted sum of the primary classification loss $\mathcal{L}_{\text{cls}}$ and a regularization loss $\mathcal{L}_{\text{reg}}$ that penalizes deviations in decay parameters.
+
+\begin{equation}
+    \mathcal{L} = \mathcal{L}_{\text{cls}} + \lambda \mathcal{L}_{\text{reg}}
+    \label{eq:total_loss}
+\end{equation}
+
+\textbf{Classification Loss}
+We employ the cross-entropy loss for classification tasks, defined as:
+
+\begin{equation}
+    \mathcal{L}_{\text{cls}} = -\sum_{c=1}^{C} y_c \log(\hat{y}_c)
+    \label{eq:cross_entropy}
+\end{equation}
+where:
+\begin{itemize}
+    \item $C$ is the number of classes.
+    \item $y_c$ is the ground truth label for class $c$.
+    \item $\hat{y}_c$ is the predicted probability for class $c$.
+\end{itemize}
+
+\textbf{Regularization Loss for IR Drop}
+The regularization loss encourages the decay parameters $\gamma_l$ to remain close to 1, preventing excessive attenuation of activations. This is formulated as an $L_2$ penalty:
+
+\begin{equation}
+    \mathcal{L}_{\text{reg}} = \sum_{l=1}^{L} (\gamma_l - 1)^2
+    \label{eq:reg_loss}
+\end{equation}
+where:
+\begin{itemize}
+    \item $L$ is the total number of convolutional layers.
+    \item $\gamma_l$ is the decay parameter for the $l^{th}$ layer.
+\end{itemize}
+
+%%\subsection{Training Algorithm}
+
+The training process integrates IR drop modeling and tile dropout, ensuring that the DNN learns to operate reliably under hardware-induced constraints. The following algorithm outlines the training procedure.
+
+\begin{algorithm}[H]
+\caption{Training IR Drop Aware DNN with Tile Dropout}
+\label{alg:training_dnn}
+\begin{algorithmic}[1]
+\Require 
+\Statex 
+\textbf{Inputs}: 
+\Statex \quad - Training dataset $\mathcal{D}_{\text{train}}$
+\Statex \quad - Validation dataset $\mathcal{D}_{\text{val}}$
+\Statex \quad - Number of epochs $E$
+\Statex \quad - Batch size $B$
+\Statex \quad - Learning rate $\eta$
+\Statex \quad - Decay regularization coefficient $\lambda$
+\Statex \quad - Tile dropout probability $p$
+\Ensure 
+\Statex 
+\textbf{Outputs}: 
+\Statex \quad - Trained model parameters $\Theta$
+\Statex 
+\State Initialize model parameters $\Theta$, including decay parameters $\{\gamma_l\}$
+\For{each epoch $e = 1$ to $E$}
+    \For{each mini-batch $\mathcal{B}$ in $\mathcal{D}_{\text{train}}$}
+        \State \textbf{Forward Pass}:
+        \State \quad - Apply tiling to input images in $\mathcal{B}$
+        \State \quad - Apply tile dropout: $\mathcal{T}' = \mathcal{T} \odot \mathcal{M}$ \Comment{Equation \ref{eq:tile_dropout}}
+        \State \quad - Pass $\mathcal{T}'$ through convolutional layers with decay parameters (Equation \ref{eq:ir_decay})
+        \State \quad - Aggregate features from all active tiles
+        \State \quad - Pass aggregated features through MLP layers to obtain predictions $\hat{\mathbf{y}}$
+        
+        \State \textbf{Compute Loss}:
+        \State \quad - Compute classification loss $\mathcal{L}_{\text{cls}}$ (Equation \ref{eq:cross_entropy})
+        \State \quad - Compute regularization loss $\mathcal{L}_{\text{reg}}$ (Equation \ref{eq:reg_loss})
+        \State \quad - Total loss $\mathcal{L} = \mathcal{L}_{\text{cls}} + \lambda \mathcal{L}_{\text{reg}}$ \Comment{Equation \ref{eq:total_loss}}
+        
+        \State \textbf{Backward Pass}:
+        \State \quad - Compute gradients $\nabla_\Theta \mathcal{L}$
+        \State \quad - Update parameters: $\Theta \gets \Theta - \eta \nabla_\Theta \mathcal{L}$
+    \EndFor
+    \State \textbf{Validation}:
+    \State \quad - Evaluate model on $\mathcal{D}_{\text{val}}$
+    \State \quad - Record validation accuracy and loss
+\EndFor
+\State \Return Trained model parameters $\Theta$
+\end{algorithmic}
+\end{algorithm}
+
+%\subsection{Finetuning and Adaptation}
+
+Post initial training, finetuning is performed to adapt the DNN to specific hardware profiles, such as actual IR drop measurements and observed tile dropout patterns. Finetuning involves further optimization of the decay parameters and potentially adjusting dropout probabilities to align with real-world hardware behavior.
+
+\begin{algorithm}[H]
+\caption{Finetuning IR Drop Aware DNN}
+\label{alg:finetuning_dnn}
+\begin{algorithmic}[1]
+\Require 
+\Statex 
+\textbf{Inputs}: 
+\Statex \quad - Pre-trained model parameters $\Theta$
+\Statex \quad - Finetuning dataset $\mathcal{D}_{\text{finetune}}$
+\Statex \quad - Validation dataset $\mathcal{D}_{\text{val}}$
+\Statex \quad - Number of finetuning epochs $E_f$
+\Statex \quad - Batch size $B_f$
+\Statex \quad - Learning rate $\eta_f$
+\Statex \quad - Decay regularization coefficient $\lambda_f$
+\Statex \quad - Tile dropout probability $p_f$
+\Ensure 
+\Statex 
+\textbf{Outputs}: 
+\Statex \quad - Finetuned model parameters $\Theta_f$
+\Statex 
+\State Initialize optimizer with $\Theta_f = \Theta$
+\For{each finetuning epoch $e_f = 1$ to $E_f$}
+    \For{each mini-batch $\mathcal{B}_f$ in $\mathcal{D}_{\text{finetune}}$}
+        \State \textbf{Forward Pass}:
+        \State \quad - Apply tiling to input images in $\mathcal{B}_f$
+        \State \quad - Apply tile dropout: $\mathcal{T}'_f = \mathcal{T}_f \odot \mathcal{M}_f$ \Comment{Adjusted for hardware profile}
+        \State \quad - Pass $\mathcal{T}'_f$ through convolutional layers with updated decay parameters
+        \State \quad - Aggregate features from all active tiles
+        \State \quad - Pass aggregated features through MLP layers to obtain predictions $\hat{\mathbf{y}}_f$
+        
+        \State \textbf{Compute Finetuning Loss}:
+        \State \quad - Compute classification loss $\mathcal{L}_{\text{cls}_f}$ (Equation \ref{eq:cross_entropy})
+        \State \quad - Compute regularization loss $\mathcal{L}_{\text{reg}_f}$ (Equation \ref{eq:reg_loss})
+        \State \quad - Total loss $\mathcal{L}_f = \mathcal{L}_{\text{cls}_f} + \lambda_f \mathcal{L}_{\text{reg}_f}$ \Comment{Equation \ref{eq:total_loss}}
+        
+        \State \textbf{Backward Pass}:
+        \State \quad - Compute gradients $\nabla_\Theta \mathcal{L}_f$
+        \State \quad - Update parameters: $\Theta_f \gets \Theta_f - \eta_f \nabla_\Theta \mathcal{L}_f$
+    \EndFor
+    \State \textbf{Validation}:
+    \State \quad - Evaluate finetuned model on $\mathcal{D}_{\text{val}}$
+    \State \quad - Record validation accuracy and loss
+\EndFor
+\State \Return Finetuned model parameters $\Theta_f$
+\end{algorithmic}
+\end{algorithm}
+
+%\subsection{Inference Mapping}
+
+Mapping the trained DNN onto the constrained 16×16 ReRAM xBar arrays requires efficient allocation of computational resources. The inference mapping strategy ensures that convolutional and MLP operations are distributed across multiple xBars while respecting their size limitations.
+
+\textbf{Convolution Layer Mapping}
+Each 5$\times$5 convolutional kernel is mapped to a separate xBar within the 16×16 array. Given that each convolutional layer has 16 kernels, a minimum of 1 xBar per layer is required, with potential parallelism across multiple xBars if available.
+
+\textbf{MLP Layer Mapping}
+The MLP layers are mapped onto dedicated xBars, with each xBar handling a subset of the weight matrices. Due to the limited size, weight matrices are partitioned and distributed across multiple xBars to accommodate all connections.
+
+\textbf{Feature Aggregation and Data Flow}
+Aggregated features from all tiles are consolidated before being fed into the MLP layers. Efficient data flow mechanisms are implemented to transfer data between convolutional and MLP layers without significant latency or energy overhead.
+
+%\subsection{Mathematical Formulation of the Loss Functions}
+
+\textbf{Classification Loss}
+The classification loss employs the cross-entropy loss function, which measures the discrepancy between the predicted probability distribution $\hat{\mathbf{y}}$ and the true distribution $\mathbf{y}$.
+
+\begin{equation}
+    \mathcal{L}_{\text{cls}}(\mathbf{y}, \hat{\mathbf{y}}) = -\sum_{c=1}^{C} y_c \log(\hat{y}_c)
+    \label{eq:cross_entropy}
+\end{equation}
+where:
+\begin{itemize}
+    \item $C$ is the number of classes.
+    \item $y_c$ is the ground truth label for class $c$.
+    \item $\hat{y}_c$ is the predicted probability for class $c$.
+\end{itemize}
+
+\textbf{Regularization Loss for IR Drop}
+To penalize the network for deviating from ideal activation levels due to IR drop, we introduce an $L_2$ regularization term on the decay parameters $\gamma_l$.
+
+\begin{equation}
+    \mathcal{L}_{\text{reg}}(\{\gamma_l\}) = \sum_{l=1}^{L} (\gamma_l - 1)^2
+    \label{eq:reg_loss}
+\end{equation}
+where:
+\begin{itemize}
+    \item $L$ is the number of convolutional layers.
+    \item $\gamma_l$ is the decay parameter for the $l^{th}$ convolutional layer.
+\end{itemize}
+
+\textbf{Total Loss Function}
+Combining the classification and regularization losses, the total loss $\mathcal{L}$ is formulated as:
+
+\begin{equation}
+    \mathcal{L} = \mathcal{L}_{\text{cls}} + \lambda \mathcal{L}_{\text{reg}}
+    \label{eq:total_loss}
+\end{equation}
+where $\lambda$ is a hyperparameter controlling the trade-off between classification accuracy and regularization strength.
+
+%\subsection{Algorithmic Framework}
+
+To formalize the training and finetuning processes, we present the following algorithms, encapsulating the integration of IR drop modeling and tile dropout mechanisms.
+
+\textbf{Training Algorithm}
+
+\begin{algorithm}[H]
+\caption{Training IR Drop Aware DNN with Tile Dropout}
+\label{alg:training_dnn}
+\begin{algorithmic}[1]
+\Require 
+\Statex 
+\textbf{Inputs}: 
+\Statex \quad - Training dataset $\mathcal{D}_{\text{train}}$
+\Statex \quad - Validation dataset $\mathcal{D}_{\text{val}}$
+\Statex \quad - Number of epochs $E$
+\Statex \quad - Batch size $B$
+\Statex \quad - Learning rate $\eta$
+\Statex \quad - Decay regularization coefficient $\lambda$
+\Statex \quad - Tile dropout probability $p$
+\Ensure 
+\Statex 
+\textbf{Outputs}: 
+\Statex \quad - Trained model parameters $\Theta$
+\Statex 
+\State Initialize model parameters $\Theta$, including decay parameters $\{\gamma_l\}$
+\For{each epoch $e = 1$ to $E$}
+    \For{each mini-batch $\mathcal{B}$ in $\mathcal{D}_{\text{train}}$}
+        \State \textbf{Forward Pass}:
+        \State \quad - Apply tiling to input images in $\mathcal{B}$
+        \State \quad - Apply tile dropout: $\mathcal{T}' = \mathcal{T} \odot \mathcal{M}$ \Comment{Equation \ref{eq:tile_dropout}}
+        \State \quad - Pass $\mathcal{T}'$ through convolutional layers with decay parameters (Equation \ref{eq:ir_decay})
+        \State \quad - Aggregate features from all active tiles
+        \State \quad - Pass aggregated features through MLP layers to obtain predictions $\hat{\mathbf{y}}$
+        
+        \State \textbf{Compute Loss}:
+        \State \quad - Compute classification loss $\mathcal{L}_{\text{cls}}$ (Equation \ref{eq:cross_entropy})
+        \State \quad - Compute regularization loss $\mathcal{L}_{\text{reg}}$ (Equation \ref{eq:reg_loss})
+        \State \quad - Total loss $\mathcal{L} = \mathcal{L}_{\text{cls}} + \lambda \mathcal{L}_{\text{reg}}$ \Comment{Equation \ref{eq:total_loss}}
+        
+        \State \textbf{Backward Pass}:
+        \State \quad - Compute gradients $\nabla_\Theta \mathcal{L}$
+        \State \quad - Update parameters: $\Theta \gets \Theta - \eta \nabla_\Theta \mathcal{L}$
+    \EndFor
+    \State \textbf{Validation}:
+    \State \quad - Evaluate model on $\mathcal{D}_{\text{val}}$
+    \State \quad - Record validation accuracy and loss
+\EndFor
+\State \Return Trained model parameters $\Theta$
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Finetuning Algorithm}
+
+\begin{algorithm}[H]
+\caption{Finetuning IR Drop Aware DNN}
+\label{alg:finetuning_dnn}
+\begin{algorithmic}[1]
+\Require 
+\Statex 
+\textbf{Inputs}: 
+\Statex \quad - Pre-trained model parameters $\Theta$
+\Statex \quad - Finetuning dataset $\mathcal{D}_{\text{finetune}}$
+\Statex \quad - Validation dataset $\mathcal{D}_{\text{val}}$
+\Statex \quad - Number of finetuning epochs $E_f$
+\Statex \quad - Batch size $B_f$
+\Statex \quad - Learning rate $\eta_f$
+\Statex \quad - Decay regularization coefficient $\lambda_f$
+\Statex \quad - Tile dropout probability $p_f$
+\Ensure 
+\Statex 
+\textbf{Outputs}: 
+\Statex \quad - Finetuned model parameters $\Theta_f$
+\Statex 
+\State Initialize optimizer with $\Theta_f = \Theta$
+\For{each finetuning epoch $e_f = 1$ to $E_f$}
+    \For{each mini-batch $\mathcal{B}_f$ in $\mathcal{D}_{\text{finetune}}$}
+        \State \textbf{Forward Pass}:
+        \State \quad - Apply tiling to input images in $\mathcal{B}_f$
+        \State \quad - Apply tile dropout: $\mathcal{T}'_f = \mathcal{T}_f \odot \mathcal{M}_f$ \Comment{Adjusted for hardware profile}
+        \State \quad - Pass $\mathcal{T}'_f$ through convolutional layers with updated decay parameters
+        \State \quad - Aggregate features from all active tiles
+        \State \quad - Pass aggregated features through MLP layers to obtain predictions $\hat{\mathbf{y}}_f$
+        
+        \State \textbf{Compute Finetuning Loss}:
+        \State \quad - Compute classification loss $\mathcal{L}_{\text{cls}_f}$ (Equation \ref{eq:cross_entropy})
+        \State \quad - Compute regularization loss $\mathcal{L}_{\text{reg}_f}$ (Equation \ref{eq:reg_loss})
+        \State \quad - Total loss $\mathcal{L}_f = \mathcal{L}_{\text{cls}_f} + \lambda_f \mathcal{L}_{\text{reg}_f}$ \Comment{Equation \ref{eq:total_loss}}
+        
+        \State \textbf{Backward Pass}:
+        \State \quad - Compute gradients $\nabla_\Theta \mathcal{L}_f$
+        \State \quad - Update parameters: $\Theta_f \gets \Theta_f - \eta_f \nabla_\Theta \mathcal{L}_f$
+    \EndFor
+    \State \textbf{Validation}:
+    \State \quad - Evaluate finetuned model on $\mathcal{D}_{\text{val}}$
+    \State \quad - Record validation accuracy and loss
+\EndFor
+\State \Return Finetuned model parameters $\Theta_f$
+\end{algorithmic}
+\end{algorithm}
+
+%\subsection{Algorithmic Framework}
+
+The following subsections delineate the algorithmic frameworks for model design, training, and finetuning, incorporating the novel aspects of IR drop awareness and tile dropout.
+
+\textbf{DNN Model Initialization}
+\begin{algorithm}[H]
+\caption{Initialize IR Drop Aware DNN Model}
+\label{alg:model_initialization}
+\begin{algorithmic}[1]
+\Require 
+\Statex 
+\textbf{Inputs}: 
+\Statex \quad - Number of convolutional layers $L$
+\Statex \quad - Number of kernels per convolutional layer $K$
+\Statex \quad - Kernel size $S$
+\Statex \quad - Number of MLP layers $M$
+\Statex \quad - MLP layer sizes $\{N_1, N_2, \dots, N_M\}$
+\Ensure 
+\Statex 
+\textbf{Outputs}: 
+\Statex \quad - Initialized model parameters $\Theta$
+\Statex 
+\State Initialize convolutional kernels $\{\mathbf{W}_l\}_{l=1}^L$
+\State Initialize MLP weights $\{\mathbf{V}_m\}_{m=1}^M$ and biases $\{\mathbf{b}_m\}_{m=1}^M$
+\State Initialize learnable decay parameters $\{\gamma_l\}_{l=1}^L$ to 1.0
+\Statex 
+\State \Return Initialized model parameters $\Theta$
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Forward Pass with IR Drop and Tile Dropout}
+\begin{algorithm}[H]
+\caption{Forward Pass with IR Drop and Tile Dropout}
+\label{alg:forward_pass}
+\begin{algorithmic}[1]
+\Require 
+\Statex 
+\textbf{Inputs}: 
+\Statex \quad - Input image $I$
+\Statex \quad - Model parameters $\Theta$
+\Statex \quad - Tile dropout probability $p$
+\State \quad - Training flag $train$
+\Ensure 
+\Statex 
+\textbf{Outputs}: 
+\Statex \quad - Output predictions $\hat{\mathbf{y}}$
+\Statex 
+\State \textbf{Tiling}: Divide $I$ into tiles $\mathcal{T} = \{T_1, T_2, \dots, T_N\}$
+\State \textbf{Tile Dropout}: 
+\If{$train$}
+    \State $\mathcal{T}' \gets \mathcal{T} \odot \mathbf{M}$ \Comment{Apply tile dropout (Equation \ref{eq:tile_dropout})}
+\Else
+    \State $\mathcal{T}' \gets \mathcal{T}$
+\EndIf
+\State \textbf{Convolutional Processing}:
+\For{each tile $T_i' \in \mathcal{T}'$}
+    \State $\mathbf{A}_{1,i} \gets \text{ReLU}(\mathbf{W}_1 * T_i' + \mathbf{b}_1)$ \Comment{First conv layer}
+    \State $\mathbf{A}_{1,i} \gets \gamma_1 \cdot \mathbf{A}_{1,i}$ \Comment{Apply IR drop (Equation \ref{eq:ir_decay})}
+    \State $\mathbf{A}_{2,i} \gets \text{ReLU}(\mathbf{W}_2 * \mathbf{A}_{1,i} + \mathbf{b}_2)$ \Comment{Second conv layer}
+    \State $\mathbf{A}_{2,i} \gets \gamma_2 \cdot \mathbf{A}_{2,i}$ \Comment{Apply IR drop}
+\EndFor
+\State \textbf{Feature Aggregation}: $\mathbf{F} \gets \text{Aggregate}(\{\mathbf{A}_{2,i}\})$ \Comment{E.g., average pooling}
+\State \textbf{MLP Classification}:
+\For{each MLP layer $m = 1$ to $M$}
+    \State $\mathbf{F} \gets \text{ReLU}(\mathbf{V}_m \mathbf{F} + \mathbf{b}_m)$
+\EndFor
+\State \textbf{Output}: $\hat{\mathbf{y}} \gets \mathbf{F}$
+\Statex 
+\State \Return $\hat{\mathbf{y}}$
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Aggregation Mechanism}
+The aggregation of features from multiple tiles is performed using average pooling, ensuring that the influence of each tile is uniformly considered, even when some tiles are dropped during training.
+
+\begin{equation}
+    \mathbf{F} = \frac{1}{|\mathcal{T}'|} \sum_{i=1}^{|\mathcal{T}'|} \mathbf{A}_{2,i}
+    \label{eq:feature_aggregation}
+\end{equation}
+
+%\subsection{Regularization and Robustness Enhancements}
+
+\textbf{Learnable Decay Parameters}
+The decay parameters $\{\gamma_l\}$ are introduced to simulate the effect of IR drop. These parameters are optimized during training to minimize the impact of voltage decay on feature representations.
+
+\begin{equation}
+    \gamma_l = \text{Softplus}(\theta_l) \quad \forall l \in \{1, 2\}
+    \label{eq:decay_parameter}
+\end{equation}
+where $\theta_l$ are the raw learnable parameters ensuring $\gamma_l > 0$ through the Softplus activation function.
+
+\textbf{Tile Dropout}
+Tile dropout is implemented to simulate scenarios where certain tiles may not be processed due to energy or time constraints. This stochastic dropout encourages the network to rely on partial information, enhancing its robustness.
+
+\begin{equation}
+    m_j \sim \text{Bernoulli}(1 - p) \quad \forall j \in \{1, 2, \dots, N\}
+    \label{eq:bernoulli_dropout}
+\end{equation}
+
+%\subsection{Training Procedure}
+
+The training procedure involves optimizing the DNN parameters to minimize the combined loss function while accounting for IR drop and tile dropout. The algorithm iteratively updates the model parameters using gradient descent-based optimization.
+
+\begin{algorithm}[H]
+\caption{Training Procedure for IR Drop Aware DNN}
+\label{alg:training_procedure}
+\begin{algorithmic}[1]
+\Require 
+\Statex 
+\textbf{Inputs}: 
+\Statex \quad - Training dataset $\mathcal{D}_{\text{train}}$
+\Statex \quad - Validation dataset $\mathcal{D}_{\text{val}}$
+\Statex \quad - Number of epochs $E$
+\Statex \quad - Batch size $B$
+\Statex \quad - Learning rate $\eta$
+\Statex \quad - Decay regularization coefficient $\lambda$
+\Statex \quad - Tile dropout probability $p$
+\Ensure 
+\Statex 
+\textbf{Outputs}: 
+\Statex \quad - Optimized model parameters $\Theta$
+\Statex 
+\State Initialize model parameters $\Theta$, including decay parameters $\{\gamma_l\}$
+\For{each epoch $e = 1$ to $E$}
+    \For{each mini-batch $\mathcal{B}$ in $\mathcal{D}_{\text{train}}$}
+        \State Forward pass: Compute $\hat{\mathbf{y}}$ using Algorithm \ref{alg:forward_pass}
+        \State Compute classification loss $\mathcal{L}_{\text{cls}}$ using Equation \ref{eq:cross_entropy}
+        \State Compute regularization loss $\mathcal{L}_{\text{reg}}$ using Equation \ref{eq:reg_loss}
+        \State Compute total loss $\mathcal{L}$ using Equation \ref{eq:total_loss}
+        \State Backward pass: Compute gradients $\nabla_\Theta \mathcal{L}$
+        \State Update parameters: $\Theta \gets \Theta - \eta \nabla_\Theta \mathcal{L}$
+    \EndFor
+    \State Validate model on $\mathcal{D}_{\text{val}}$
+    \State Log training and validation metrics
+\EndFor
+\State \Return Optimized model parameters $\Theta$
+\end{algorithmic}
+\end{algorithm}
+
+%\subsection{Finetuning Procedure}
+
+After initial training, finetuning adjusts the model parameters to better align with specific hardware profiles, enhancing performance under real-world operational conditions.
+
+\begin{algorithm}[H]
+\caption{Finetuning Procedure for IR Drop Aware DNN}
+\label{alg:finetuning_procedure}
+\begin{algorithmic}[1]
+\Require 
+\Statex 
+\textbf{Inputs}: 
+\Statex \quad - Pre-trained model parameters $\Theta$
+\Statex \quad - Finetuning dataset $\mathcal{D}_{\text{finetune}}$
+\Statex \quad - Validation dataset $\mathcal{D}_{\text{val}}$
+\Statex \quad - Number of finetuning epochs $E_f$
+\Statex \quad - Batch size $B_f$
+\Statex \quad - Learning rate $\eta_f$
+\Statex \quad - Decay regularization coefficient $\lambda_f$
+\Statex \quad - Tile dropout probability $p_f$
+\Ensure 
+\Statex 
+\textbf{Outputs}: 
+\Statex \quad - Finetuned model parameters $\Theta_f$
+\Statex 
+\State Initialize optimizer with $\Theta_f = \Theta$
+\For{each finetuning epoch $e_f = 1$ to $E_f$}
+    \For{each mini-batch $\mathcal{B}_f$ in $\mathcal{D}_{\text{finetune}}$}
+        \State Forward pass: Compute $\hat{\mathbf{y}}_f$ using Algorithm \ref{alg:forward_pass}
+        \State Compute classification loss $\mathcal{L}_{\text{cls}_f}$ using Equation \ref{eq:cross_entropy}
+        \State Compute regularization loss $\mathcal{L}_{\text{reg}_f}$ using Equation \ref{eq:reg_loss}
+        \State Compute total loss $\mathcal{L}_f = \mathcal{L}_{\text{cls}_f} + \lambda_f \mathcal{L}_{\text{reg}_f}$ \Comment{Equation \ref{eq:total_loss}}
+        \State Backward pass: Compute gradients $\nabla_\Theta \mathcal{L}_f$
+        \State Update parameters: $\Theta_f \gets \Theta_f - \eta_f \nabla_\Theta \mathcal{L}_f$
+    \EndFor
+    \State Validate finetuned model on $\mathcal{D}_{\text{val}}$
+    \State Log finetuning metrics
+\EndFor
+\State \Return Finetuned model parameters $\Theta_f$
+\end{algorithmic}
+\end{algorithm}
+
+%\subsection{Robust Inference Mapping}
+
+During inference, the DNN must operate within the 16×16 xBar constraints while maintaining robustness against IR drop and potential tile dropouts. The inference mapping strategy ensures efficient utilization of xBars and resilience to hardware-induced perturbations.
+
+\textbf{Algorithmic Framework for Inference Mapping}
+\begin{algorithm}[H]
+\caption{Inference Mapping for IR Drop Aware DNN}
+\label{alg:inference_mapping}
+\begin{algorithmic}[1]
+\Require 
+\Statex 
+\textbf{Inputs}: 
+\Statex \quad - Trained model parameters $\Theta$
+\Statex \quad - Input image $I$
+\Statex \quad - Hardware profile parameters (e.g., IR drop characteristics)
+\Ensure 
+\Statex 
+\textbf{Outputs}: 
+\Statex \quad - Predicted class label
+\Statex 
+\State \textbf{Forward Pass}:
+\State \quad - Execute Algorithm \ref{alg:forward_pass} with $train=False$
+\State \quad - Apply hardware-specific adjustments (e.g., adjusted decay parameters based on hardware profile)
+\State \textbf{Output Prediction}:
+\State \quad - Determine class label from $\hat{\mathbf{y}}$
+\Statex 
+\State \Return Predicted class label
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Hardware-Specific Adjustments}
+Based on empirical measurements of IR drop and tile dropout frequencies, the decay parameters and dropout probabilities are adjusted to reflect real-world operational conditions. These adjustments are critical for maintaining classification accuracy during inference.
+
+\begin{equation}
+    \gamma_l^{\text{hardware}} = f(\text{IR drop measurements})
+    \label{eq:hardware_decay}
+\end{equation}
+
+\begin{equation}
+    p_f^{\text{hardware}} = g(\text{tile dropout frequencies})
+    \label{eq:hardware_dropout}
+\end{equation}
+where:
+\begin{itemize}
+    \item $f(\cdot)$ and $g(\cdot)$ are functions derived from hardware profiling data.
+\end{itemize}
+
+%\subsection{Implementation Considerations}
+
+\textbf{Model Initialization and Parameter Allocation}
+Efficient initialization of decay parameters and careful allocation of model weights are essential for aligning the DNN operations with the physical constraints of the ReRAM xBar arrays. The decay parameters are initialized to unity, indicating no initial voltage decay, and are subsequently optimized during training.
+
+\textbf{Optimization Techniques}
+Advanced optimization algorithms, such as Adam or RMSprop, are employed to facilitate the convergence of both network weights and decay parameters. The learning rate $\eta$ is carefully chosen to balance convergence speed and stability.
+
+\textbf{Data Normalization and Scaling}
+Input data is normalized to ensure that the activation magnitudes remain within operational voltage ranges of the ReRAM xBar arrays, mitigating the exacerbation of IR drops due to high current flows.
+
+\textbf{Batch Processing and Parallelism}
+Batch processing is leveraged to exploit parallelism across multiple tiles, enhancing computational efficiency and reducing inference latency. However, due to the limited size of xBars, sequential processing within individual tiles may be necessary.
+
+
+
+This section delineated the comprehensive design and training strategies for a DNN optimized for operation within 16×16 ReRAM xBar arrays. By integrating IR drop awareness through learnable decay parameters and enhancing robustness via tile dropout mechanisms, the proposed methodology ensures reliable and efficient DNN performance under hardware-induced constraints. The mathematical formulations and algorithmic frameworks provide a solid foundation for implementing and further refining DNNs tailored to emerging ReRAM-based computing architectures.
+
+
+
+% \section{Approximate Activation Functions}
+% \label{sec:circuit_implementation}
+
+% Integrating activation functions within ReRAM (Resistive Random-Access Memory) crossbar arrays is crucial for enhancing the computational efficiency and scalability of analog-based Deep Neural Networks (DNNs). This section elucidates the design and operational principles of a ReLU (Rectified Linear Unit) activation function implemented using back-to-back Schottky diodes. The chosen configuration leverages the inherent properties of Schottky diodes to emulate ReLU behavior effectively while addressing key challenges associated with passive device-based activations.
+
+% The proposed ReLU activation circuit comprises a pair of back-to-back Schottky diodes integrated with a series resistor (\( R_s \)). This configuration is strategically positioned downstream of the ReRAM crossbar array, where the output current (\( I_{\text{in}} \)) from the crossbar traverses through the diode pair before reaching subsequent network layers, as illustrated in Figure~\ref{fig:schottky_relu_circuit}. The back-to-back arrangement ensures that one diode conducts during positive input currents while the other remains reverse-biased, effectively blocking any reverse current flow when the input current is negative or below a certain threshold. This behavior is instrumental in emulating the ReLU function, which outputs zero for non-positive inputs and passes positive inputs unchanged.
+
+% When the input current is positive and exceeds the threshold current (\( I_{\text{th}} \)), the forward-biased Schottky diode (\( D_1 \)) conducts, allowing the current to pass through the series resistor (\( R_s \)). The output current (\( I_{\text{out}} \)) is thus a scaled version of the input, defined by the relationship \( I_{\text{out}} = \frac{I_{\text{in}} - I_{\text{th}}}{R_s} \), where \( I_{\text{th}} = \frac{V_{\text{th}}}{R_s} \) represents the threshold current corresponding to the diode's forward voltage (\( V_{\text{th}} \)). This linear scaling beyond the threshold effectively emulates the ReLU's characteristic of allowing positive inputs to pass through while maintaining a zero output for negative inputs or inputs below the threshold.
+
+% The selection of Schottky diodes is pivotal to the circuit's performance. Schottky diodes are preferred over conventional PN junction diodes due to their significantly lower forward threshold voltage (\( V_{\text{th}} \)) and reduced series resistance (\( R_s \)). Typically, Schottky diodes exhibit a \( V_{\text{th}} \) ranging from 0.2 V to 0.4 V, which is considerably lower than the approximately 0.6 V observed in standard diodes. This lower threshold voltage minimizes the dead zone in the activation function, allowing the circuit to respond to smaller positive input currents more effectively. Additionally, the low series resistance inherent to Schottky diodes facilitates faster switching and reduces power dissipation during conduction, ensuring that the output current accurately reflects the scaled input without significant voltage drops across the diode.
+
+% Operationally, the back-to-back Schottky diode configuration ensures that for negative input currents (\( I_{\text{in}} \leq 0 \)), both diodes (\( D_1 \) and \( D_2 \)) remain reverse-biased, effectively preventing any current flow and maintaining \( I_{\text{out}} = 0 \). This behavior faithfully replicates the ReLU's function of suppressing negative inputs. Conversely, when \( I_{\text{in}} > I_{\text{th}} \), the forward-biased diode allows the current to pass through, with the output current scaling linearly according to the resistor value, thereby emulating the ReLU's linear activation for positive inputs.
+
+% Simulation studies validate the operational efficacy of the back-to-back Schottky diode-based ReLU activation circuit. As depicted in Figure~\ref{fig:schottky_relu_simulation}, the \( I_{\text{out}} \) versus \( I_{\text{in}} \) characteristics demonstrate that the output remains at zero for input currents below the threshold and increases linearly beyond the threshold, closely aligning with the ReLU function's expected behavior. The smooth transition from the non-conductive to the conductive state underscores the suitability of Schottky diodes in achieving precise activation without significant delays or power losses.
+
+% The advantages of this design are multifaceted. The passive nature of the diode-resistor configuration ensures low power consumption, as no active amplification is required for activation. Moreover, the simplicity of the circuit minimizes fabrication complexities and enhances reliability by reducing the number of active components. The compact footprint of Schottky diodes allows for dense integration within ReRAM crossbar arrays, facilitating the construction of large-scale neural networks without incurring significant area overhead. However, the design does present certain limitations. The activation function's characteristics are primarily dictated by the chosen \( V_{\text{th}} \) and \( R_s \), limiting adaptability unless these parameters are dynamically adjustable. Additionally, Schottky diodes are sensitive to temperature variations, which can affect the consistency of the activation function across different thermal environments. Minor deviations due to the inherent non-linear \( I-V \) characteristics of diodes may also introduce subtle inaccuracies in the activation function.
+
+% In conclusion, the implementation of a back-to-back Schottky diode-based ReLU activation circuit within ReRAM crossbar arrays offers a viable and efficient method for introducing non-linearity in analog DNNs. By harnessing the low forward threshold voltage and low series resistance of Schottky diodes, the proposed design effectively emulates the ReLU function with minimal power consumption and high scalability. While certain limitations, such as fixed activation parameters and temperature sensitivity, exist, the benefits in terms of energy efficiency and integration simplicity make this approach highly suitable for large-scale neural network applications. Future work will focus on dynamically adjusting activation parameters and incorporating temperature compensation mechanisms to further enhance the robustness and flexibility of the activation function.
+
+% % \begin{figure}[ht]
+% %     \centering
+% %     \includegraphics[width=0.6\linewidth]{schottky_relu_simulation.png}
+% %     \caption{Simulated \( I_{\text{out}} \) vs. \( I_{\text{in}} \) Characteristics of the Schottky Diode-Based ReLU Activation Circuit}
+% %     \label{fig:schottky_relu_simulation}
+% % \end{figure}
+
+% %\subsection{Thoughts on Approximating SoftMax}
+
+% To realize the SoftMax function within a ReRAM crossbar-based image classification system using passive components, a meticulous circuit design is essential. The implementation hinges on two primary operations: exponentiation of the crossbar outputs and normalization of these exponentials to yield probabilistic outputs. This section provides an in-depth description of the proposed circuit, complemented by a schematic diagram illustrating the architecture and operational flow.
+
+% %%\subsection{Circuit Architecture}
+
+% The SoftMax circuit is architected to perform the exponential transformation and subsequent normalization of the ReRAM crossbar outputs in an analog fashion, leveraging Schottky diodes and resistor networks. The design comprises the following key components: Exponentiation Stage: Each raw output current \( I_i \) from the ReRAM crossbar, corresponding to a logit \( z_i \), is directed through a Schottky diode to exploit its exponential I-V characteristics. The diode operates in the exponential regime, facilitating the approximation of \( e^{z_i} \). 2.Summation Node: The currents resulting from the exponentiation stage are aggregated at a common summation node. This node effectively computes the denominator \( \sum_{j} e^{z_j} \) required for normalization. 3. Normalization Network: A resistor-based scaling network ensures that each exponentiated current \( e^{z_i} \) is proportionally divided by the total sum, thereby producing the SoftMax probabilities \( \text{SoftMax}(z_i) = \frac{e^{z_i}}{\sum_{j} e^{z_j}} \). 4. Output Buffering: The normalized currents are buffered using transimpedance amplifiers to interface with subsequent digital or analog stages, ensuring signal integrity and isolation.
+
+% % %\subsection{Circuit Schematic}
+
+% % \begin{figure}[htbp]
+% %     \centering
+% %     \begin{tikzpicture}[scale=1, every node/.style={scale=0.9}]
+% %         % Define nodes
+% %         \node (I1) at (0,3) {$I_1$};
+% %         \node (I2) at (0,2) {$I_2$};
+% %         \node (I3) at (0,1) {$I_3$};
+% %         \node (Id) at (0,0) {$\vdots$};
+% %         \node (In) at (0,-1) {$I_n$};
+        
+% %         % Diodes for exponentiation
+% %         \foreach \i/\y in {1/3, 2/2, 3/1, n/-1}
+% %         {
+% %             \ifnum \i=1
+% %                 \node (D\i) at (2,\y) [draw, diode, rotate=-90, anchor=E] {};
+% %                 \draw (I\i) -- (D\i.E) ;
+% %                 \draw (D\i.D) -- ++(0.5,0) node[right] {$D_{\i}$};
+% %             \else
+% %                 \node (D\i) at (2,\y) [draw, diode, rotate=-90, anchor=E] {};
+% %                 \draw (I\i) -- (D\i.E) ;
+% %                 \draw (D\i.D) -- ++(0.5,0) node[right] {$D_{\i}$};
+% %             \fi
+% %         }
+        
+% %         % Summation node
+% %         \node (Sum) at (4,0) [circle, draw, inner sep=1pt] {};
+% %         \foreach \i/\y in {1/3, 2/2, 3/1, n/-1}
+% %         {
+% %             \draw (D\i.D) -- (Sum);
+% %         }
+        
+% %         % Resistor network for normalization
+% %         \node (R1) at (6,3) [right] {$R_1$};
+% %         \node (R2) at (6,2) [right] {$R_2$};
+% %         \node (R3) at (6,1) [right] {$R_3$};
+% %         \node (Rn) at (6,-1) [right] {$R_n$};
+        
+% %         \foreach \i/\y in {1/3, 2/2, 3/1, n/-1}
+% %         {
+% %             \draw (Sum) -- ++(0.5,0) -| (R\i);
+% %             \draw (R\i) -- ++(1,0) node[right] {$V_{\text{out},\i}$};
+% %         }
+        
+% %         % Ground and power
+% %         \draw (Sum) -- ++(0,-1) node[ground]{};
+% %         \draw (D1.C) -- ++(0,-4) node[ground]{};
+        
+% %         % Labels
+% %         \node at (2,4) {Exponentiation Stage};
+% %         \node at (5,1.5) {Summation and Normalization};
+% %         \node at (7,3.5) {SoftMax Outputs};
+% %     \end{tikzpicture}
+% %     \caption{Schematic of the Passive SoftMax Circuit Implementation}
+% %     \label{fig:softmax_circuit}
+% % \end{figure}
+
+% %%\subsection{Operational Details}
+
+% \noindent\textbf{Exponentiation Stage}
+% Each input current \( I_i \), representing the raw logit \( z_i \) from the ReRAM crossbar, is fed into a Schottky diode \( D_i \). The diodes are oriented to allow current flow in the forward direction, ensuring operation within the exponential region of their I-V characteristics. The diode current is governed by the equation:
+
+% \[
+% I_i = I_{s} \left( e^{\frac{V_i}{nV_T}} - 1 \right) \approx I_{s} e^{\frac{V_i}{nV_T}} \quad \text{for} \quad V_i \gg nV_T
+% \]
+
+% where \( I_{s} \) is the saturation current, \( n \) is the ideality factor, and \( V_T \) is the thermal voltage. By biasing the diodes appropriately, the approximation \( I_i \approx I_{s} e^{\frac{V_i}{nV_T}} \) holds, effectively performing the exponentiation required for the SoftMax function.
+
+% \noindent\textbf{Summation Node: }The exponentiated currents \( I_i \) are converged at a common summation node. This node aggregates the currents, thereby computing the total sum \( \sum_{j} e^{z_j} \). The design ensures that the summation node operates at a stable voltage determined by the collective currents, which serves as a reference for normalization. \textbf{Normalization Network: }Normalization is achieved through a resistor network where each exponentiated current \( I_i \) is proportionally scaled by a resistor \( R_i \). The resistor values are meticulously chosen to ensure that each output current \( I_{\text{SoftMax},i} \) satisfies:
+% $
+% I_{\text{SoftMax},i} = \frac{I_i}{\sum_{j} I_j}
+% $
+% This is realized by setting \( R_i \) such that the voltage drop across each resistor is proportional to the inverse of the summation node voltage. Consequently, the current through each resistor \( R_i \) embodies the normalized probability \( \text{SoftMax}(z_i) \).
+
+% %%\subsection{Design Considerations and Choices}
+
+% % \textbf{Choice of Schottky Diodes}
+
+% % Schottky diodes are selected for their low forward voltage drop and minimal leakage currents, which are crucial for maintaining the accuracy of the exponential approximation. Their fast switching characteristics also contribute to the overall speed of the SoftMax computation, enabling rapid classification tasks.
+
+% % \textbf{Resistor Network Precision}
+
+% % The resistor network's precision is paramount to ensure accurate normalization. High-precision resistors with tight tolerance levels are employed to minimize errors in the proportional scaling of the exponentiated currents. Additionally, layout techniques such as common-centroid routing are utilized to enhance matching and reduce mismatches due to process variations.
+
+% % \textbf{Thermal Management}
+
+% % The exponential behavior of Schottky diodes is temperature-dependent, as indicated by the thermal voltage \( V_T \). To mitigate temperature-induced variations, the circuit incorporates temperature compensation mechanisms, such as biasing diodes with temperature-stable voltage references or integrating temperature sensors with feedback control loops to dynamically adjust bias voltages.
+
+% % \textbf{Power Efficiency}
+
+% % Passive element-based implementations inherently consume less power compared to active counterparts. By leveraging the inherent properties of diodes and resistors, the circuit minimizes power dissipation while maintaining operational integrity. Moreover, the parallel nature of the circuit ensures scalability without a linear increase in power consumption, making it suitable for large-scale classifications.
+
+% %\subsection{Efficiency vs Digital Implementations}
+% Implementing SoftMax using passive elements within the ReRAM crossbar architecture presents significant efficiency advantages over traditional digital implementations executed on microcontroller units (MCUs). Analog computation within the crossbar enables parallel processing of multiple logits simultaneously, drastically reducing computation time compared to the serial processing typical of MCUs. Furthermore, the elimination of analog-to-digital and digital-to-analog conversions reduces data movement and associated power overheads, enhancing overall energy efficiency.
+
+% In contrast, digital implementations on MCUs, while offering higher precision and robustness against noise and process variations, suffer from increased latency and power consumption due to sequential processing and the necessity for extensive data handling. The passive analog approach, therefore, is particularly advantageous for edge computing applications where power budgets are constrained and real-time processing is critical.
+
+% However, the analog passive implementation does encounter challenges related to precision and susceptibility to environmental variations. Digital SoftMax functions benefit from deterministic precision and are less affected by temperature and noise, making them more reliable in applications demanding stringent accuracy. To reconcile these differences, hybrid approaches that combine analog computation for exponentiation with digital normalization may offer a balanced solution, harnessing the strengths of both paradigms.
+
+
+% % \begin{figure}[htbp]
+% %     \centering
+% %     \begin{tikzpicture}[scale=1.2, every node/.style={scale=0.9}]
+% %         % Inputs
+% %         \node (I1) at (0,3) {$I_1$};
+% %         \node (I2) at (0,2) {$I_2$};
+% %         \node (I3) at (0,1) {$I_3$};
+% %         \node (In) at (0,0) {$\vdots$};
+% %         \node (Im) at (0,-1) {$I_n$};
+        
+% %         % Diodes for exponentiation
+% %         \foreach \i/\y in {1/3, 2/2, 3/1, n/0, m/-1}
+% %         {
+% %             \node (D\i) at (2,\y) [diode, rotate=-90, anchor=E] {};
+% %             \draw (I\i) -- (D\i.E);
+% %             \draw (D\i.D) -- ++(0.5,0) node[right] {$D_{\i}$};
+% %         }
+        
+% %         % Summation node
+% %         \node (Sum) at (4,0.5) [circle, draw, inner sep=1pt] {};
+% %         \foreach \i/\y in {1/3, 2/2, 3/1, n/0, m/-1}
+% %         {
+% %             \draw (D\i.D) -- (Sum);
+% %         }
+        
+% %         % Resistor network for normalization
+% %         \foreach \i/\y in {1/3, 2/2, 3/1, n/0, m/-1}
+% %         {
+% %             \draw (Sum) -- ++(0.5,0) |- (6,\y) node[right] {$R_{\i}$};
+% %             \draw (6,\y) -- ++(1,0) node[right] {$V_{\text{out},\i}$};
+% %         }
+        
+% %         % Ground
+% %         \draw (Sum) -- ++(0,-1) node[ground]{};
+% %         \foreach \i in {1,2,3,n,m}
+% %         {
+% %             \draw (D\i.C) -- ++(0,-4) node[ground]{};
+% %         }
+        
+% %         % Labels
+% %         \node at (2,4) {Exponentiation Stage};
+% %         \node at (5,1.5) {Summation and Normalization};
+% %         \node at (7,3.5) {SoftMax Outputs};
+% %     \end{tikzpicture}
+% %     \caption{Detailed Circuit Diagram of the Passive SoftMax Implementation}
+% %     \label{fig:softmax_circuit_detail}
+% % \end{figure}
+

@@ -1,0 +1,105 @@
+\section{Anytime Dynamic Coreset Construction}
+\label{sec:anytime_coreset}
+
+ \begin{figure}
+  \centering 
+  \includegraphics[width=\linewidth]{figs/AnytimeCoreset.pdf}
+  \caption{Anytime Coreset.}
+  \label{Fig:AnytimeCoreset}
+  %\vspace{-8pt}
+\end{figure}
+
+We address the problem of constructing a \emph{multi-resolution coreset} under strict energy constraints in an \emph{anytime} manner. Unlike traditional coreset approaches that operate in a static, one-shot fashion, our method updates and refines the coreset incrementally as energy becomes available. This allows the system to operate in real-world scenarios where power may be limited or harvested intermittently (e.g., wearable or IoT devices that acquire IMU, audio, or image data).
+
+\subsection{Problem Formulation}
+
+Let $\mathcal{X} = \{x_1, x_2, \dots, x_N\}$ be a dataset collected over time from one or more modalities (such as inertial sensors, audio streams, or images). We assume that each data instance $x_i$ can be mapped into a suitable feature space via an embedding function $\phi: \mathcal{X} \to \mathbb{R}^d$. For example, in the case of IMU signals, $\phi$ might correspond to windowed signals or spectral features; for audio, $\phi$ could represent log-mel coefficients or learned embeddings; and for images, $\phi$ might be patch embeddings.
+
+Our goal is to maintain a compressed representation $C_t \subseteq \phi(\mathcal{X})$, called a \emph{coreset}, at each discrete time step $t = 0,1,2,\dots$. The size of the coreset at time $t$, denoted $k_t = |C_t|$, reflects its resolution: a larger $k_t$ captures finer details but demands more energy to construct and store. By contrast, a smaller coreset saves energy but increases approximation error.
+
+The system operates under an \emph{energy-harvesting} model, in which $E_t \in \mathbb{R}_{\ge 0}$ is the available energy at time $t$. When new energy is harvested, the algorithm can \emph{refine} the coreset by adding additional points. If the available energy is too low, the coreset remains at its current resolution.
+
+\subsection{Representation and Error Metric}
+
+We measure the quality of a coreset $C_t$ by the \emph{representation error}
+\begin{equation}
+\label{eq:rep_error}
+\mathcal{E}_{\text{rep}}(C_t) \;=\; 
+\sum_{x \in \mathcal{X}} \Bigl\|\phi(x) \;-\; \Pi_{C_t}\bigl(\phi(x)\bigr)\Bigr\|^2,
+\end{equation}
+where $\Pi_{C_t}(\phi(x))$ denotes the projection of $\phi(x)$ onto $C_t$. This projection may be the closest point in $C_t$ (for clustering or nearest neighbor strategies) or a weighted combination if $C_t$ stores mixture components. Classical coreset theory (e.g., in $k$-means clustering) often ensures that $\mathcal{E}_{\text{rep}}(C_t)$ scales sublinearly in the coreset size $k_t$, for instance $\mathcal{E}_{\text{rep}}(C_t) = O\bigl(1/\sqrt{k_t}\bigr)$ or $O\bigl(1/k_t\bigr)$, depending on the method used.
+
+Although \eqref{eq:rep_error} concentrates on the embedding space $\phi(\mathcal{X})$, we may also incorporate reconstruction back to the raw domain. Let $G_\theta$ be a trained (or learnable) decoder that takes an element of $C_t$ (or a projection onto $C_t$) and produces an approximate reconstruction $\hat{x}$ in the original data space. Then the final recovery error satisfies
+\[
+\sum_{x \in \mathcal{X}} \| x - \hat{x} \|^2 
+\;\; \text{with} \;\; 
+\hat{x} \;=\; G_\theta\bigl(\Pi_{C_t}\bigl(\phi(x)\bigr)\bigr),
+\]
+and under suitable assumptions on $G_\theta$, this recovery error is typically of the same order as \eqref{eq:rep_error}.
+
+\subsection{Anytime Automaton with Energy Constraints}
+
+Our approach organizes the evolving coreset into states $S_0, S_1, \dots, S_{k_{\max}}$, where $S_i$ corresponds to holding a coreset of size $i$. The state evolves in discrete steps, governed by the current energy $E_t$. At each time $t$, an incremental coreset update may occur if sufficient energy is available to pay the cost of adding new points. Specifically, we denote by $\Delta k_t \ge 0$ the number of newly added coreset points at time $t$, and let $\tau > 0$ be the \emph{energy cost} per new point. We then update the available energy $E_{t+1}$ according to
+\begin{equation}
+\label{eq:energy_update}
+E_{t+1} = E_t + I_t - \tau\,\Delta k_t,
+\end{equation}
+where $I_t \ge 0$ represents the energy harvested between $t$ and $t+1$. If $E_t$ is not large enough to afford $\tau\,\Delta k_t$, the coreset remains at its current size.
+
+Define $C_t$ as the coreset at time $t$ of size $k_t$. A \emph{transition} $S_t \to S_{t+1}$ occurs if $E_t \ge \tau\,\Delta k_t$, in which case
+\[
+C_{t+1} = C_t \,\cup\, \Delta C_t,
+\]
+where $\Delta C_t$ is a set of $\Delta k_t$ points (or other summary elements) chosen to maximize the reduction in \eqref{eq:rep_error}. For instance, $\Delta C_t$ might consist of points with the greatest reconstruction residual, or could be chosen via partial $k$-means or an importance-sampling scheme. When $E_t$ is insufficient, no new points are added, and $C_{t+1} = C_t$. 
+
+%\noindent\textbf{Core Algorithm for Anytime Dynamic Construction: }
+Algorithm~\ref{alg:anytime_coreset} provides a concise summary of how the coreset is updated in an anytime fashion. The notation 
+\textsc{RefineCoreset}$(C_t, \Delta k_t)$ 
+is a placeholder for any known coreset construction step (e.g., partial $k$-means, largest-residual selection, or importance sampling). As such, classical coreset methods become modules in our dynamic framework.
+
+\begin{algorithm}[t]
+\caption{Anytime Dynamic Coreset Construction}
+\label{alg:anytime_coreset}
+\begin{algorithmic}[1]
+\REQUIRE Dataset $\mathcal{X}$, initial energy $E_0$, cost $\tau > 0$, maximum resolution $k_{\max}$, \\ \hspace{1.05cm} subroutine \textsc{RefineCoreset}$(C,\,\Delta k)$, and stopping threshold $\epsilon$.
+\STATE Initialize $C_0 \leftarrow \{\}$ (or minimal stats); set $k_0 \leftarrow 0$
+\FOR{$t = 0,1,2,\dots$}
+   \STATE Receive harvested energy $I_t$; update $E_{t+1} \leftarrow E_t + I_t$
+   \STATE Compute $\Delta k_t \leftarrow \min\!\Bigl(\bigl\lfloor E_{t+1}/\tau \bigr\rfloor,\; k_{\max}-k_t\Bigr)$
+   \IF{$\Delta k_t \le 0$}
+      \STATE \textbf{break}\quad (no energy to refine further)
+   \ENDIF
+   \STATE $C_{t+1} \;\leftarrow\;$ \textsc{RefineCoreset}$(C_t, \,\Delta k_t)$
+   \STATE $k_{t+1} \;\leftarrow\; k_t + \Delta k_t$
+   \STATE $E_{t+1} \;\leftarrow\; E_{t+1} \;-\; \tau\,\Delta k_t$
+   \STATE \textbf{if} $\frac{\|C_{t+1} - C_t\|}{\|C_t\|} \le \epsilon$ \textbf{then break}\quad (diminishing returns)
+\ENDFOR
+\RETURN $C_{t+1}$ \quad (final anytime coreset)
+\end{algorithmic}
+\end{algorithm}
+
+The loop runs until either the maximum size $k_{\max}$ is reached, the harvested energy is insufficient to fund further additions, or a stopping criterion for negligible improvement is triggered. At each iteration, the algorithm decides how many coreset points ($\Delta k_t$) can be afforded, performs an incremental refinement, and deducts the appropriate energy cost. The same scheme applies independently to each data modality (e.g., IMU vs. audio vs. image) if separate coresets are maintained.
+
+\subsection{Integrating Classical Coreset Methods}
+
+Although Algorithm~\ref{alg:anytime_coreset} is stated in generic terms, it can flexibly incorporate well-known coreset constructions:
+\textbf{(1) Clustering-based:} One may maintain a set of $k_t$ centroids. Calling \textsc{RefineCoreset} amounts to running a few iterations of Lloyd's algorithm (the $k$-means update) or adding new centroids to capture the largest residual clusters. The partial update is performed each time $\Delta k_t > 0$.
+\textbf{(2) Importance sampling:} One can sample $\Delta k_t$ points from $\mathcal{X}$ according to a probability distribution proportional to the current residual. Over multiple steps, the coreset grows into a weighted sampling that approximates the entire dataset with high probability.
+\textbf{(3) Greedy largest-residual:} One can repeatedly pick the next point $x$ that maximally reduces \eqref{eq:rep_error}, subject to the current $C_t$. Although this may be computationally expensive, it is often feasible if $\Delta k_t$ is small at each refinement. 
+In all these cases, classical theoretical results provide bounds on $\mathcal{E}_{\text{rep}}(C_t)$ as a function of $k_t$. Thus, when the system advances from $k_t$ to $k_{t+1}$, we can assert that $\mathcal{E}_{\text{rep}}(C_{t+1}) \le \kappa(k_{t+1})$, where $\kappa(\cdot)$ is a sublinear function (often $1/\sqrt{k}$ or $1/k$). Hence, as $k_t$ grows whenever energy is sufficient, the overall approximation error gradually decreases.
+
+\subsection{Implications for Recovery}
+
+Although the anytime coreset approach described above targets efficient representation in the embedding space, many applications require reconstructing the original data domain. Suppose $G_\theta$ is a suitable mapping (such as a Transformer-based decoder) that consumes either $C_t$ or the projection $\Pi_{C_t}(\phi(x))$. We then write
+\[
+\hat{x} \;=\; G_\theta\bigl(\Pi_{C_t}(\phi(x))\bigr),
+\]
+and measure the reconstruction error as
+\[
+\sum_{x \in \mathcal{X}} \bigl\|\,x \;-\; \hat{x}\bigr\|^2.
+\]
+As long as $G_\theta$ is sufficiently expressive to invert the embedding $\phi$ (to a reasonable extent), the dominant term in the reconstruction error is the representation error $\|\phi(x) - \Pi_{C_t}(\phi(x))\|$. Thus, the sublinear improvement in $\mathcal{E}_{\text{rep}}(C_t)$ usually carries over to the final recovery accuracy. In many practical systems, this justifies the anytime strategy: as more energy is harvested, $C_t$ becomes more detailed, and downstream reconstruction (or other tasks) benefits accordingly.
+
+Our method can also be viewed in a probabilistic light by treating $\mathcal{X}$ as a sample from a distribution $p$. A (distributional) coreset approximates $p$ by a smaller measure $q$, and well-known results bound divergences or Wasserstein distances between $p$ and $q$. Such probabilistic analysis is compatible with the incremental updates of Algorithm~\ref{alg:anytime_coreset}, implying that each energy-funded refinement helps bring $q$ closer to $p$ in expectation.
+
+% In summary, the key innovation is transforming any standard coreset technique into a \emph{dynamic, energy-adaptive} mechanism. The result is an \emph{anytime algorithm} that can be halted at any stage yet still provide a valid coreset---and if allowed to run further (harvest more energy), the coreset’s fidelity improves.

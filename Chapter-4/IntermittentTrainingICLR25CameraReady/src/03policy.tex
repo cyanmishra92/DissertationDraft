@@ -1,0 +1,314 @@
+To address the issues with ``intermittency-aware'' DNN training, we propose NExUME: (\textbf{N}eural \textbf{Ex}ecution \textbf{U}nder Inter\textbf{M}ittent \textbf{E}nvironment). NExUME has 3 different components: (1) Intermittency- and platform-aware neural architecture search (DynNAS); (2) Intermittency- and platform-aware DNN training with dynamic dropouts and quantization (DynFit); and finally, (3) Intermittency and platform aware task scheduling (DynInfer). Each of these components could work individually towards optimizing DNNs for intermittent environment. However, the combination of all of them is expected to provide the best results. To search for the best architecture for the given intermiitent enironment, DynNAS uses the work proposed by iNAS~\cite{intermittentNAS}. After the network is decided DynFit is used to train the network with the intermittency where as DynInfer is used to perform inference under intermittency. 
+%In this section,  we elaborate on these two different components.
+
+\subsection{DynFit: Intermittency-Aware Learning}
+\label{sec:DynFit}
+\textbf{DynFit} designed to optimize deep neural networks (DNNs) for execution in environments characterized by intermittent power supply due to energy harvesting. The primary goal of DynFit is to adapt the DNN's architecture and training process to operate efficiently under unpredictable energy budgets while maintaining acceptable accuracy and adhering to predefined service level objectives (SLOs).
+DynFit introduces key mechanisms to dynamically adjust computational complexity based on energy availability, thereby enabling energy-efficient execution of DNN models in constrained environments. These mechanisms include (i) Dynamic Dropout, which adjusts the dropout rates based on available energy to reduce computational load; (ii) Dynamic Quantization, which modifies quantization levels in response to energy constraints to save energy; and (iii) QuantaTasks, which define atomic computational units that can be executed without interruption given the energy budget. 
+%This section elaborates on the formulation of DynFit by precisely defining QuantaTasks, modeling energy consumption, formulating the optimization problem, and proposing an algorithm to solve it effectively.
+\begin{figure}[H]
+  \centering 
+  \includegraphics[clip, width=\linewidth]{figs/loop_iter.pdf}
+  \caption{An example of variable quanta task in a matrix multiplication scenario. Depending on the the available energy the task, here vector inner product, can be divided into multiple iterations such that each quanta task is guaranteed to finish given the energy availability. E is available energy and $E_b$ is the energy quanta required to finish one inner product.}
+  \label{Fig:loopFig}
+  \vspace{-10pt}
+\end{figure}
+A \textit{QuantaTask} is defined as the smallest atomic unit of computation that can be executed entirely without interruption under the current energy and hardware constraints. Each QuantaTask ensures that execution proceeds without partial computation, which would otherwise lead to overhead from checkpointing and potential data corruption. The main properties of QuantaTasks are atomicity and respect for energy constraints. Figure~\ref{Fig:loopFig} shows the quanta task execution with a simple animated example. We assume each QuantaTask \( q \) to be mathematically defined as \( q = (\ell_q, E_q) \), where \( \ell_q \in \mathbb{N} \) represents the size of the task, measured as the number of computational operations or loop iterations, and \( E_q \in \mathbb{R}^+ \) represents the estimated energy required to execute the task \( q \) without interruption.
+
+%The atomicity property ensures that each QuantaTask must be completed fully once started. Mathematically, this is expressed as \( E_q \leq E_b \), where \( E_b \in \mathbb{R}^+ \) denotes the available energy budget at the time of execution. This constraint guarantees that the energy required for each QuantaTask does not exceed the available energy to avoid mid-execution power failures.
+
+\textbf{Modeling Energy Consumption:} The energy consumption of DNN operations is modeled based on empirical profiling data from the hardware platform. Let \( e_{\text{op}} \) denote the energy consumed per computational operation. This value may vary depending on the type of operation, such as addition or multiplication, and the data precision used. The total energy consumption of a QuantaTask \( q \) can thus be modeled as \( E_q = e_{\text{op}} \times \ell_q \), where \( \ell_q \) is the number of operations in the task, and \( e_{\text{op}} \) is the average energy consumption per operation. For more precise modeling, \( e_{\text{op}} \) can be a function of the operation type, data precision (due to quantization), and hardware-specific characteristics. The available energy budget \( E_b \) is determined by the current energy stored in the system’s capacitor or battery, and can also take into account predicted energy harvesting in the near future if predictive models are utilized.
+
+\textbf{Optimization Variables, Constraints, and Objective Function:} The optimization problem is formulated with several variables: the weights of the DNN (\( \mathbf{W} \)), the dropout rates (\( \mathbf{d} \)), the quantization levels (\( \mathbf{q} \)), and the QuantaTask sizes (\( \boldsymbol{\ell} \)). These variables are defined as follows: (i) \( \mathbf{W} = \{w_1, w_2, \dots, w_P\} \), where \( P \) is the total number of weights in the network; (ii) \( \mathbf{d} = \{d_1, d_2, \dots, d_N\} \), where \( N \) is the total number of neurons (or layers, depending on the granularity) and \( d_i \in [0, 1] \) represents the dropout rate for neuron \( i \); (iii) \( \mathbf{q} = \{q_1, q_2, \dots, q_M\} \), where \( M \) is the total number of layers or parameters to quantize, \( q_j \in \mathcal{Q} \) represents the quantization level (bit-width) for parameter \( j \), and \( \mathcal{Q} = \{4, 8, 12, 16\} \) is the set of allowable quantization bit-widths; and (iv) \( \boldsymbol{\ell} = \{\ell_1, \ell_2, \dots, \ell_K\} \), where \( K \) is the total number of QuantaTasks and \( \ell_k \in \mathbb{N} \) represents the size of QuantaTask \( k \). The objective is to minimize the total loss, which includes the prediction loss and regularization terms that penalize energy consumption. The objective function is expressed as follows:
+
+\[
+\min_{\mathbf{W}, \mathbf{d}, \mathbf{q}, \boldsymbol{\ell}} \quad \mathcal{L}(\mathbf{Y}, \mathbf{\hat{Y}}) + \lambda_1 \sum_{j=1}^{M} c_q(q_j) + \lambda_2 \sum_{i=1}^{N} c_d(d_i)
+\]
+
+where \( \mathcal{L}(\mathbf{Y}, \mathbf{\hat{Y}}) \) denotes the prediction loss (e.g., cross-entropy loss), \( \mathbf{Y} \) represents model predictions, and \( \mathbf{\hat{Y}} \) are the ground truth labels. The functions \( c_q(q_j) = \alpha_q \times q_j \) and \( c_d(d_i) = \alpha_d \times d_i \) are the cost functions associated with the quantization level and dropout rate, respectively. The hyperparameters \( \lambda_1 \) and \( \lambda_2 \) balance the regularization terms with prediction accuracy.
+
+\textbf{Formulation of the Composite Optimization Problem:} The composite optimization problem, combining the energy constraints and objective function, is formulated as follows:
+\begin{equation*}
+\begin{aligned}
+\min_{\mathbf{W}, \mathbf{d}, \mathbf{q}, \boldsymbol{\ell}} \quad & \mathcal{L}(\mathbf{Y}, \mathbf{\hat{Y}}) + \lambda_1 \sum_{j=1}^{M} \alpha_q q_j + \lambda_2 \sum_{i=1}^{N} \alpha_d d_i \\
+\text{subject to} \quad & \sum_{k=1}^{K} e_{\text{op}} \ell_k \leq E_b, \quad e_{\text{op}} \ell_k \leq E_b, \ \forall k 
+q_j \in \mathcal{Q}, \ \forall j, \quad 0 \leq d_i \leq d_{\max}, \ \forall i, \quad \ell_k \in \mathbb{N}, \ \forall k
+\end{aligned}
+\end{equation*}
+
+% \[
+% \begin{aligned}
+% \min_{\mathbf{W}, \mathbf{d}, \mathbf{q}, \boldsymbol{\ell}} \quad & \mathcal{L}(\mathbf{Y}, \mathbf{\hat{Y}}) + \lambda_1 \sum_{j=1}^{M} \alpha_q q_j + \lambda_2 \sum_{i=1}^{N} \alpha_d d_i; %\\
+% \text{ subject to} \quad \sum_{k=1}^{K} e_{\text{op}} \ell_k \leq E_b \\
+% e_{\text{op}} \ell_k \leq E_b, \quad \forall k %\\
+% & q_j \in \mathcal{Q}, \quad \forall j %\\
+% & 0 \leq d_i \leq d_{\max}, \quad \forall i %\\
+% & \ell_k \in \mathbb{N}, \quad \forall k
+% \end{aligned}
+% \]
+
+% This problem formulation minimizes the total loss while ensuring that energy consumption does not exceed the available budget and that all variables are within their allowable ranges.
+
+The optimization problem is non-convex due to the non-linear and discrete nature of quantization levels, the dependence of the loss function on dropout rates and quantization, and the discrete variables representing QuantaTask sizes. To address this, we employ an alternating optimization strategy, where subsets of variables are iteratively optimized while keeping others fixed. The process iterates over four main steps: (i) optimizing weights \( \mathbf{W} \) using Stochastic Gradient Descent, (ii) adjusting dropout rates \( \mathbf{d} \) using projected gradient descent, (iii) selecting quantization levels \( \mathbf{q} \) through exhaustive evaluation, and (iv) determining optimal QuantaTask sizes \( \boldsymbol{\ell} \) based on energy constraints.
+
+
+\subsection{Fine-tuning for Regularization and Prevention of Overfitting}
+The DynFit component within the NExUME framework utilizes dynamic dropout and quantization to adapt DNNs to intermittent energy scenarios. These methods, while reducing energy consumption, introduce training challenges such as uneven weight updates, potentially leading to overfitting where frequently updated weights might not generalize well.
+
+\textbf{Formulating the Regularization Strategy:} To counteract these issues, we implement an adaptive regularization and fine-tuning strategy that ensures all weights are adequately trained. This involves monitoring update frequencies of weights (\(F_p\)) and applying targeted interventions for under-trained and overfitting weights. We define an update indicator \(U_p(t)\) for each weight:
+\[
+U_p(t) = \begin{cases}
+1, & \text{if } w_p \text{ is updated at iteration } t \\
+0, & \text{otherwise}
+\end{cases}
+\]
+The update frequency \(F_p\) is calculated over \(T\) iterations. Weights with update frequencies below a low threshold (\(\theta_{\text{low}}\)) are considered under-trained, while those above a high threshold (\(\theta_{\text{high}}\)) are deemed overfitting. To address under-training, we temporarily freeze well-trained weights, set dropout rates (\(d_i\)) to zero, and use maximum quantization bit-width (\(q_{\max}\)) for precision. Overfitting weights are subjected to L2 regularization:
+\[
+\mathcal{L}_{\text{reg}} = \lambda_{\text{L2}} \sum_{w_p \in \mathcal{W}_{\text{overfit}}} w_p^2
+\]
+and increased dropout rates within permissible limits to balance the training process.
+
+\textbf{Optimization and Adjustment:} The optimization involves fine-tuning under-trained weights and adjusting overfitting weights, with careful modulation of learning rates to ensure stability:
+\[
+\min_{\mathbf{W}_{\text{under}}} \mathcal{L}(\mathbf{Y}, \mathbf{\hat{Y}})
+\]
+\[
+\min_{\mathbf{W}_{\text{overfit}}} \mathcal{L}(\mathbf{Y}, \mathbf{\hat{Y}}) + \lambda_{\text{L2}} \sum_{w_p \in \mathcal{W}_{\text{overfit}}} w_p^2
+\]
+This iterative fine-tuning process continues until the model achieves a satisfactory level of generalization across various energy conditions.
+
+% \subsection{DynInfer - Inference with Intermittent Power}
+% DynInfer is designed to optimize the inference phase of deep neural networks (DNNs) operating in environments with intermittent power supply due to energy harvesting. Unlike traditional systems with stable power, intermittent environments pose unique challenges for executing inference tasks efficiently and reliably. To address these challenges, DynInfer introduces a novel set of mechanisms, including real-time task scheduling, task decomposition and prioritization, and checkpointing and recovery. These mechanisms work in tandem to ensure robust inference performance even under fluctuating energy conditions.
+
+% The primary objective of DynInfer is to achieve the highest possible accuracy and responsiveness within the given energy constraints while ensuring that high-priority tasks are completed without interruption and meeting service level objectives (SLOs). To this end, DynInfer utilizes dynamic scheduling strategies that adapt to energy availability and task deadlines, prioritizing tasks based on criticality and energy requirements. Additionally, DynInfer employs a checkpointing mechanism to preserve computational progress across power failures, enabling reliable execution of inference tasks.
+
+% The problem addressed by DynInfer is characterized by three main objectives: maximizing inference performance, ensuring task completion, and adhering to service level objectives (SLOs). Achieving these objectives is challenging due to the inherent variability in energy availability caused by intermittent energy harvesting. Additionally, tasks must be executed atomically to produce valid results, and the limited computational resources necessitate efficient utilization. These challenges require a sophisticated scheduling strategy that considers energy variability, task atomicity, and computational constraints.
+
+% The inference process is represented as a set of tasks \( \mathcal{T} = \{ T_1, T_2, \dots, T_N \} \), where each task \( T_i \) is characterized by its energy requirement \( E_i \), execution time \( \tau_i \), priority \( p_i \), deadline \( D_i \), and criticality level \( c_i \). At any given time \( t \), the available energy is denoted as \( E_b(t) \), and the energy profile can be predicted as \( E_b(t + \Delta t) \). The scheduling problem is formulated using variables such as start time \( s_i \) and completion time \( f_i = s_i + \tau_i \). A binary decision variable \( x_i \in \{0,1\} \) indicates whether a task is scheduled (\( x_i = 1 \)) or not (\( x_i = 0 \)).
+
+% The scheduling problem is governed by a set of constraints that ensure energy efficiency and task feasibility. The energy constraint guarantees that, at any time \( t \), the total energy consumed by running tasks does not exceed the available energy:
+
+% \[
+% \sum_{i: s_i \leq t < f_i} E_i \leq E_b(t)
+% \]
+
+% The deadline constraint ensures that tasks are completed before their deadlines:
+
+% \[
+% f_i \leq D_i, \quad \forall i \text{ such that } x_i = 1
+% \]
+
+% Additionally, the task atomicity constraint mandates that once a task starts, it must run to completion without interruption. If tasks cannot run in parallel, a non-overlapping constraint is enforced:
+
+% \[
+% [s_i, f_i) \cap [s_j, f_j) = \emptyset, \quad \forall i \neq j \text{ where } x_i = x_j = 1
+% \]
+
+% Limited computational resources also impose constraints on task execution:
+
+% \[
+% \sum_{i: s_i \leq t < f_i} r_i \leq R_{\text{max}}
+% \]
+
+% where \( r_i \) denotes the resource requirement of task \( T_i \) and \( R_{\text{max}} \) is the maximum available resources. The objective is to maximize the total weighted priority of scheduled tasks:
+
+% \[
+% \max_{\{ x_i, s_i \}} \quad \sum_{i=1}^{N} p_i x_i
+% \]
+
+% Alternatively, a more detailed objective function can be considered, balancing priority, energy efficiency, and adherence to deadlines:
+
+% \[
+% \max_{\{ x_i, s_i \}} \quad \sum_{i=1}^{N} \left( p_i - \alpha E_i - \beta (f_i - D_i)^+ \right) x_i
+% \]
+
+% where \( \alpha \) and \( \beta \) are weighting factors for energy consumption and deadline violation penalties, and \( (f_i - D_i)^+ = \max(0, f_i - D_i) \) is the penalty for missing deadlines.
+
+% Inference operations are decomposed into smaller tasks at various granularities, such as layer-level, operation-level, or block-level tasks. Each task \( T_i \) has an energy requirement \( E_i = e_{\text{op}} \times n_{\text{op}, i} \), where \( e_{\text{op}} \) is the average energy per operation, and \( n_{\text{op}, i} \) is the number of operations in task \( T_i \). The execution time of task \( T_i \) is similarly defined as \( \tau_i = t_{\text{op}} \times n_{\text{op}, i} \), where \( t_{\text{op}} \) is the average time per operation.
+
+% Energy profiling and execution time profiling can be conducted using DynAgent to obtain accurate estimates for energy consumption and execution times for various operations on the target hardware.
+
+% \textbf{Scheduling Problem Formulation:} The scheduling problem is formulated with decision variables \( s_i \) (task start times) and binary variables \( x_i \in \{0,1\} \) (indicating whether a task is scheduled). The energy availability constraint over time is expressed as:
+
+% \[
+% \int_{0}^{t} \sum_{i: s_i \leq \tau < f_i} P_i d\tau \leq \int_{0}^{t} P_b(\tau) d\tau
+% \]
+
+% where \( P_i \) is the power consumption of task \( T_i \) and \( P_b(t) \) is the power availability over time. In practice, this constraint can be simplified by discretizing time into slots of length \( \Delta t \) and applying an energy constraint per time slot:
+
+% \[
+% \sum_{i: t_k \in [s_i, f_i)} E_i \leq E_b(t_k)
+% \]
+
+% Task precedence constraints ensure that some tasks are executed only after the completion of others:
+
+% \[
+% s_j \geq f_i, \quad \text{if } T_j \text{ depends on } T_i
+% \]
+
+% The full optimization problem can now be expressed as:
+
+% \[
+% \begin{aligned}
+% \max_{\{ x_i, s_i \}} \quad & \sum_{i=1}^{N} p_i x_i \\
+% \text{subject to} \quad & \sum_{i: t_k \in [s_i, f_i)} E_i \leq E_b(t_k), \quad \forall t_k \\
+% & f_i = s_i + \tau_i, \quad \forall i \\
+% & f_i \leq D_i, \quad \forall i \text{ where } x_i = 1 \\
+% & s_j \geq f_i, \quad \text{if } T_j \text{ depends on } T_i \\
+% & x_i \in \{0,1\}, \quad \forall i \\
+% & s_i \geq 0, \quad \forall i
+% \end{aligned}
+% \]
+
+% The complexity of this scheduling problem is analogous to the Knapsack Problem and Job Shop Scheduling, making it NP-hard. As a result, exact solutions may be computationally infeasible for large \( N \) in real-time scenarios. To overcome this, we propose heuristic algorithms such as greedy scheduling, dynamic priority adjustment, and energy-aware earliest deadline first (EA-EDF). These algorithms prioritize tasks based on a priority metric, schedule tasks as early as possible, and adjust priorities in real-time based on energy availability and deadlines.
+
+% Our proposed algorithm, Energy-Aware Priority Scheduling, initializes by obtaining the set of tasks \( \mathcal{T} \) and their parameters, and setting the current time \( t = 0 \). At each scheduling step, the available energy is updated, and schedulable tasks are identified. An effective priority \( P_i^{\text{eff}} \) is computed for each candidate task, considering priority, energy consumption, and deadline urgency:
+
+% \[
+% P_i^{\text{eff}} = \frac{p_i}{E_i} \times \phi_i
+% \]
+
+% where \( \phi_i \) is a factor accounting for deadline urgency and criticality. The task with the highest \( P_i^{\text{eff}} \) that satisfies all constraints is selected for scheduling. If no task can be scheduled, the system waits until energy is harvested or tasks become schedulable.
+
+% \textbf{Integration with Checkpointing Mechanisms:} DynInfer is designed to handle power failures through checkpointing. Before executing each task, the system state is saved to non-volatile memory (NVM). In the event of a power failure, the system can resume from the last checkpoint. To minimize checkpointing overhead, task sizes are adjusted to balance between checkpoint frequency and the risk of power failure, and incremental checkpointing is used to save only changes since the last checkpoint. Upon power restoration, the system retrieves the last checkpointed state, assesses energy availability, and reschedules tasks based on the current energy and task deadlines.
+
+\subsection{DynInfer - Inference with Intermittent Power}
+DynInfer is designed to optimize the inference phase of DNNs operating in environments with intermittent power supply due to energy harvesting. Unlike traditional systems with stable power, intermittent environments pose unique challenges for executing inference tasks efficiently and reliably. To address these challenges, DynInfer introduces a novel set of mechanisms, including real-time task scheduling, task decomposition and prioritization, and checkpointing and recovery. These mechanisms work in tandem to ensure robust inference performance even under fluctuating energy conditions. The primary objective of DynInfer is to achieve the highest possible accuracy and responsiveness within the given energy constraints while ensuring that high-priority tasks are completed without interruption and meeting SLO. To this end, DynInfer utilizes dynamic scheduling strategies that adapt to energy availability and task deadlines, prioritizing tasks based on criticality and energy requirements. Additionally, DynInfer employs a checkpointing mechanism to preserve computational progress across power failures, enabling reliable execution of inference tasks.
+
+%The problem addressed by DynInfer is characterized by three main objectives: maximizing inference performance, ensuring task completion, and adhering to service level objectives (SLOs). Achieving these objectives is challenging due to the inherent variability in energy availability caused by intermittent energy harvesting. Additionally, tasks must be executed atomically to produce valid results, and the limited computational resources necessitate efficient utilization. These challenges require a sophisticated scheduling strategy that considers energy variability, task atomicity, and computational constraints.
+
+The inference process is represented as a set of tasks \( \mathcal{T} = \{ T_1, T_2, \dots, T_N \} \), where each task \( T_i \) is characterized by its energy requirement \( E_i \), execution time \( \tau_i \), priority \( p_i \), deadline \( D_i \), and criticality level \( c_i \). At any given time \( t \), the available energy is denoted as \( E_b(t) \), and the energy profile can be predicted as \( E_b(t + \Delta t) \). The scheduling problem is formulated using variables such as start time \( s_i \) and completion time \( f_i = s_i + \tau_i \). A binary decision variable \( x_i \in \{0,1\} \) indicates whether a task is scheduled (\( x_i = 1 \)) or not (\( x_i = 0 \)).
+
+The scheduling problem is governed by a set of constraints that ensure energy efficiency and task feasibility. The energy constraint guarantees that, at any time \( t \), the total energy consumed by running tasks does not exceed the available energy: $\sum_{i: s_i \leq t < f_i} E_i \leq E_b(t)$
+% \[
+% \sum_{i: s_i \leq t < f_i} E_i \leq E_b(t)
+% \]
+The deadline constraint ensures that tasks are completed before their deadlines: $f_i \leq D_i, \quad \forall i \text{ such that } x_i = 1$.
+% \[
+% f_i \leq D_i, \quad \forall i \text{ such that } x_i = 1
+% \]
+Additionally, the task atomicity constraint mandates that once a task starts, it must run to completion without interruption. If tasks cannot run in parallel, a non-overlapping constraint is enforced.
+% :
+% \[
+% [s_i, f_i) \cap [s_j, f_j) = \emptyset, \quad \forall i \neq j \text{ where } x_i = x_j = 1
+% \]
+Limited computational resources also impose constraints on task execution.
+% :
+% \[
+% \sum_{i: s_i \leq t < f_i} r_i \leq R_{\text{max}}
+% \]
+% where \( r_i \) denotes the resource requirement of task \( T_i \) and \( R_{\text{max}} \) is the maximum available resources. 
+The objective is to maximize the total weighted priority of scheduled tasks.
+% :
+% \[
+% \max_{\{ x_i, s_i \}} \quad \sum_{i=1}^{N} p_i x_i
+% \]
+Alternatively, a more detailed objective function can be considered, balancing priority, energy efficiency, and adherence to deadlines:
+\[
+\max_{\{ x_i, s_i \}} \quad \sum_{i=1}^{N} \left( p_i - \alpha E_i - \beta (f_i - D_i)^+ \right) x_i
+\]
+
+where \( \alpha \) and \( \beta \) are weighting factors for energy consumption and deadline violation penalties, and \( (f_i - D_i)^+ = \max(0, f_i - D_i) \) is the penalty for missing deadlines.
+Inference operations are decomposed into smaller tasks at various granularities, such as layer-level, operation-level, or block-level tasks. Each task \( T_i \) has an energy requirement \( E_i = e_{\text{op}} \times n_{\text{op}, i} \), where \( e_{\text{op}} \) is the average energy per operation, and \( n_{\text{op}, i} \) is the number of operations in task \( T_i \). The execution time of task \( T_i \) is similarly defined as \( \tau_i = t_{\text{op}} \times n_{\text{op}, i} \), where \( t_{\text{op}} \) is the average time per operation. 
+%Energy profiling and execution time profiling can be conducted to obtain accurate estimates for energy consumption and execution times for various operations on the target hardware.
+
+\textbf{Scheduling Problem Formulation:} The scheduling problem is formulated with decision variables \( s_i \) (task start times) and binary variables \( x_i \in \{0,1\} \) (indicating whether a task is scheduled). The energy availability constraint over time is expressed as:
+
+\[
+\int_{0}^{t} \sum_{i: s_i \leq \tau < f_i} P_i d\tau \leq \int_{0}^{t} P_b(\tau) d\tau
+\]
+
+where \( P_i \) is the power consumption of task \( T_i \) and \( P_b(t) \) is the power availability over time. In practice, this constraint can be simplified by discretizing time into slots of length \( \Delta t \) and applying an energy constraint per time slot.
+% : $ \sum_{i: t_k \in [s_i, f_i)} E_i \leq E_b(t_k)$.
+% \[
+% \sum_{i: t_k \in [s_i, f_i)} E_i \leq E_b(t_k)
+% \]
+Task precedence constraints ensure that some tasks are executed only after the completion of others. 
+The full optimization problem can now be expressed as:
+%:
+% \[
+% s_j \geq f_i, \quad \text{if } T_j \text{ depends on } T_i
+% \]
+% The full optimization problem can now be expressed as:
+
+% \[
+% \begin{aligned}
+% \max_{\{ x_i, s_i \}} \quad & \sum_{i=1}^{N} p_i x_i \\
+% \text{subject to} \quad & \sum_{i: t_k \in [s_i, f_i)} E_i \leq E_b(t_k), \quad \forall t_k \\
+% & f_i = s_i + \tau_i, \quad \forall i \\
+% & f_i \leq D_i, \quad \forall i \text{ where } x_i = 1 \\
+% & s_j \geq f_i, \quad \text{if } T_j \text{ depends on } T_i \\
+% & x_i \in \{0,1\}, \quad \forall i \\
+% & s_i \geq 0, \quad \forall i
+% \end{aligned}
+% \]
+
+
+
+% \begin{equation}
+% \begin{aligned}
+% \max_{\{ x_i, s_i \}} \quad & \sum_{i=1}^{N} p_i x_i \\
+% \text{subject to} \quad 
+% & \sum_{i: t_k \in [s_i, f_i)} E_i \leq E_b(t_k), \quad \forall t_k \\
+% & f_i = s_i + \tau_i, \quad \forall i \\
+% & f_i \leq D_i, \quad \forall i \text{ where } x_i = 1 \\
+% & s_j \geq f_i, \quad \text{if } T_j \text{ depends on } T_i \\
+% & x_i \in \{0,1\}, \quad \forall i \\
+% & s_i \geq 0, \quad \forall i
+% \end{aligned}
+% \label{eq:dyninfer_optimization}
+% \end{equation}
+
+\begin{equation*}
+\begin{aligned}
+\max_{\{ x_i, s_i \}} & \quad \sum_{i=1}^{N} p_i x_i \\
+\text{subject to} & \quad \sum_{i: t_k \in [s_i, f_i)} E_i \leq E_b(t_k), \quad \forall t_k, 
+% \\
+% & \quad 
+f_i = s_i + \tau_i, \quad f_i \leq D_i \text{ if } x_i = 1, \quad \forall i, \\
+& \quad s_j \geq f_i \text{ if } T_j \text{ depends on } T_i, \quad x_i \in \{0,1\}, \quad s_i \geq 0, \quad \forall i.
+\end{aligned}
+\end{equation*}
+
+Where     $N$: Total number of tasks to be scheduled.
+    $x_i$: Binary decision variable for task $T_i$.
+    $s_i$: Start time of task $T_i$.
+    $f_i$: Finish time of task $T_i$, calculated as $f_i = s_i + \tau_i$.
+    $p_i$: Priority of task $T_i$, representing its importance.
+    $E_i$: Energy required to execute task $T_i$.
+    $\tau_i$: Execution time (duration) of task $T_i$.
+    $D_i$: Deadline by which task $T_i$ must be completed.
+    $E_b(t_k)$: Available energy at time slot $t_k$.
+    $t_k$: Discrete time slots over the scheduling horizon.
+    $[s_i, f_i)$: Time interval during which task $T_i$ is being executed.
+    $T_j$: Task that may depend on task $T_i$.
+    
+The complexity of this scheduling problem is analogous to the Knapsack Problem and Job Shop Scheduling, making it NP-hard. As a result, exact solutions may be computationally infeasible for large \( N \) in real-time scenarios. To overcome this, we propose a heuristic algorithm Energy-Aware Priority Scheduling. It initializes by obtaining the set of tasks \( \mathcal{T} \) and their parameters, and setting the current time \( t = 0 \). At each scheduling step, the available energy is updated, and schedulable tasks are identified. An effective priority \( P_i^{\text{eff}} \) is computed for each candidate task, considering priority, energy consumption, and deadline urgency:
+
+\[
+P_i^{\text{eff}} = \frac{p_i}{E_i} \times \phi_i
+\]
+
+where \( \phi_i \) is a factor accounting for deadline urgency and criticality. The task with the highest \( P_i^{\text{eff}} \) that satisfies all constraints is selected for scheduling. If no task can be scheduled, the system waits until energy is harvested or tasks become schedulable.
+
+% \textbf{Integration with Checkpointing Mechanisms:} DynInfer is designed to handle power failures through checkpointing. Before executing each task, the system state is saved to non-volatile memory (NVM). In the event of a power failure, the system can resume from the last checkpoint. To minimize checkpointing overhead, task sizes are adjusted to balance between checkpoint frequency and the risk of power failure, and incremental checkpointing is used to save only changes since the last checkpoint. Upon power restoration, the system retrieves the last checkpointed state, assesses energy availability, and reschedules tasks based on the current energy and task deadlines.
+\textbf{DynInfer with Hardware-Software Support:}
+% \label{appendix:DynInferFlow}
+% We design a full software-compiler-hardware driven execution framework for commercial devices with non-volatility support (like MSP-EXP430FR5994 with FeRAM). Figure~\ref{Fig:progflow} shows a detailed overview of our design execution. To support user programs (\ycircled{P1}) we implement a moving window based power predictor (\ycircled{P2}) which takes its input from the on-board EH capacitor. Considering the energy available, the predictor makes an informed decision on how to proceed. The compiler deconstructs the program into \brect{189,215,238}{jobs} to perform seamless program execution. These \brect{189,215,238}{jobs} form the functional program execution DAG. For example, for a DNN execution, the \brect{189,215,238}{jobs} could be CONV2D (\bcircled{C1}), batch normalization (\bcircled{C2}) etc. However, certain \brect{189,215,238}{jobs} could be too big to execute atomically on harvested energy. Therefore, we profile the task using the compute platform (in this case using the MSP-EXP430FR5994 and the LEA in it) to further divide the \brect{189,215,238}{jobs} into \brect{255,192,0}{Power Atomic Tasks} (\brect{255,192,0}{Tasks} hence further). These \brect{255,192,0}{Tasks} are carefully coded with optimized assembly language to maximize their efficiency. We take advantage of \brect{112,173,71}{Hardware Support} (the on-board NV FeRAM) to perform backup and restore in case of \brect{255,0,0}{Power Emergencies}. In case of a power emergency (as shown in Figure~\ref{Fig:progflow} \ccircled{T3}) the task is abandoned and a hardware assisted Backup (\gcircled{Lb}) and Restore (\gcircled{Lr}) is performed. 
+We design a full software-compiler-hardware driven execution framework for commercial devices with non-volatility support (like MSP-EXP430FR5994 with FeRAM). Figure~\ref{Fig:progflow} shows a detailed overview of our design execution. 
+\begin{wrapfigure}{r}{0.4\textwidth} % Adjusts the placement ('r' for right) and width
+  \centering
+  \includegraphics[width=0.4\textwidth]{figs/ProgFlow.pdf} % Adjusts the image width to slightly less than the wrap figure width to handle padding issues
+  \caption{Software-Compiler-Hardware Driven DynInfer Flow.}
+  \vspace{-10pt}
+  \label{Fig:progflow}
+\end{wrapfigure}
+To support user programs (\ycircled{P1}) we implement a moving window based power predictor (\ycircled{P2}) which takes its input from the on-board EH capacitor. Considering the energy available, the predictor makes an informed decision on how to proceed. The compiler deconstructs the program into jobs to perform seamless program execution. These jobs form the functional program execution DAG. For example, for a DNN execution, the jobs could be CONV2D (\bcircled{C1}), batch normalization (\bcircled{C2}) etc. However, certain jobs could be too big to execute atomically on harvested energy. Therefore, we profile the task using the compute platform (in this case using the MSP-EXP430FR5994 and the LEA in it) to further divide the jobs into Power Atomic Tasks (QuantaTask)). These QuantaTasks are carefully coded with optimized assembly language to maximize their efficiency. We take advantage of the on-board NV FeRAM to perform backup and restore in case of Power Emergencies. In case of a power emergency the task is abandoned and a hardware assisted Backup and Restore is performed.
+
+% \begin{figure}[H]
+%   \centering 
+%   \includegraphics[width=0.5\linewidth]{figs/ProgFlow.pdf}
+%   \caption{Software-Compiler-Hardware Driven Inference Flow}
+%   \label{Fig:progflow}
+%   %\vspace{-2pt}
+% \end{figure}

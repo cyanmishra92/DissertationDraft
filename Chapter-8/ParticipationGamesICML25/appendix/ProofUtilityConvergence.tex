@@ -1,0 +1,96 @@
+%\appendix
+\section{Equilibrium Existence and Convergence with Reward-Based Utility}
+\label{appendix:equilibrium_proof_reward}
+
+In this appendix, we provide a detailed and formal proof that the best-response dynamics, incorporating the newly defined reward-based utility functions, converge to a Nash equilibrium (NE). We first restate the key assumptions and the utility model. We then show that the iterative best-response updates cannot lead to infinite improvement cycles, implying the existence of an NE. Finally, we prove that the equilibrium is reached under the given assumptions.
+
+\subsection*{Restatement of the Utility Function and Assumptions}
+
+Recall that at each inference event \( t \), each sensor \( s_i \) chooses an action \( a_i(t) \in \{\text{P}, \text{NP}\} \). The chosen action profile is \(\mathbf{a}(t) = (a_1(t), \dots, a_N(t))\).
+
+The immediate reward for sensor \( s_i \) is defined as:
+\[
+R_i(t) = \begin{cases}
+\gamma \cdot \Delta A_i(t), & \text{if } a_i(t) = \text{P} \text{ and inference is correct}, \\[5pt]
+-\delta, & \text{if } a_i(t) = \text{P} \text{ and inference is incorrect}, \\[5pt]
+-\eta, & \text{if } a_i(t) = \text{NP}.
+\end{cases}
+\]
+Here, \(\gamma > 0\) scales the reward for correct participation, \(\delta > 0\) penalizes incorrect inference, and \(\eta > 0\) penalizes non-participation, with \(\eta > \delta\) ensuring that remaining idle is more penalizing than at least attempting participation.
+
+The cost incorporates energy consumption and future opportunities. Let \( e_i(t) \) be the energy expenditure for sensor \( s_i \) if it participates at time \( t \), accounting for capture, inference, and communication costs. Introduce a discount factor \(\beta \in [0,1)\), and let \( V_i(t+1) \) represent the expected future utility of sensor \( s_i \) given its current decisions and predicted energy availability. The cost is:
+\[
+C_i(t) = e_i(t) + \beta V_i(t+1).
+\]
+
+The overall utility is:
+\[
+U_i(t) = R_i(t) - C_i(t).
+\]
+
+We assume that \(\Delta A_i(t)\) is non-decreasing in the quality of sensor \( s_i \)’s data (e.g., higher SNR yields higher \(\Delta A_i(t)\)). We also assume that energy resources, accuracy gains, and reward/penalty parameters are finite and bounded, and that sensors have consistent estimation mechanisms for \(\Delta A_i(t)\) and \(\hat{E}_i(t+1)\).
+
+\subsection*{Potential Function Construction}
+
+To prove convergence, we define a potential function that reflects the collective utility of the sensor network:
+\[
+\Phi(\mathbf{a}(t)) = \sum_{i=1}^N U_i(a_i(t), \mathbf{a}_{-i}(t)).
+\]
+
+Since \( U_i(t) = R_i(t) - C_i(t) \), we have:
+\[
+\Phi(\mathbf{a}(t)) = \sum_{i=1}^N [R_i(t) - C_i(t)].
+\]
+
+The terms \( R_i(t) \) depend on the chosen actions and correctness of inferences. Due to bounded \(\gamma, \delta,\) and \(\eta\), and the fact that \(\Delta A_i(t)\) and energy costs are bounded, each \(U_i(t)\) is finite. Thus, \(\Phi(\mathbf{a}(t))\) is also finite for all feasible action profiles.
+
+\subsection*{Monotonicity of the Potential Function}
+
+Consider a unilateral deviation by a single sensor \( s_j \) from an action \( a_j(t) \) to a different action \( a_j'(t) \). Such a deviation affects only \( U_j(t) \), not the utilities of other sensors directly in a one-step change. If this deviation is profitable for sensor \( s_j \), we have:
+\[
+U_j(a_j'(t), \mathbf{a}_{-j}(t)) > U_j(a_j(t), \mathbf{a}_{-j}(t)).
+\]
+
+Because the other sensors’ utilities do not change instantaneously by \( s_j \)’s unilateral action, the increment in \( U_j(t) \) results in:
+% \[
+% \Phi(\mathbf{a}_{-j}(t), a_j'(t)) - \Phi(\mathbf{a}(t)) = U_j(a_j'(t), \mathbf{a}_{-j}(t)) - U_j(a_j(t), \mathbf{a}_{-j}(t)) > 0.
+% \]
+\[
+\Phi(\mathbf{a}_{-j}(t), a_j'(t)) - \Phi(\mathbf{a}(t)) = 
+\]
+\[
+U_j(a_j'(t), \mathbf{a}_{-j}(t)) - U_j(a_j(t), \mathbf{a}_{-j}(t)) > 0.
+\]
+
+
+Thus, any unilateral profitable deviation increases \(\Phi(\mathbf{a}(t))\).
+
+\subsection*{Boundedness and Impossibility of Infinite Improvement Sequences}
+
+Since all utilities are bounded (due to finite \(\gamma, \delta, \eta,\) bounded \(\Delta A_i(t)\), and bounded energy resources), there exists a finite upper bound \(\Phi_{\max}\) such that:
+\[
+\Phi(\mathbf{a}(t)) \leq \Phi_{\max} \quad \forall \mathbf{a}(t).
+\]
+
+Suppose, for contradiction, that there exists an infinite sequence of unilateral profitable deviations. Each such deviation strictly increases \(\Phi(\mathbf{a}(t))\). Because \(\Phi\) is bounded above by \(\Phi_{\max}\), only a finite number of increments can occur before no further improvements are possible. This contradiction shows that no infinite improvement sequence can occur.
+
+\subsection*{Existence of a Nash Equilibrium}
+
+Since no infinite sequence of profitable unilateral deviations can occur, the best-response dynamics must terminate in a state where no sensor can unilaterally improve its utility. By definition, this state is a Nash equilibrium \(\mathbf{a}^*(t)\):
+\[
+U_i(a_i^*(t), \mathbf{a}_{-i}^*(t)) \geq U_i(a_i(t), \mathbf{a}_{-i}^*(t)) \quad \forall a_i(t), \forall i.
+\]
+
+Thus, the existence of a Nash equilibrium follows directly from the finiteness of utilities, the monotonicity of \(\Phi\), and the impossibility of infinite improvement sequences.
+
+\subsection*{Convergence to the Nash Equilibrium}
+
+The final step is to show that the iterative best-response dynamics indeed converge to the NE identified above. Since each sensor’s best-response update seeks to maximize its own utility, sensors will continue to deviate as long as profitable deviations exist. Our argument shows that profitable deviations must terminate. Under the assumptions that \(\Delta A_i(t)\) is non-decreasing and that sensors have consistent energy and accuracy estimates, no cyclical behavior can persist. A cycle would imply an infinite sequence of improvements or a return to a previously visited state without improvement, which cannot occur since profitable deviations strictly increase \(\Phi(\mathbf{a}(t))\).
+
+The presence of the discount factor \(\beta\) further stabilizes the process. With \( \beta \in [0,1) \), sensors value future utility less than immediate utility. This discounting ensures diminishing returns for postponing beneficial participation or indefinitely waiting for ideal conditions. As a result, sensors do not continually defer improvements, preventing complex long-term cycles.
+
+Because the best-response process eliminates profitable deviations step by step and cannot cycle indefinitely, the action profile sequence generated by iterative best responses converges to the NE.
+
+We have shown that, with the reward-based utility function that includes correct participation rewards (\(\gamma \cdot \Delta A_i(t)\)), penalties for incorrect inferences (\(\delta\)), and penalties for non-participation (\(\eta\)), the best-response dynamics lead to a Nash equilibrium. The proof relies on constructing a potential function \(\Phi\) that is strictly increased by unilateral profitable deviations and bounded above. The impossibility of infinite improvement sequences guarantees the existence of an NE, and the assumptions on monotonicity, boundedness, and discounting ensure that the iterative best-response process converges to this equilibrium.
+
+\(\hfill\square\)

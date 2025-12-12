@@ -1,0 +1,42 @@
+After finalizing the training set for continuous learning, the next challenge is to learn within the power and time budget. Given enough time even na\"ive  low power hardware can finish training, but will have longer periods where the drift is exposed. A more preferable solution is to get rid of drift as quickly as possible, i.e. finish training on the exemplars (described in \S\ref{subsec:exemplar}) as soon as possible and also reach the desired accuracy -- but to do this within the harvested budget. Prior works~\cite{hyperband,hyperparam, optimus} suggest that selecting the right hyper-parameters (like batch size, learning rate, number of layers to train etc.) have a huge impact on the convergence and accuracy of the models. 
+%\textcolor{blue}
+{For each edge servers to handle multiple steams with multiple drifts, we need to jointly optimize the hyper-parameters for maximizing accuracy with minimum power and resource  budget.} 
+
+To achieve this, we design a ``micro-profiler'' that can look into the drift of the models as well as the power availability and decide the right hyperparameters to train the models. Prior works~\cite{optimus,chameleon, ekya} have designed hyperparameter micro-profilers. However, they never considered an intermittent power source, nor explored jointly optimizing multiple models with power, accuracy and latency constraints. Furthermore, each model might contribute differently to the overall accuracy. Observing this, we propose a ``weighted accuracy metric'', where the weight of each of the model is a function of the accuracy, time needed and power availability. Furthermore, we allow some slack to the weighted accuracy so that the optimizer can choose a better set of hyperparameters if we can reach \textbf{close to} the weighted accuracy with much lower resource (power or compute) consumption. Typically, there is an inverse correlation of the convergence of the stochastic gradient descent (SGD) algorithm, the most popular training algorithm for DNNs, over the number of iterations ($n_i$)~\cite{optimus}: $l \propto \mathcal{O}(1/n_i)$ and $l = \frac{1}{\beta_0 . n_i + \beta_1} + \beta_2$, where $l$ is the loss of the SGD and $\beta_i$ is an non-negative real number. Therefore, by running a few iterations of the SGD algorithms with various other hyperparameters,  we can easily {\em predict} the convergence of the models. Note that this needs to be done every time one of the constraints (accuracy, power etc.) changes. 
+%\textcolor{blue}
+{The micro-profiler optimizes the weighted accuracy ($A_w = \frac{W_i}{A_i}/\sum W_i; \forall i \le \#models; W_i = f(time,drift,compute)$ with a user-defined slack value of $\delta$), with respect to available power ($P_{av}$): $\max A_w$; $s.t. \vspace{2pt} P \le P_{av}$.}
+
+%  \begin{figure} 
+%  \centering
+%     \subfloat[$\mu-$profiler flow]
+%     {
+%      \includegraphics[width=0.3\linewidth]{figs/HPFC.pdf}%
+%     \label{Fig:HPFC}
+%     }
+%     \subfloat[Representation Learning]
+%     {
+%      \includegraphics[width=0.7\linewidth]{figs/iCARLD.pdf}%
+%     \label{Fig:iCARLD}
+%     }
+%     \vspace{-4pt}\caption{Design of the micro-profiler and exemplar selection.}
+%     \label{fig:HPSEL} 
+%     \vspace{-20pt}
+% \end{figure}
+
+% \begin{figure}[h]
+%   \centering 
+% \includegraphics[width=0.9\linewidth]{figs/iCARLD.pdf}
+%   \vspace{-6pt}\caption{Representation learning flow and cartoon example of updating the feature space upon encountering new data.}
+%   \label{Fig:iCARLD}
+%   \vspace{-6pt}
+% \end{figure} 
+
+\noindent
+%\textcolor{blue}
+{\textbf{Energy Buffering and Power-Predictor:} To regulate, manage and ensure a stable power supply to the circuitry, $\USS$ uses a super-capacitor assisted voltage regulation circuit. To properly model the energy harvesting, losses during conversion, and leakage, we built a rectification circuit with $4\times5.5V,{\text{  }} 2.2F$ super-capacitors connected in parallel to a voltage regulator circuit. The harvested power is given as an input to a moving average power predictor~\cite{resiRCA,Origin} to predict the future available power. Note that the power predictors used in prior works are meant for fickle energy harvesting scenarios like piezoelectric (movement), or RF (WiFi). We have adjusted the time window size. We took a history (years 2019 and 2020; from Seattle, WA; Sterling, VA; and Oak Ridge, TN) of solar energy traces from SOLRAD~\cite{solardata, SOLRAD} and built a weight matrix which looks into a window of 1 hour at 1 minute (average power) intervals to predict the power for next 10 minutes (1 minute granularity). We use regression  to find the weights (exponents and coefficients) to the prediction curve followed by exponential smoothing to decay the weights. The rate of exponential smoothing depends on the scheduler used - while for the conservative scheduler the predictor always underestimated the power (shallow smoothing), the eager scheduling uses the direct output of the predictor (steeper smoothing). In either case, the predictor predicts the power with $\approx 95\%$ (peak of $98.72$ (with real solar power trace) and minimum of $89.14$ (with synthetic power trace) accuracy. The micro-profiler, having run multiple sweeps, returns a set of hyper-parameters ($\Psi_i$) for each model which is then stored in a history table. This helps us avoid unnecessary profiling (up to 41\%). When introduced to a new set of constraints (change of power availability, accuracy etc.), the micro-profiler first looks in the history table to find a configuration and runs profiling if and only if it could not find one.}
+
+
+%For efficiency, parts of the micro-profiler are also offloaded to hardware (see \S\ref{sec:HW}).
+
+%%%%%
+%\vspace{-2pt}

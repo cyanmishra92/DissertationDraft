@@ -1,0 +1,68 @@
+%\appendix
+\section{Guidelines for Hyperparameter Selection and Bounds on Reward Parameters}
+\label{appendix:hyperparameters}
+
+The parameters \(\gamma\), \(\delta,\) and \(\eta\) govern the reward structure of the proposed framework, influencing whether sensors participate consistently, over-participate and waste energy, or abstain altogether. This appendix provides a systematic approach to selecting these parameters, including formal bounds, practical heuristics, and an algorithmic procedure to explore suitable values.
+
+\subsection*{Conceptual Role of Parameters}
+
+The scalar \(\gamma > 0\) represents the reward scaling for correct participation. If \(\gamma\) is too low, sensors will not have sufficient incentive to expend energy on high-SNR captures. If \(\gamma\) is too high, sensors may waste energy attempting difficult inferences. The parameter \(\delta > 0\) penalizes incorrect inferences, discouraging reckless submissions of low-quality data. The parameter \(\eta > 0\) penalizes non-participation, ensuring that sensors do not remain idle indefinitely. As discussed, maintaining \(\eta > \delta\) encourages sensors to at least attempt participation rather than always remain offline.
+
+\subsection*{Formal Bounds and Conditions}
+
+To ensure balanced behavior, it is helpful to relate \(\gamma, \delta,\) and \(\eta\) to typical values of accuracy improvement and energy costs.
+
+\paragraph{Accuracy Gains and Costs:} Let \(\Delta A_{\min}\) and \(\Delta A_{\max}\) denote the minimum and maximum expected accuracy improvements from any sensor’s participation. Let \(e_{\text{total}}^{\max} = e_{\text{cap}}^{\max} + e_{\text{inf}} + e_{\text{comm}}\) represent the maximum energy cost (for a chosen SNR mode). A baseline condition that ensures correct participation can overcome occasional penalties is:
+\[
+\gamma \cdot \Delta A_{\min} > \delta + e_{\text{total}}^{\max}.
+\]
+This inequality implies that even in a worst-case scenario for accuracy gain, the net expected benefit of correct participation surpasses the sum of potential incorrect penalties and energy costs. Without this condition, sensors might find participation systematically unprofitable.
+
+\paragraph{Non-Participation and Equilibrium:} Since \(\eta > \delta\), we ensure that sensors prefer risking occasional incorrect inferences over consistently abstaining. A suitable gap might be chosen so that:
+\[
+\delta < \eta \leq \delta + c,
+\]
+for some small \( c > 0 \). Choosing \( c \) relative to typical gains, say \( c \approx 0.1 \cdot \gamma \cdot \Delta A_{\max} \), helps maintain a moderate deterrent against non-participation without forcing sensors to always participate.
+
+\paragraph{Energy Preservation:} If \(\gamma\) is too large, sensors might not value future energy at all. To prevent myopic strategies, one can limit \(\gamma\) such that continuously investing in high-SNR captures does not dominate long-term considerations. For example:
+\[
+\gamma \cdot \Delta A_{\max} < \eta + \text{margin},
+\]
+where \(\text{margin}\) accounts for future opportunities and energy savings. A small \(\text{margin}\) ensures sensors do not always expend maximal energy for short-term gains.
+
+\subsection*{Practical Hyperparameter Tuning Strategies}
+
+1. \emph{Baseline Ratios:} Start with ratios that link \(\gamma\) to typical accuracy gains and set \(\delta,\eta\) based on fractions or multiples of \(\gamma \cdot \Delta A_{\min}\) or \(\gamma \cdot \Delta A_{\max}\).
+
+2. \emph{Iterative Refinement:} Use simulation or small-scale experimental runs to refine parameters. If sensors rarely participate, increase \(\gamma\) or decrease \(\eta\). If sensors over-exert themselves, reduce \(\gamma\) or increase \(\delta,\eta\).
+
+3. \emph{Adaptive Tuning:} If conditions change over time, adjust \(\gamma, \delta,\) and \(\eta\) dynamically based on observed participation rates, accuracy levels, and energy depletion patterns.
+
+\subsection*{Exploration Algorithm}
+Algorithm~\ref{alg:hyperparameter} outlines a systematic approach to exploring suitable hyperparameter values. It combines theoretical bounds with empirical evaluation, guiding the search toward stable and efficient equilibria.
+The above guidelines and the exploration algorithm provide a structured approach to selecting and refining \(\gamma, \delta,\) and \(\eta\). By starting from theoretically informed baseline conditions and iteratively refining through simulation-based feedback, it is possible to reach a stable set of parameters that promotes balanced participation, discourages perpetual abstention, and prevents excessive energy expenditure. Regular re-tuning may be warranted as operating conditions, energy harvesting patterns, or accuracy requirements evolve over the network’s lifetime.
+
+\begin{algorithm}[h!]
+\caption{Hyperparameter Exploration for Reward Parameters}
+\label{alg:hyperparameter}
+\begin{algorithmic}[1]
+\STATE \textbf{Inputs:} Estimates \(\Delta A_{\min}, \Delta A_{\max}\), energy costs \(e_{\text{cap}}^{\max}, e_{\text{inf}}, e_{\text{comm}}\), initial guesses \(\gamma_0, \delta_0, \eta_0\), and tuning increments \(\Delta_\gamma, \Delta_\delta, \Delta_\eta\).
+\STATE Compute \(e_{\text{total}}^{\max} = e_{\text{cap}}^{\max} + e_{\text{inf}} + e_{\text{comm}}\).
+\STATE Ensure baseline feasibility: If \(\gamma_0 \cdot \Delta A_{\min} \leq \delta_0 + e_{\text{total}}^{\max}\), increase \(\gamma_0\) until this condition is met.
+\STATE Set \(\eta_0 > \delta_0\). Start with \(\eta_0 = \delta_0 + c\), where \(c\) is a small positive number. If preliminary tests show insufficient participation, slightly increase \(\eta_0\). If participation is overly aggressive, reduce \(\gamma_0\) or increase \(\delta_0\).
+\STATE \textbf{Simulation-Refinement Loop:}
+\FOR{$k = 1, 2, \ldots, K$ (number of refinement iterations)}
+    \STATE Run a simulation or small-scale test deployment using the current \(\gamma_k, \delta_k, \eta_k\).
+    \STATE Measure key indicators: participation rate, average energy depletion rate, frequency of incorrect inferences, and overall inference accuracy.
+    \IF{participation is too low (e.g., $< p_{\min}$) or sensors remain idle too often}
+        \STATE Increase \(\gamma_k \leftarrow \gamma_k + \Delta_\gamma\) or decrease \(\eta_k \leftarrow \eta_k - \Delta_\eta\).
+    \ELSIF{participation is too high, leading to frequent energy depletion}
+        \STATE Decrease \(\gamma_k \leftarrow \gamma_k - \Delta_\gamma\) or increase \(\delta_k \leftarrow \delta_k + \Delta_\delta\) to discourage high-risk attempts.
+    \ELSIF{incorrect inferences are prevalent}
+        \STATE Increase \(\delta_k \leftarrow \delta_k + \Delta_\delta\) to penalize low-quality submissions more strongly.
+    \ENDIF
+    \STATE Check feasibility conditions again to ensure no violation of baseline inequalities.
+    \STATE If performance metrics (accuracy, sustainability) are satisfactory, terminate. Otherwise, continue refinement.
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}

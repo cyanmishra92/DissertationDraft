@@ -1,0 +1,56 @@
+\subsection{Unified Training Algorithm Incorporating Diode Activation and IR Drop Modeling}
+
+To fully capture the analog circuit behaviors, including both the diode-based activation function and the IR drop effects, we present an updated training algorithm that integrates these aspects into the neural network training process. This algorithm incorporates the non-linear characteristics of the Schottky diode activation function, accounts for component variability, and models the impact of IR drops on the network's computations.
+We define a comprehensive loss function that includes the primary classification loss and regularization terms for both the diode activation parameters and the IR drop attenuation factors:
+
+\begin{equation}
+\mathcal{L} = \mathcal{L}_{\text{cls}} + \lambda_{\gamma} \sum_{l} (\gamma^{(l)} - 1)^2 + \lambda_{\alpha} \sum_{l} (\alpha^{(l)} - \mu_{\alpha})^2 + \lambda_{V_{\text{th}}} \sum_{l} (V_{\text{th}}^{(l)} - \mu_{V_{\text{th}}})^2,
+\label{eq:total_loss_updated}
+\end{equation}
+
+where: $\mathcal{L}_{\text{cls}}$ is the classification loss (e.g., cross-entropy loss). $\gamma^{(l)}$ is the attenuation factor for layer $l$ due to IR drop. $\alpha^{(l)}$ is the scaling factor in the diode activation function for layer $l$. $V_{\text{th}}^{(l)}$ is the threshold voltage in the diode activation function for layer $l$. $\lambda_{\gamma}$, $\lambda_{\alpha}$, and $\lambda_{V_{\text{th}}}$ are regularization coefficients. $\mu_{\alpha}$ and $\mu_{V_{\text{th}}}$ are the nominal (mean) values of $\alpha$ and $V_{\text{th}}$.
+
+\subsubsection{Updated Training Algorithm}
+
+The updated training algorithm is presented in Algorithm~\ref{alg:unified_training}. It integrates both the diode-based activation function and the IR drop modeling into the forward and backward propagation steps.
+
+
+
+\subsubsection{Technical Considerations and Improvements}
+
+Upon integrating both the diode activation function and the IR drop modeling into the training algorithm, several technical considerations arise:
+
+\textbf{1. Attenuation Factor $\gamma^{(l)}$ Computation:}
+
+In the IR drop modeling, the attenuation factor $\gamma^{(l)}$ represents the voltage drop due to resistive losses. In practice, $\gamma^{(l)}$ is determined by the physical properties of the hardware and is a function of the resistances and currents. Treating $\gamma^{(l)}$ as a learnable parameter may not accurately reflect the hardware behavior.
+
+\emph{Improvement Suggestion:} Compute $\gamma^{(l)}$ based on the IR drop model using Equation~\eqref{eq:attenuation_factor}, considering the estimated currents and resistances. This makes $\gamma^{(l)}$ a deterministic parameter rather than a learnable one. This approach ensures that the attenuation factors used during training closely match the hardware-induced attenuation experienced during deployment.
+
+\textbf{2. Sampling of Diode Parameters:}
+
+Sampling the diode parameters $\alpha^{(l)}$ and $V_{\text{th}}^{(l)}$ from their distributions introduces randomness into the training process, simulating the variability due to manufacturing imperfections. However, directly updating these sampled parameters during training may not be meaningful since the variability is inherent and not adjustable.
+
+\emph{Improvement Suggestion:} Instead of updating the sampled parameters, focus on training the network weights and biases to be robust against the variability. The regularization terms in the loss function can be used to encourage the network to find solutions that are less sensitive to the variations in $\alpha^{(l)}$ and $V_{\text{th}}^{(l)}$.
+
+\textbf{3. Consistency in Notation:}
+
+Ensure that the notation for parameters is consistent throughout the algorithm and the text. For example, using $\gamma^{(l)}$ both as a learnable parameter and as a computed attenuation factor can cause confusion.
+
+\emph{Improvement Suggestion:} If $\gamma^{(l)}$ is computed based on the IR drop model, denote it explicitly as $\gamma^{(l)} = \gamma^{(l)}_{\text{IR}}$, and if treated as a parameter, denote it accordingly.
+
+\textbf{4. Regularization of Diode Parameters:}
+
+The regularization terms for $\alpha^{(l)}$ and $V_{\text{th}}^{(l)}$ aim to prevent excessive deviations from their nominal values. However, since these parameters are determined by the hardware and not adjustable during deployment, it may not be appropriate to update them during training.
+
+\emph{Improvement Suggestion:} Instead of updating $\alpha^{(l)}$ and $V_{\text{th}}^{(l)}$, sample them during training to model the variability, but do not treat them as trainable parameters. Focus on adjusting the weights and biases to account for the variability.
+
+\subsubsection{Revised Algorithm Incorporating Improvements}
+
+Considering the above suggestions, we revise the algorithm to treat $\gamma^{(l)}$ as a computed parameter based on the IR drop model and to remove the updates to $\alpha^{(l)}$ and $V_{\text{th}}^{(l)}$.
+
+
+
+\subsubsection{Final Remarks}
+
+By incorporating the improvements, we ensure that the training algorithm accurately reflects the hardware non-idealities without introducing unnecessary complexity or inconsistencies. The network learns to be robust against variations in the diode activation function and the attenuation due to IR drops by adjusting its weights and biases accordingly. This approach maintains the integrity of the analog hardware modeling while optimizing the network for deployment in ultra-low-power environments.
+

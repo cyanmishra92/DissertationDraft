@@ -1,0 +1,74 @@
+                         % %%%%% %%%%% %%%%%
+% -----------------------------------------------------------------------------
+% Section 3 – Analog Activation via Schottky‑Diode Network
+% -----------------------------------------------------------------------------
+
+\section{Analog Activation via Schottky Diodes}
+\label{sec:analog-activation} 
+Deep neural networks critically rely on nonlinear activation functions, such as the Rectified Linear Unit (ReLU), to learn complex representations. However, as established in Section~\ref{sec:bg-rw}, implementing ReLU purely in digital logic forces every analog output from the ReRAM crossbar to be digitized, evaluated in a microcontroller or accelerator, and then reconverted to analog for the next layer---an expensive process in terms of both power and area~\cite{singh2020nebula, shafiee2016isaac}. To eliminate these costly domain transfers, we propose to \emph{replace the digital ReLU with a diode-based analog activation} that can be placed directly at the output of each crossbar column.
+
+\begin{figure}[]
+\centering 
+\includegraphics[width=\linewidth]{NewResultFigs/DiodeActivationCircuit2.pdf}
+\caption{Implementation of ReLU-like activation function in the analog domain using diodes. We select a diode and resistor in series configuration (\circled{1}) for its simplicity and efficiency. We also include a transimpedance amplifier based driver for current to voltage domain crossing (\circled{2}).}   
+\label{fig:ReLUDiode} 
+\end{figure} 
+
+\noindent
+\textbf{Circuit Realization and Working Principle:} 
+Figure~\ref{fig:ReLUDiode} illustrates three potential diode-based designs for an analog ReLU. After systematically assessing the forward voltage drop, leakage current, and circuit area, we adopt the single-Schottky-diode configuration because a Schottky diode offers a low forward drop ({$\sim$0.15\,V}) and fast switching. Here, a series resistor $R_s$ and an optional small damping resistor $R_d$ set the operating slope.
+
+When the crossbar output voltage $V_i$ (converted from current by a transimpedance amplifier; see below) exceeds the diode's forward threshold $V_f$, the diode conducts and $V_o \approx V_i - V_f - I_D R_s$, closely emulating the positive branch of ReLU. Conversely, when $V_i \leq V_f$, the diode is reverse-biased and no current flows, causing $V_o \approx 0$. For a small-signal approximation, the diode current $I_D$ can be described by
+$%\[
+   I_D \;=\; I_S \Bigl(e^{\!\frac{V_D}{nV_T}} \,-\, 1\Bigr)\;,
+$%\]
+where $I_S$ is the reverse saturation current, $V_D$ is the diode drop, $n$ is the diode ideality factor, and $V_T$ is the thermal voltage (about {25\,mV} at room temperature). In normal forward operation ($V_D \gg nV_T$), $I_D \approx I_S \exp\bigl(\tfrac{V_D}{nV_T}\bigr)$ and thus even small voltage changes can trigger conduction. 
+
+\noindent
+\textit{Transimpedance Amplifier (TIA) as Driver:}
+ReRAM crossbars naturally produce an output \emph{current} determined by $I_{\text{xbar}} = \sum_j G_{ij}\,V_j$. To feed the Schottky diode, we must first convert that current into a stable voltage domain. As shown conceptually in Figure~\ref{fig:ReLUDiode}, each crossbar column is connected to a simple TIA that maintains a low-impedance virtual node for the crossbar while generating a voltage $V_i$ proportional to the total column current.
+%The diode-based activation circuit then operates around $V_i \approx \textcolor{red}{\text{user-specified range}}$, ensuring consistent threshold behavior even under variations in load or input size. 
+
+\noindent
+\textbf{Replacing ReLU with a Diode Activation Function:}
+Although the circuit itself is governed by exponential diode laws, we find that a piecewise linear approximation greatly simplifies neural network training:
+\begin{equation}
+f_{\text{diode}}(x)\;=\;
+\begin{cases}
+0, & x \,\leq\, V_{\text{th}},\\[4pt]
+\alpha\,\bigl(x - V_{\text{th}}\bigr), & x \,>\, V_{\text{th}},
+\end{cases}
+\label{eq:diode-activation}
+\end{equation}
+where $x$ is the TIA output, $V_{\text{th}} \approx V_f$ is the diode “turn-on” voltage, and $\alpha$ is a small slope factor set by $R_s$, $R_d$, and the diode's internal $I$--$V$ response. For $x \leq V_{\text{th}}$, $f_{\text{diode}}(x)=0$ mimics the ReLU’s zero output. Once $x$ exceeds $V_{\text{th}}$, the circuit conducts with a linear ramp of slope $\alpha$. In practice, $V_{\text{th}}$ can be \emph{slightly} higher than the ideal $V_f$ to account for conduction losses and series parasitics. To train a neural network that uses $f_{\text{diode}}(\cdot)$ instead of ReLU, we must compute its gradient during backpropagation, which is straingtformward given the equations.
+%The derivative is: 
+% \[
+% f'_{\text{diode}}(x)
+% \,=\,
+% \begin{cases}
+% 0,   & x \leq V_{\text{th}},\\
+% \alpha, & x > V_{\text{th}}.
+% \end{cases}
+% \]
+Thus, for each hidden/output neuron $i$ in layer $l$, the forward activation $a_i^{(l)} = f_{\text{diode}}\bigl(z_i^{(l)}\bigr)$ is straightforward; the backprop error $\delta_i^{(l)}$ multiplies $\alpha$ if $z_i^{(l)} > V_{\text{th}}$ and is zero otherwise. In effect, $f_{\text{diode}}(\cdot)$ behaves similarly to a “shifted” ReLU but with an analog realization.
+
+\noindent
+\textbf{Accommodating Hardware Variations:}
+A crucial distinction from standard digital ReLU is that real diodes exhibit fluctuations in threshold voltage ($V_{\text{th}}$), slope $\alpha$, and leakage current, all of which are sensitive to temperature, process corners, and device aging~\cite{TIA, cmos1, cmos2}. We model these variations in training by sampling $(V_{\text{th}}, \alpha)$ from normal distributions centered at nominal diode parameters ({e.g.,\ $\mu_{V_{\text{th}}}=0.15\,\mathrm{V},\,\sigma=0.01\,\mathrm{V}$}), thereby exposing the network to a range of realistic hardware conditions. In each training minibatch, we randomly perturb these parameters for every neuron, forcing the learned weights to become robust against small mismatches. Specifically, if $V_{\text{th}}^{(l,i)}$ and $\alpha^{(l,i)}$ denote respectively the threshold and slope for neuron $i$ in layer $l$, we sample them once per minibatch from:
+$%\[
+V_{\text{th}}^{(l,i)} \sim \mathcal{N}\Bigl(\mu_{V_{\text{th}}},\,\sigma_{V_{\text{th}}}^2\Bigr),
+\quad
+\alpha^{(l,i)} \sim \mathcal{N}\Bigl(\mu_{\alpha},\,\sigma_{\alpha}^2\Bigr),
+$%\]
+where the network is \emph{not} learning these diode values directly but, rather, learning the weights and biases that can tolerate them. Such hardware-aware training helps maintain accuracy even when the environment deviates from nominal conditions at inference time. Additionally, the TIA can be susceptible to offset and gain errors; these are folded into the same variation model or handled as small input biases. More pronounced non-idealities, such as IR drop in large crossbars or dynamic noise injection, will be addressed in Section~\ref{sec:analogTraining}, where we show that an integrated approach—one that includes both the analog activation and the crossbar’s voltage/current limitations—leads to a more robust final model.
+
+\noindent
+\textbf{Enabling Consecutive Analog Layers:}
+Once we can apply an activation directly in the analog voltage domain, it becomes possible to {\em chain} together \emph{two} crossbar layers before converting outputs to digital. Specifically, after the first crossbar’s MVM completes, we transform the currents to $V_i$ via TIA, apply the diode activation, and feed the resulting voltages directly into the next layer’s crossbar. Only after two layers do we quantize the partial sums with a low-bit ADC. This strategy cuts {\emph{one entire ADC/DAC cycle for every two layers}}, substantially reducing both energy and latency (detailed in Section~\ref{sec:eval}). To exploit this, however, the network must be trained in a manner that tolerates the small drift and overhead introduced by repeatedly staying in analog form, reinforcing the need for hardware-awareness in the optimization loop.
+
+\noindent
+\textbf{Key Takeaway:} Our diode-based circuit realizes a ReLU-like function entirely in the analog domain and offers a straightforward gradient for efficient backpropagation. By properly accounting for $V_{\text{th}}$ and $\alpha$ variations during training, we can ensure that the final deployed model remains robust despite the inherent variability of analog components. Next, we extend this hardware-awareness to the crossbar itself, modeling IR drop and noise sources so that the network learns to adapt to real-world analog imperfections.
+
+%%%%%
+
+

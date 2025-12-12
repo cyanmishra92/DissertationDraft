@@ -1,0 +1,46 @@
+% %%%%% %%%%% %%%%%
+\section{System Integration and Overall Architecture}
+%\label{sec:system-arch} 
+\label{sec:SystemIntegration}
+This section consolidates the previously introduced components --ReRAM crossbars with diode-based analog activations, IR-drop-aware training, and a tile-based layout-- into a comprehensive accelerator system. The primary objective is to house a complete 4-bit quantized DNN on-chip and execute two consecutive layers in the analog domain before a single digitization step. By doing so, the design mitigates the overheads and device wear stemming from frequent ReRAM writes or excessive ADC use.
+
+\noindent
+\textbf{Overall Goals and Constraints:}
+The ReRAM arrays are configured so that each DNN weight is programmed \emph{once} during system initialization, eliminating reprogramming during inference. This choice addresses both ReRAM endurance limitations and the high energy costs of repeated writes. By grouping two network layers into a single analog processing flow, the system halves the number of analog-to-digital conversions compared to a baseline that digitizes after every layer. To maintain accuracy under IR drop and noise as partial sums propagate across two analog layers, our hardware-aware training strategy (Section~\ref{sec:analogTraining}) incorporates these circuit non-idealities into the training loop.
+
+\begin{figure}[]
+\centering 
+\includegraphics[width=\linewidth]{NewResultFigs/FullDesign.pdf}
+\caption{Overall design of the proposed system: Left shows the high-level hardware and right shows the intricate hardware software co-design and training.}   
+\vspace{-10pt}
+\label{fig:overall} 
+\end{figure} 
+
+\noindent
+\textbf{Crossbar Array and Tile Structure:}
+Moderate crossbar dimensions, such as $64\times64$, offer a practical balance between chip area efficiency and increasingly significant IR drops in larger arrays. Each cell encodes a 4-bit weight via multi-level or bit-sliced programming. To accommodate the entire 4-bit DNN, the system instantiates enough crossbars to store all network parameters. For example, a three-million-parameter MobileNetV3~\cite{mobilenetv3} at four bits per weight (roughly 1.7\,MB) maps to a few hundred such arrays. Groups of these crossbars form a ``tile," complete with local MeF-RAM~\cite{angizi2021mef, sanjeet2024mefet, najafi2024hybrid, morsali2023design} for activation or partial-sum storage, peripheral circuits (DACs, ADCs, TIAs, diode activations), and a tile-level controller. This organization allows each tile to perform multiply-accumulate operations and store intermediate results. Because MeF-RAM maintains data integrity under power loss, the design is well suited to energy-harvesting and intermittent-computing scenarios.
+
+\noindent
+\textbf{Two-Layer Analog Execution and Scheduling:}
+A defining feature of the accelerator is its ability to perform a pair of layers entirely in the analog domain. Conceptually, an input vector is fetched from the tile’s MeF-RAM and driven onto the crossbar rows for the layer $(2k+1)$. The resulting column currents pass through transimpedance amplifiers and diode-based activations, producing partial sums that remain analog. Rather than converting these partial sums to digital, a small analog switch network redirects them to the row inputs of the next crossbar, which stores the layer $(2k+2)$. Once the second layer completes its analog multiply-accumulate and diode activation, a 4-bit ADC captures the final outputs. In deeper architectures, this pattern repeats, such that partial sums are digitized only after every second layer. The static mapping of weights—programmed once at initialization—ensures each layer resides on a fixed region of crossbars with {\em no} in-field reconfiguration, thus avoiding further wear on the ReRAM cells.
+
+\noindent
+\textbf{Tile Microarchitecture:}
+Each tile maintains on-chip MeF-RAM as a buffer for activations, partial sums, or per-layer constants. Its crossbars employ TIAs at every column output, followed by the diode activation stage. The switch fabric that routes analog outputs from one crossbar to the next enables back-to-back analog layers without intermediate digital storage. A tile-level controller orchestrates the sequence of operations: it triggers the row-by-row data input, coordinates the transimpedance and diode-activation phases, and decides when to invoke the ADC after the second layer. Because ReRAM devices are programmed only once, there is no frequent write overhead, which safeguards their endurance rating. Additionally, the non-volatility of MeF-RAM permits checkpointing if power is lost, an important consideration for resource-constrained or energy-harvesting applications.
+
+\noindent
+\textbf{Large DNN Mapping Without Reprogramming:}
+To scale up, the architecture simply increases the total number of crossbars until every layer of the network fits on-chip. Each layer or pair of layers is assigned to specific crossbars so that partial sums move locally, in analog form, within the same tile. Once two layers are completed, the partial sums are quantized and passed digitally to the tile that holds the subsequent pair of layers. This scheme preserves all network weights in the crossbars throughout inference and avoids writing to them again. Moderate crossbar dimensions also help us control the impact of IR drop, and any residual mismatch is managed through the IR-drop modeling embedded in our hardware-aware training pipeline.
+
+\noindent
+\textbf{System-Level Control and Execution Flow:}
+An on-chip microcontroller (or equivalent global controller) initiates each inference, directing the tiles to load input vectors from MeF-RAM, run the analog MVM and diode activations, then forward the partial sums in analog to the next layer or invoke the 4-bit ADC if the second layer in the pair has just completed. This process continues until the final layer is reached, with {\em no} intermediate weight reprogramming. Post-processing tasks such as Softmax may be performed by the same controller or a simple digital block. The overall result is an accelerator pipeline that moves seamlessly between analog and low-precision digital domains.
+
+\noindent
+\textbf{Key Architectural Advantages:}
+By restricting ReRAM writes to a single load phase at initialization, our proposed design avoids the endurance-related drawbacks that commonly challenge memristive accelerators. Grouping layers in pairs also substantially reduces ADC overhead. The embedded hardware-awareness prevents accuracy degradation in the presence of IR drop, noise, and diode I--V non-idealities, while MeF-RAM’s non-volatility delivers resiliency against power interruptions. Storing the entire DNN on-chip obviates the need for frequent memory transfers, localizing most of the traffic to the tile-level movement of activations and partial sums. Compared to conventional architectures that digitize after every layer or rely on reconfiguring crossbars mid-inference, our system operates with far fewer domain conversions and minimal ReRAM stress, offering a robust and energy-efficient approach for deploying models like MobileNetV3 in edge scenarios.
+
+\noindent
+\textbf{Extension to MCUs, Conventional Accelerators, and Sensor Noise:}
+Although our design is centered on ReRAM crossbars with diode-based activations, the underlying hardware-awareness techniques—especially those modeling IR drops, diode variations, and multi-bit noise—can be transferred to conventional MCUs, digital accelerators, or real-world sensors. In a hybrid architecture where an MCU implements certain fixed-point or floating-point layers, the same variation models that capture analog errors can be repurposed to account for finite-precision accumulators or offset and gain drift in digital pipelines. Similarly, sensor noise and sampling artifacts are readily injected at the input stage by adding perturbation terms in the training loop, enabling the network to accommodate real-world signal degradation just as it does IR drops or TIA offsets. Once partial sums exit the analog crossbars, they can be digitized and passed to any off-the-shelf processing unit for subsequent layer computations, activation functions, or classification. This approach thus {\em unifies} analog crossbar execution, digital acceleration, and noisy sensor inputs under a single ``hardware-aware" training framework, preserving the efficiency and robustness benefits of our ReRAM-based design even when integrated into mainstream MCUs or commercial accelerators. 
+% %%%%% %%%%% %%%%%

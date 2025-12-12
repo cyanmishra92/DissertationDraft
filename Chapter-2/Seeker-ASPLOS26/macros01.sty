@@ -1,0 +1,71 @@
+% \newcommand*\circled[1]{\tikz[baseline=(char.base)]{
+%   \node[shape=circle,draw,fill=black,text=white,font=\bf,inner sep=0.5pt] (char)
+%   {\scriptsize#1};
+% }}
+
+%\usepackage{wrapfig}
+
+
+\newcommand*\circled[1]{\tikz[baseline=(char.base)]{
+       \node[shape=circle,draw, fill=black,inner sep=0.25pt] (char) {\textcolor{white}{\textbf{#1}}};}}
+
+\newcommand*\circledwhite[1]{\tikz[baseline=(char.base)]{
+  \node[shape=circle,draw,fill=white,text=black,font=\bf,inner sep=0.5pt] (char)
+  {\footnotesize#1};
+}}
+
+\newcommand{\etal}{\textit{et al.}}
+
+\newcommand{\putsec}[2]{\vspace{-0.1in}\section{#2}\label{sec:#1}\vspace{-0.05in}}
+\newcommand{\putssec}[2]{\vspace{-0.0in}\subsection{#2}\label{ssec:#1}\vspace{-0.0in}}
+\newcommand{\putsssec}[2]{\vspace{-0.0in}\subsubsection{#2}\label{sssec:#1}\vspace{-0.0in}}
+%\newcommand{\putsssecX}[1]{\vspace{0.0in}\subsubsection*{#1}\vspace{0.0in}}
+\newcommand{\putsssecX}[1]{\vspace{0.0in}\noindent\textbf{#1:}}
+
+\newcommand{\figref}[1]{Figure~\ref{fig:#1}}
+\newcommand{\eqnref}[1]{Equation~\ref{eq:#1}}
+\newcommand{\tabref}[1]{Table~\ref{tab:#1}}
+\newcommand{\secref}[1]{Section~\ref{sec:#1}}
+\newcommand{\ssecref}[1]{Section~\ref{ssec:#1}}
+\newcommand{\sssecref}[1]{Section~\ref{sssec:#1}}
+
+\newcommand{\COMMENT}[1]{#1}
+%\newcommand{\cyan}[1]{\COMMENT{\textcolor{cyan}{\sf Cyan: #1}}}
+\newcommand{\jack}[1]{\COMMENT{\textcolor{blue}{\sf Cyan: #1}}}
+\newcommand{\todo}[1]{\COMMENT{{\color{red}\sf\bfseries #1}}}
+\newcommand{\WARNING}[1]{\COMMENT{{\color{red}\sf\bfseries #1}}}
+\newcommand{\idea}[1]{\COMMENT{{\color{gray}\tt\bfseries \underline{ #1}}}}
+\DeclareRobustCommand{\cyan}[1]{ {\begingroup\sethlcolor{orange}\hl{(Cyan:) #1}\endgroup} }
+\DeclareRobustCommand{\fixme}[1]{ {\begingroup\sethlcolor{pink}\hl{(Cyan:) #1}\endgroup} }
+% Uncomment this to remove the inline comments
+%\renewcommand{\COMMENT}[1]{}
+
+\newcommand{\squishlist}{
+  \begin{list}{$\bullet$}
+    { \setlength{\itemsep}{0pt}      \setlength{\parsep}{0pt}
+      \setlength{\topsep}{0.5pt}       \setlength{\partopsep}{0pt}
+      \setlength{\listparindent}{-2pt}
+      \setlength{\itemindent}{-5pt}
+      \setlength{\leftmargin}{1em} \setlength{\labelwidth}{0em}
+      \setlength{\labelsep}{0.5em} } }
+ 
+%\renewcommand\qedsymbol{$\blacksquare$} 
+  
+ \newcommand{\squishend}{
+  \end{list}  }
+
+% for dummy figure:
+\newcommand{\dummyfig}[1]{
+  \centering
+  \fbox{
+    \begin{minipage}[c][0.1\textheight][c]{0.45\textwidth}
+      \centering{#1}
+    \end{minipage}
+  }
+}
+%% How to insert a dummy figure:
+% \begin{figure}[h]
+%   \dummyfig{Figure Content.} 
+%   \caption{Dummy figure caption.}
+%   \label{fig:dummy}
+% \end{figure}

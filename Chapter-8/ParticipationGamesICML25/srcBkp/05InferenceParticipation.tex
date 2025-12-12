@@ -1,0 +1,96 @@
+\section{Inference Participation Strategy in Energy-Harvesting Sensor Networks}
+
+In energy-harvesting (EH) sensor networks, sensors must judiciously decide when to participate in inference tasks to balance energy consumption with the necessity of their contributions to the overall system performance. Building upon the game-theoretic participation policy and the federated learning framework established in the previous sections, we formalize the inference participation strategy and develop algorithms that enable sensors to make optimal participation decisions during inference.
+
+\subsection*{Problem Formulation}
+
+Consider the set of EH sensors \( \mathcal{S} = \{ s_1, s_2, \dots, s_N \} \), each equipped with a locally trained model \( \mathcal{M}_i \) obtained via the federated learning framework. At inference time, sensors observe new data \( x_i \) and must decide whether to participate in the collective inference process. Participation involves energy expenditure for data processing and communication, while non-participation may degrade the overall inference accuracy.
+
+Each sensor \( s_i \) aims to maximize its utility \( U_i \), which captures the trade-off between the benefit of contributing to the inference task and the associated energy costs. The utility function is defined as
+\[
+U_i = R_i - C_i,
+\]
+where \( R_i \) is the reward for participation, and \( C_i \) is the cost incurred.
+
+\subsection*{Utility Function Design}
+
+The reward \( R_i \) reflects the marginal contribution of sensor \( s_i \) to the inference accuracy. Let \( \Delta A_i \) denote the expected improvement in accuracy due to \( s_i \)'s participation. The reward is given by
+\[
+R_i = \gamma \cdot \Delta A_i,
+\]
+where \( \gamma > 0 \) is a scaling factor.
+
+The cost \( C_i \) comprises the energy consumption for processing and communication, as well as the opportunity cost of depleting energy reserves:
+\[
+C_i = e_i^{\text{inf}} + e_i^{\text{comm}} + \beta V_i,
+\]
+where \( e_i^{\text{inf}} \) is the energy cost of inference processing, \( e_i^{\text{comm}} \) is the communication energy cost, \( \beta \geq 0 \) is the discount factor for future utility, and \( V_i \) is the expected future utility given energy predictions.
+
+\subsection*{Marginal Contribution Estimation}
+
+To estimate \( \Delta A_i \), each sensor assesses its expected impact on the collective inference outcome. Let \( A_{\text{base}} \) be the expected accuracy without \( s_i \)'s contribution, and \( A_{\text{new}} \) be the expected accuracy with \( s_i \)'s participation. Then,
+\[
+\Delta A_i = A_{\text{new}} - A_{\text{base}}.
+\]
+Sensors can estimate \( \Delta A_i \) based on historical data, model confidence scores, or information shared by neighboring sensors.
+
+\subsection*{Decision-Making Algorithm}
+
+Sensors decide whether to participate by comparing the utility of participation and non-participation. The optimal decision \( a_i^* \in \{ \text{Participate (P)}, \text{Not Participate (NP)} \} \) is given by
+\[
+a_i^* = \arg\max_{a_i} U_i(a_i).
+\]
+Participation is feasible only if the sensor has sufficient energy:
+\[
+B_i \geq e_i^{\text{inf}} + e_i^{\text{comm}}.
+\]
+
+We formalize the decision-making process in Algorithm~1.
+
+\begin{algorithm}[h]
+\caption{Inference Participation Decision for Sensor \( s_i \)}
+\begin{algorithmic}[1]
+\STATE \textbf{Input}: Current energy \( B_i \), energy costs \( e_i^{\text{inf}}, e_i^{\text{comm}} \), discount factor \( \beta \), scaling factor \( \gamma \), predicted future utility \( V_i \).
+\STATE Estimate marginal contribution \( \Delta A_i \).
+\STATE Compute utility for participation:
+\[
+U_i^{\text{P}} = \gamma \cdot \Delta A_i - ( e_i^{\text{inf}} + e_i^{\text{comm}} ) - \beta V_i.
+\]
+\STATE Compute utility for non-participation:
+\[
+U_i^{\text{NP}} = - \beta V_i.
+\]
+\IF{ \( U_i^{\text{P}} \geq U_i^{\text{NP}} \) and \( B_i \geq e_i^{\text{inf}} + e_i^{\text{comm}} \)}
+    \STATE Choose to participate: \( a_i^* = \text{P} \).
+    \STATE Update energy buffer: \( B_i \leftarrow B_i - ( e_i^{\text{inf}} + e_i^{\text{comm}} ) \).
+\ELSE
+    \STATE Choose not to participate: \( a_i^* = \text{NP} \).
+\ENDIF
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Collective Inference Mechanism}
+
+Sensors that decide to participate send their inference results to a designated aggregator, which could be the lead sensor or a central server. The aggregator combines the inputs to produce the final inference outcome. Let \( \mathcal{P} \) denote the set of participating sensors. The collective inference result \( y_{\text{agg}} \) can be obtained using methods such as weighted voting or averaging:
+\[
+y_{\text{agg}} = \text{Aggregate}( \{ y_i \}_{i \in \mathcal{P}} ),
+\]
+where \( y_i = \mathcal{M}_i(x_i) \) is the local inference result from sensor \( s_i \).
+
+\subsection*{Analysis of the Participation Strategy}
+
+The proposed participation strategy ensures that sensors contribute to the inference task when their expected marginal contribution outweighs the energy costs and the opportunity cost of energy depletion. By incorporating the discount factor \( \beta V_i \), sensors account for future utility, promoting sustainable energy management.
+
+\subsection*{Equilibrium Analysis}
+
+We analyze the equilibrium properties of the participation strategy. Under the assumption that sensors have accurate estimates of \( \Delta A_i \) and \( V_i \), and that their decisions are independent, we can model the participation game as a non-cooperative game with strategic complementarities.
+
+\textbf{Proposition 2.} \emph{If the utility functions \( U_i(a_i) \) are supermodular in \( a_i \), the participation game has a pure-strategy Nash equilibrium.}
+
+The proof of Proposition 2 is provided in the appendix.
+
+\subsection*{Simulation Results}
+
+We simulate the inference participation strategy in an EH sensor network with varying energy harvesting rates and data qualities. The results demonstrate that the strategy effectively balances energy consumption with inference performance, maintaining high accuracy while ensuring sustainable operation.
+
+We have formalized the inference participation strategy for EH sensor networks, enabling sensors to make optimal decisions based on their energy availability and expected contributions. The strategy integrates seamlessly with the game-theoretic participation policy and the federated learning framework, providing a comprehensive solution for efficient and robust operation in EH environments.

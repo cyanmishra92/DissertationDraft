@@ -1,0 +1,251 @@
+%\documentclass{article}
+
+\documentclass{article} % For LaTeX2e
+\usepackage{iclr2025_conference,times}
+
+% Optional math commands from https://github.com/goodfeli/dlbook_notation.
+\input{math_commands.tex}
+
+% \usepackage{hyperref}
+% \usepackage{url}
+
+% if you need to pass options to natbib, use, e.g.:
+%     \PassOptionsToPackage{numbers, compress}{natbib}
+% before loading neurips_2024
+
+
+% ready for submission
+%\usepackage{neurips_2024}
+
+
+% to compile a preprint version, e.g., for submission to arXiv, add add the
+% [preprint] option:
+%\usepackage[preprint]{neurips_2024}
+
+
+% to compile a camera-ready version, add the [final] option, e.g.:
+%     \usepackage[final]{neurips_2024}
+
+
+% to avoid loading the natbib package, add option nonatbib:
+%    \usepackage[nonatbib]{neurips_2024}
+
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+
+
+\usepackage{multirow}
+\usepackage{wrapfig}
+
+\usepackage{graphics}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{wrapfig}
+\usepackage[subfigure]{tocloft}
+\usepackage{subcaption}
+\usepackage{amsfonts,bm,amssymb}
+\usepackage{natbib} 
+
+\usepackage{macros}
+% \usepackage{algorithm}
+% \usepackage{algorithmic}
+% \usepackage{float}  % For math environments and symbols Ensure the 'H' position specifier is available
+\usepackage{algorithm}
+%\usepackage{algorithmic}
+
+\usepackage{algpseudocode}
+\usepackage{amsmath}
+\usepackage{float}
+\usepackage{multicol}
+\usepackage{setspace}
+
+% \usepackage{tikz}
+% \usetikzlibrary{shapes.geometric, arrows}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows}
+
+\tikzstyle{startstop} = [rectangle, rounded corners, minimum width=3cm, minimum height=1cm,text centered, draw=black, fill=red!30]
+\tikzstyle{process} = [rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=blue!30]
+\tikzstyle{decision} = [diamond, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=green!30]
+\tikzstyle{arrow} = [thick,->,>=stealth]
+
+ \usepackage{tabularray}
+ \usepackage{multirow}
+
+\usepackage[inline]{enumitem}
+
+%\usepackage{algorithm2e}
+% \usepackage{amsmath}
+
+%%%%% UPDATE CITE %%%%%
+%\usepackage{etoolbox}
+%\usepackage[numbers]{natbib}
+
+
+% \makeatletter
+% \patchcmd{\@citex}{\@citeo}{[{#1\if@tempswa , #2\fi}]}{}{}
+% \makeatother
+\renewcommand{\cite}[1]{\citep{#1}}
+
+%%%%% %%%%% %%%%% %%%%%
+
+\newcommand{\xref}[1]{\S\ref{#1}}
+\newcommand{\dc}[1]{{\textcolor{red}{#1}}}
+%\newcommand{\dc}[1]{\COMMENT{\textcolor{red}{\sf Deeksha says: #1}}}
+\newcommand{\jack}[1]{{\textcolor{blue}{#1}}}
+%\newcommand{\fixme}[1]{{\textcolor{orange}{#1}}}
+
+%\title{NExUME: Revisiting DNN Training for Intermittently-Powered Energy-Harvesting Wireless Sensor Network}
+
+%\title{Revisiting DNN Training for Intermittently-Powered Energy-Harvesting Micro-Computers}
+%\title{NExUME: Adaptive Training and Inference for Deep Neural Networks under Intermittent Power Environments}
+% \title{Adaptive Training and Inference for DNNs under Intermittent Power Environments}
+\title{NExUME: Adaptive Training and Inference for DNNs under Intermittent Power Environments}
+% The \author macro works with any number of authors. There are two commands
+% used to separate the names and addresses of multiple authors: \And and \AND.
+%
+% Using \And between authors leaves it to LaTeX to determine where to break the
+% lines. Using \AND forces a line break at that point. So, if LaTeX puts 3 of 4
+% authors names on the first line, and the last on the second line, try using
+% \AND instead of \And before the third author name.
+
+
+% \author{%
+% Cyan Subhra Mishra, Deeksha Chaudhary, Jack Sampson, Mahmut Taylan Knademir, Chita Das\\
+% \texttt{CSE Department, The Pennsylvania State University}\\
+% \texttt{\{cyan, dmc6955, jms1257, mtk2, cxd12\}@psu.edu}
+% }
+% \author{%
+% Cyan Subhra Mishra, Deeksha Chaudhary, Jack Sampson, Mahmut Taylan Knademir, Chita Das\\
+% \texttt{CSE Department, The Pennsylvania State University}\\[2mm]
+% \href{mailto:cyan@psu.edu}{\texttt{cyan@psu.edu}}, 
+% \href{mailto:dmc6955@psu.edu}{\texttt{dmc6955@psu.edu}}, 
+% \href{mailto:jms1257@psu.edu}{\texttt{jms1257@psu.edu}}, 
+% \href{mailto:mtk2@psu.edu}{\texttt{mtk2@psu.edu}}, 
+% \href{mailto:cxd12@psu.edu}{\texttt{cxd12@psu.edu}}
+% }
+
+\author{%
+Cyan Subhra Mishra, Deeksha Chaudhary, Jack Sampson, Mahmut Taylan Knademir, Chita Das\\
+\texttt{CSE Department, The Pennsylvania State University}\\[2mm]
+\texttt{\{}\href{mailto:cyan@psu.edu}{cyan}, \href{mailto:dmc6955@psu.edu}{dmc6955}, \href{mailto:jms1257@psu.edu}{jms1257}, \href{mailto:mtk2@psu.edu}{mtk2}, \href{mailto:cxd12@psu.edu}{cxd12}\texttt{\}@psu.edu}
+}
+
+\iclrfinalcopy
+\begin{document}
+\maketitle
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\begin{abstract}
+\input{src/00bastract}
+%\end{abstract}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%% CONTENT STARTS HERE %%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}
+%\input{src/01Introduction}%
+\input{NewSrc/01IntroductionModified}
+\label{sec:intro}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Background and Related Work}
+\input{src/02BG}
+\label{sec:bg}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{NExUME Framework}
+%\input{src/03policy}
+\input{NewSrc/03PolicyModified}
+\label{sec:policy}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Experimental Results}
+%\input{src/04evaluation}
+\input{NewSrc/04EvaluationsModified}
+\label{sec:eval}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\vspace{-10pt}
+\section{Conclusions}
+\input{src/05conclusions}
+\label{sec:conclusions}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%% CONTENT ENDS HERE %%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\clearpage
+% \section*{Acknowledgments}
+% We would like to offer our thanks to the anonymous reviewers for their detailed feedback, which has greatly helped to improve and refine this paper. 
+% This work was supported in part by Semiconductor Research Corporation (SRC), Center for Brain-inspired Computing (C-BRIC), NSF Grant \#1822923 (SPX: SOPHIA), NSF Grant \#2346953: A Technology-Architecture-
+% Algorithm Co-Design Exploration of Scalable Spiking Neural Networks (SNNs), and Clean Energy Smart Manufacturing Innovation Institute award \#136067. 
+% We also thank Factory for Advanced Manufacturing Education Lab at The Pennsylvania State University to provide us with great support while collecting data on the Bridgeport machine. 
+% We acknowledge that all product names used are for identification purposes only and may be trademarks of their respective companies.
+
+\section*{Acknowledgments}
+We sincerely thank the anonymous reviewers for their insightful comments, which have significantly improved this paper. This work was supported in part by Semiconductor Research Corporation (SRC), the Center for Brain-inspired Computing (C-BRIC), NSF Grant \#1822923, NSF Grant \#2346953, and the Clean Energy Smart Manufacturing Innovation Institute award \#136067. We also gratefully acknowledge the Factory for Advanced Manufacturing Education Lab at The Pennsylvania State University for their support in data collection on the Bridgeport machine. All product names are used solely for identification purposes and may be trademarks of their respective companies.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\bibliographystyle{plainnat}
+\bibliographystyle{iclr2025_conference}
+\bibliography{refs}
+
+%%%%%%%%%%%%%%%% CONTENT ENDS HERE %%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section*{Appendix}
+\appendix
+%\section{Energy Harvesting}
+\section{More Results on Other Platforms and EH Sources}
+\label{appendix:MoreResults}
+\input{Appendix/MoreResults}
+
+\section{Details on Energy Harvesting}
+\label{appendix:EH}
+\input{Appendix/EnergyHarvesting}
+
+\section{Intermittent Computing and Check-pointing}
+\label{appendix:ckpt}
+\input{Appendix/SWHWCkpt}
+
+\section{Formulation of Dynamic Dropouts:}
+\label{appendix:DynDropMath}
+\input{Appendix/L2Dynamic}
+\input{Appendix/obd}
+\input{Appendix/FMRE}
+\input{Appendix/spmask}
+\input{Appendix/shapely}
+\input{Appendix/taylor}
+
+% \section{Pseudo Codes}
+% \label{appendix:LEAcodes}
+% \input{Appendix/LEACodes}
+
+\section{Workings of Re-RAM Crossbar}
+\label{appendix:xbarReRAM}
+\input{Appendix/ReRAMxBar}
+
+
+\section{Pseudo Codes}
+\label{appendix:LEAcodes}
+\input{Appendix/LEACodes}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%% Checklist
+%\input{CheckList}
+
+\end{document}

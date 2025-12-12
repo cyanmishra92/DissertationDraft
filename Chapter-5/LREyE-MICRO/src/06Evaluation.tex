@@ -1,0 +1,273 @@
+%%%%% %%%%% %%%%%
+\begin{figure*}[]
+ \centering
+    \subfloat[Accuracy]{\includegraphics[width=0.32\linewidth]{figs/acc.pdf}\label{fig:accuracy}}%
+    \hfill
+    \subfloat[Loss]{\includegraphics[width=0.32\linewidth]{figs/loss.pdf}\label{fig:loss}}%
+    \hfill
+    \subfloat[Gamma Regularization]{\includegraphics[width=0.32\linewidth]{figs/reg_gamma.pdf}\label{fig:gamma}}
+    %\vspace{-8pt}
+    \caption{Update trends for accuracy, loss, and $\gamma$-regularization during training. 
+    These examples illustrate how the network adapts to IR drop and diode variations over epochs.
+    }
+    \label{fig:software}
+\end{figure*}
+In this section, we provide a comprehensive evaluation of our proposed hardware-software co-design approach. 
+Section~\ref{sec:evalSetup} details the experimental setup, including baseline comparisons, model quantization, and measurement of latency. 
+Sections~\ref{sec:evalImplementationHW} and~\ref{sec:evalImplementationSW} describe the hardware and software implementations, respectively, 
+while Section~\ref{sec:evalBenchmarking} presents results on widely used benchmarks. 
+Finally, Section~\ref{sec:evalCaseStudy} highlights a low-power wildlife monitoring scenario.
+Finally, Section~\ref{sec:transformerEval} shows how the analog activation perform in modern langue models based on transformers.
+\subsection{Experimental Setup and Methodology}
+\label{sec:evalSetup}
+The experiments target five neural networks trained on the TinyImageNet~\cite{tiny} dataset: MobileNetV3-Small~\cite{mobilenetv3}, EfficientNet-Lite0~\cite{Efficientnet}, MicroNet~(M0)~\cite{micronet}, 
+MCUNet~\cite{mcunet}, and MobileViT-XXS~\cite{mobilevit}. Each is evaluated in Q4 quantization (our primary focus) as well as Q8 and Q16 references. 
+We use Q4 because it reduces memory footprint and ADC/DAC overheads, which are especially critical for ultra-low-power or battery-driven systems~\cite{qiu2020resirca, singh2020nebula}, 
+yet we also provide higher-precision results to illustrate the accuracy tradeoffs. 
+When reporting noise robustness, for example in Figs.~\ref{fig:noise_impact} and~\ref{fig:classification_accuracy_snr_case_Study}, 
+we define $\text{SNR (dB)} = 20 \log_{10}\bigl(\tfrac{P_{\text{signal}}}{P_{\text{noise}}}\bigr)$ and inject Gaussian noise at the output of each analog crossbar step; 
+at 10\,dB SNR, the noise variance is scaled to ensure the signal power is ten times the noise power, simulating the thermal and flicker noise common in analog circuits~\cite{singh2020nebula}. 
+For smaller networks such as MicroNet~(M0) or MCUNet, the entire model can be stored in our ReRAM-based design without reloading. 
+For deeper architectures such as MobileNetV3-Small, EfficientNet-Lite0, or MobileViT-XXS, each layer's weights are fetched from local MeF-RAM or off-chip storage into the 64$\times$64 crossbar tiles, the analog operations are performed, and partial outputs are stored for the subsequent layer. These reloading overheads are included in the total power and latency estimates in Table~\ref{tab:DesignComponents} and Section~\ref{sec:evalBenchmarking}.
+
+\input{AlgosTables/PowerTable}
+
+\begin{figure}[]
+  \centering
+  \includegraphics[width=0.85\linewidth]{NewResultFigs/network_latency_comparison.pdf}
+  \vspace{-8pt}
+  \caption{Latency breakdown and savings for four representative networks. 
+           Each group compares the average baseline per-layer overhead (left bar) with our proposed two-layer analog pipeline (right bar), showing consistent latency savings. On an average, across all layers in all the networks analyzed, by skipping ADC/DAC and MCU activation on alternate layers, we save $\approx 25\%$ of latency.
+           \vspace{-8pt}
+           }
+  \label{fig:pipelineLatency}
+\end{figure}
+
+\subsection{Hardware Implementation}
+\label{sec:evalImplementationHW}
+The hardware design aims to optimize energy efficiency under tight power budgets. As summarized in Table~\ref{tab:DesignComponents}, 
+each tile consists of MeF-RAM for buffering, a set of 64$\times$64 ReRAM crossbars, 4-bit SAR ADCs, 1-bit DAC drivers, diode-based activation circuits, and a lightweight MCU controller. 
+Figure~\ref{fig:software} illustrates how training hyperparameters (accuracy, loss, and $\gamma$ regularization) evolve when the network is exposed to non-ideal analog conditions. 
+The tile-level MeF-RAM is chosen for its nonvolatility and lower write energy compared to spin-based alternatives~\cite{angizi2021mef, sanjeet2024mefet, najafi2024hybrid, morsali2023design, usas}, 
+which is beneficial for intermittent power scenarios; the slight increase in memory area is offset by its high read/write efficiency. 
+Each ReRAM crossbar performs in-situ analog MAC operations on 4-bit weights, leveraging the inherent parallelism of the memristor array. 
+The Schottky diodes enable ReLU-like activation directly in the analog voltage domain, reducing frequent analog-to-digital conversions. 
+In Cadence Virtuoso~\cite{cadence_virtuoso} and Spectre~\cite{cadence_spectre} simulations (with a 65\,nm CMOS node~\cite{torki_65nm_pdk}), the diode exhibits a barrier height near 0.34\,eV, 
+with careful tuning of doping and contact area achieving a forward drop around 0.15\,V and a leakage current on the order of 5\,nA, 
+thus enabling fast, low-voltage switching. 
+The 4-bit SAR ADCs operate at up to 400\,MSps with approximately 2.5\,ns conversion delay, while the 1-bit input DACs, being simpler, contribute negligible delay~\cite{shafiee2016isaac, chi2016prime}. 
+This system-level integration allows two consecutive layers to be computed in analog, saving one ADC/DAC cycle for every pair of layers. 
+After extensive IR-drop and diode-drop modeling in software, we find that processing more than two consecutive layers often necessitates additional analog buffering or an amplification stage to maintain accuracy. 
+By limiting to two analog layers, we achieve an average latency reduction of around 25\% across all tested models, 
+as shown in Figure~\ref{fig:pipelineLatency}, where the bars highlight the skip of MCU intervention and data converter overhead on alternating layers. 
+Table~\ref{tab:DesignComponents} also lists the total power budget of 150--300\,mW; 
+the dominant contributors are the crossbars and ADCs during simultaneous tile activity, 
+though scheduling can mitigate peak loads. 
+In scenarios where large models must be swapped in, weight programming consumes on the order of hundreds of picojoules per cell~\cite{IMBNature}, 
+but these costs are typically amortized across many inferences, especially in deployment where the model remains static for extended periods.
+
+\begin{figure*}[]
+\centering
+\begin{subfigure}[t]{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth, height=1in]{NewResultFigs/model_accuracy_final.pdf}
+    \caption{Tiny ImageNet Classification accuracy comparison.}
+    \label{fig:accuracy_comparison}
+\end{subfigure}%
+\hfill
+\begin{subfigure}[t]{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth, height=1in]{NewResultFigs/power_efficiency_comparison.pdf}
+    \caption{Power efficiency comparison (GOps/W) across different models.}
+    \label{fig:power_efficiency}
+\end{subfigure}%
+\vskip\baselineskip
+\begin{subfigure}[t]{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth, height=1in]{NewResultFigs/crossbar_utilization_comparison.pdf}
+    \caption{xBar utilization rate comparison (\%).}
+    \label{fig:xbar_utilization}
+\end{subfigure}%
+\hfill
+\begin{subfigure}[t]{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth, height=1in]{NewResultFigs/accuracy_vs_noise_trend.pdf}
+    \caption{{Noise vs Accuracy at different SNR for MicroNet.}}
+    \label{fig:noise_impact}
+\end{subfigure}
+\vspace{-8pt}
+\caption{Evaluations on publicly-available models, datasets, and benchmarks.}
+\label{fig:combined_benchmarks}
+\end{figure*}
+
+\vspace{-16pt}
+\subsection{Software Implementation}
+\label{sec:evalImplementationSW}
+Our software stack focuses on integrating the diode-based activation function and IR drop modeling into the training process. We use the PyTorch~\cite{Pytorch} framework 
+for dynamic computation graphs and flexible custom layers.
+
+\noindent\textbf{Implementation of Diode-Based Activation:} 
+We implement a custom PyTorch module for the diode-based ReLU. 
+In the forward pass, the piecewise linear function (Equation~\ref{eq:diode-activation}) is evaluated, 
+where \(V_{\text{th}}\) and \(\alpha\) are sampled from normal distributions each iteration, simulating hardware variability. 
+We subclass \texttt{torch.autograd.Function}~\cite{torch_autograd_function} to ensure correct autodiff flow. Figure~\ref{fig:loss} shows an example training run with these custom modules.
+
+\noindent\textbf{Incorporation of IR Drop Factors:} 
+Layer-wise attenuation \(\gamma^{(l)}\) modifies activations post-diode. Either pre-characterized IR-drop tables or random sampling can be used to handle manufacturing or environmental variability. Figure~\ref{fig:gamma} illustrates how \(\gamma^{(l)}\) converges during training.
+
+\noindent\textbf{Quantization-Aware Training (QAT):} 
+{
+Whenever two layers are computed in analog consecutively, 
+we apply a 4-bit quantization step at the output of the second layer to simulate the real ADC rounding. This ensures that our model is robust to the $\pm \tfrac{1}{2}\Delta$ quantization error introduced in hardware.}
+
+\noindent\textbf{Code and Modifications:} 
+We make minimal changes to the PyTorch core libraries, mainly extending \texttt{ toch.autograd.Function} for the custom activation and IR drop modules. Our entire implementation (data loaders, model definitions, training loops, evaluation) is about 2,500 lines of Python code, ensuring maintainability and compatibility.
+
+\subsection{Evaluation on Public Benchmarks}
+\label{sec:evalBenchmarking}
+We evaluate our approach on five networks trained at 4-bit precision (Q4): MobileNetV3-Small~\cite{mobilenetv3}, EfficientNet-Lite0~\cite{Efficientnet}, MicroNet~(M0)~\cite{micronet}, MCUNet~\cite{mcunet}, and MobileViT-XXS~\cite{mobilevit}. 
+For reference, we also include Q8 or Q4 baselines where available. 
+Our experiments compare both accuracy and hardware metrics to several ReRAM-based or analog PIM platforms—ISAAC~\cite{shafiee2016isaac}, ResiRCA~\cite{qiu2020resirca}, Nebula~\cite{singh2020nebula}, HARDSEA~\cite{hardsea}, 
+and RedEye~\cite{RedEye2020}—focusing on power efficiency (Figure~\ref{fig:power_efficiency}), xBar utilization (Figure~\ref{fig:xbar_utilization}), 
+and robustness under noise (Figure~\ref{fig:noise_impact}). The chosen models span a range of parameter sizes, layer shapes, and computational footprints suitable for resource-constrained deployment.
+
+\noindent
+\textbf{Accuracy and Model Variants.} 
+Figure~\ref{fig:accuracy_comparison} shows top-1 classification accuracy for each network under various baseline quantizations (FP16, Q8, Q4), along with “LeCA”~\cite{ma2023leca} from prior work~\cite{ma2023leca}, 
+and our diode-based activation (DA) both with and without noise-aware (NA) training. 
+In MobileNetV3-Small, the FP16 and Q8 baselines achieve 67.4\% and 64.9\% accuracy, while Q4 dips to 62.1\%. 
+Our diode-based pipeline alone scores 59.82\%, but adding noise-aware training recovers performance to 61.77\%; an MCU-based refinement phase adds a slight boost to 61.98\%. 
+Although these remain marginally below the vanilla Q4 baseline, the overall system power efficiency (Section~\ref{sec:SystemIntegration}) is significantly enhanced. 
+For EfficientNet-Lite0, Q4 baseline accuracy is 71.9\%; our DA+NA approach reaches 71.02\%, and an MCU post-processing step yields 71.78\%. 
+Similar trends appear with MicroNet~(M0) and MCUNet, where the diode activation alone degrades accuracy by about 2–3\%, but noise injection narrows this gap to under 1\%. 
+Despite slight reductions relative to the pure Q4 software baseline, these hardware-oriented compromises retain acceptable accuracy within an ultra-low-power envelope. 
+We also evaluate MobileViT-XXS, finding that DA+NA recovers most of the Q4 baseline accuracy (65.25\% vs.\ 66.2\%). 
+The net result is that diode-based analog layers, combined with noise-aware training, can closely match the standard 4-bit baseline while reducing overhead from repeated ADC/DAC conversions.
+
+\noindent
+\textbf{Power Efficiency.} 
+Figure~\ref{fig:power_efficiency} compares the achieved giga-operations per watt (GOps/W) across five different hardware platforms and our design. 
+MobileNetV3-Small sees an efficiency of 196.70\,GOps/W with our approach, exceeding Nebula and HARDSEA by a modest margin (around 2--3\%) 
+and surpassing ISAAC’s 152\,GOps/W by roughly 29\%. 
+EfficientNet-Lite0 further highlights the energy advantages of our design, reaching 225.93\,GOps/W, about 50\% higher than ISAAC and 21\% above Nebula. 
+Interestingly, MicroNet~(M0) yields 175.88\,GOps/W on our platform, which is lower than the 190\,GOps/W reported by HARDSEA; 
+we attribute this to MicroNet’s comparatively small and irregular layer shapes that underutilize the two-layer analog pipeline, suggesting that dedicated tile-level scheduling can mitigate some inefficiencies. 
+By contrast, MCUNet (240.2\,GOps/W) and MobileViT-XXS (228.9\,GOps/W) both exhibit stronger gains, indicating that deeper or more uniform model structures benefit more from our fused analog-layer approach.
+
+\noindent
+\textbf{xBar Utilization.} 
+Figure~\ref{fig:xbar_utilization} reports average crossbar utilization across all network layers for each architecture. 
+Our system maintains between 81\% and 96\% utilization, reflecting the tile-level scheduling that overlaps computation effectively. 
+In MobileNetV3-Small, we reach 89.59\% utilization, surpassing ISAAC and Nebula by 7.2\% and 4.4\%, respectively. 
+For MicroNet~(M0), we observe up to 96.18\% utilization, outperforming the nearest baseline (ResiRCA) by about 1.07\%. 
+One exception is MobileViT-XXS, where HARDSEA slightly edges us out (87.14\% vs.\ 85.99\%). 
+We find that certain skip connections and layer partitioning in MobileViT reduce concurrency opportunities, so exploring more fine-grained scheduling or dataflow tiling could further boost utilization.
+
+\noindent
+\textbf{Noise Robustness.}
+Figure~\ref{fig:noise_impact} plots classification accuracy vs.\ SNR for four architectures (ResiRCA, Nebula, RedEye, and ours). 
+At 10\,dB, our design attains 58.33\%, surpassing RedEye and Nebula by over 3\% and ResiRCA by more than 11\%. 
+As SNR increases to 60\,dB, we approach 64.43\%, maintaining a consistent lead. 
+This resilience stems from explicit noise injection during training, combined with analog activations that the network learns to handle. 
+Although the gap narrows at higher SNR, the stability at low SNR highlights the advantage of modeling real analog variation in the training loop.
+
+\noindent
+\textbf{Discussion and Takeaways.}
+Across these five DNNs, our analog pipeline yields both strong power efficiency and near-parity accuracy compared to a pure Q4 digital baseline. 
+While certain model types exhibit a small accuracy penalty due to diode forward drop and IR-drop accumulation, 
+careful integration of noise-aware training mitigates much of that loss. 
+For networks with more uniform layer shapes (EfficientNet-Lite0, MCUNet), we see especially high efficiency gains, 
+whereas specialized designs like HARDSEA can outperform us in smaller or irregular topologies like MicroNet~(M0). 
+Overall, these results confirm that combining a diode-based analog datapath with hardware-aware training yields an effective strategy for deploying DNNs under stringent power budgets, 
+while still preserving the accuracy necessary for many real-world edge tasks.
+
+
+\begin{figure}[]
+\centering
+\includegraphics[width=\linewidth]{figs/samples.pdf}
+\caption{Sample images from the NTLNP dataset.\vspace{-10pt}}
+\label{fig:sample}
+\end{figure}
+
+\begin{figure*}[htbp]
+\centering
+\begin{subfigure}[t]{0.32\linewidth}
+    \centering
+    \includegraphics[width=\linewidth, height=1in]{NewResultFigs/power_efficiency_comparison_updated.pdf}
+    \caption{Power efficiency comparison (GOps/W).}
+    \label{fig:power_efficiency_case_study}
+\end{subfigure}%
+\hfill
+\begin{subfigure}[t]{0.32\linewidth}
+    \centering
+    \includegraphics[width=\linewidth, height=1in]{NewResultFigs/crossbar_utilization_updated.pdf}
+    \caption{Accuracy comparison.}
+    \label{fig:accuracy_case_study}
+\end{subfigure}%
+\hfill
+\begin{subfigure}[t]{0.32\linewidth}
+    \centering
+    \includegraphics[width=\linewidth, height=1in]{NewResultFigs/Accuracy_vs_noise_EH.pdf}
+    \caption{Classification accuracy at different SNRs.}
+    \label{fig:classification_accuracy_snr_case_Study}
+\end{subfigure}
+\vspace{-8pt}
+\caption{Performance and accuracy evaluation on the NTLNP dataset under energy harvesting conditions.}
+\label{fig:combined_case_study}
+\end{figure*}
+
+
+\subsection{A Case Study: Wildlife Monitoring under Energy Harvesting}
+\label{sec:evalCaseStudy}
+This case study highlights the advantages of our analog hardware design for wildlife monitoring in remote, energy-harvesting conditions. We use the Northeast Tiger and Leopard National Park (NTLNP) dataset~\cite{ntlnpdataset, tan2022animal, ntlnprepo}, which contains over 25,000 infrared-camera images of 17 different species (including Amur tigers, leopards, and bears) with variations in lighting, occlusions, and weather. Such challenging conditions amplify the need for ultra-low-power hardware that can sustain reliable inference despite intermittent power and analog noise.
+
+\noindent\textbf{Importance of the Problem:} Deploying AI models for wildlife monitoring in remote locations requires hardware that is not only energy-efficient but also capable of operating under variable power conditions, such as those provided by energy harvesting sources (e.g., solar panels). Traditional digital hardware may consume too much power or lack the robustness needed for such environments. Our analog neural network hardware is well-suited for this application due to its ultra-low-power consumption, high computational efficiency, and resilience to hardware non-idealities, making it ideal for deployment in energy-harvesting systems.
+
+\noindent\textbf{Models and Implementation:} We fine-tuned MobileNetV3-Small, EfficientNet-Lite0, MicroNet (M0) and MCUNet, on the NTLNP dataset, to perform image classification tasks. These models vary in complexity, allowing us to assess the performance of our hardware across different computational demands. The models were trained using our hardware-aware training process, incorporating diode-based activation functions and IR drop modeling to enhance robustness and accuracy when deployed on analog hardware.
+
+\noindent\textbf{Energy-Harvesting Scenario:} The computation was powered by solar energy traces obtained from the NOAA SOLRAD database~\cite{solrad}. This setup simulates a realistic energy harvesting environment, where the available power fluctuates throughout the day as a result of changes in solar irradiance. 
+
+\noindent\textbf{Hardware Changes:} To cater towards the variable power budget, we include a power predictor~\cite{qiu2020resirca, usas} that indicates the control block to augment power-aware scheduling~\cite{usas}. To further enhance computation efficiency, a loop-tiling based computation decomposition technique~\cite{qiu2020resirca} was used to maximize the forward progress with minimum energy.
+
+\noindent\textbf{Results Discussion: }Figure~\ref{fig:power_efficiency_case_study} compares power efficiency (GOps/W) against ResiRCA and RedEye. Our design consistently outperforms the baselines, particularly in variable solar conditions that degrade efficiency in conventional platforms. For MCUNet, we achieve 228.56\,GOps/W versus 136\,GOps/W on ResiRCA and 38\,GOps/W on RedEye; this near twofold improvement stems from our analog pipeline’s reduced ADC/DAC overhead and robust scheduling under fluctuating power. Similar gains appear in EfficientNet-Lite0, where we reach 225.93\,GOps/W compared to ResiRCA’s 134.87\,GOps/W. MobileNetV3-Small operates at 166.70\,GOps/W, also exceeding ResiRCA under these constrained conditions.
+
+Figure~\ref{fig:accuracy_case_study} shows final classification accuracy on the NTLNP dataset. Our 4-bit implementation surpasses both the 8-bit and 4-bit variants of ResiRCA, as well as RedEye. For MobileNetV3-Small, we obtain 95.8\% accuracy compared to 90.6\% in ResiRCA (Q4) and 88.75\% in RedEye; EfficientNet-Lite0 improves to 88.1\% versus 83.2\% (Q4 ResiRCA) and 82.04\% (RedEye). Despite operating under low precision and fluctuating voltage supplies, the network adapts to analog imperfections through diode-aware and noise-aware training. We observe similar trends in MicroNet (82.06\% vs.\ 77.56\%) and MCUNet (76.1\% vs.\ 72.2\%), indicating that even smaller-edge architectures benefit from our method.
+
+Figure~\ref{fig:classification_accuracy_snr_case_Study} plots accuracy versus SNR for two representative networks, EfficientNet-Lite0 and MCUNet. At 10\,dB, the former retains 70.40\% accuracy, rising to 86.80\% by 60\,dB. MCUNet starts at 51.80\% accuracy under heavy noise (10\,dB) but converges to 74.10\% at 60\,dB. Such resilience under low SNR highlights the importance of explicitly modeling analog noise and IR drops in the training loop. Baseline methods, which do not incorporate hardware-aware noise injection or diode-level variations, experience more severe degradation when voltage fluctuations and intermittent power exacerbate analog errors.
+Compared to traditional benchmarking under fixed power, these energy-harvesting experiments reveal the unique advantages of hardware-aware analog computing. By designing for intermittent power from the outset, our system avoids the steep performance losses that conventional digital or partially analog architectures face under dynamic supply constraints. The reduced conversion overhead, combined with analog resilience to noise, enables steady performance across diurnal cycles. This makes our approach well-suited for continuous field monitoring of wildlife habitats, where reliability and energy autonomy are paramount.
+
+\begin{table}[]
+\centering
+\begin{tabular}{lcccc}
+\hline
+& \multicolumn{2}{c}{\textbf{DistilBERT-Tiny}} & \multicolumn{2}{c}{\textbf{ViT-Micro}} \\
+\textbf{Precision} & ReLU & Diode & ReLU & Diode \\
+\hline
+\textbf{FP32}  & 93.2 & 93.0 & 72.1 & 71.9 \\
+\textbf{FP16}  & 93.0 & 92.8 & 71.9 & 71.7 \\
+\textbf{INT16} & 92.7 & 92.5 & 71.3 & 71.2 \\
+\textbf{INT8}  & 92.1 & 91.8 & 70.6 & 70.3 \\
+\hline
+\end{tabular}
+\caption{{Accuracy (\%) on two small transformer models---DistilBERT-Tiny (GLUE) and ViT-Micro (Tiny-ImageNet)
+%---under different quantizations.
+}
+\vspace{-16pt}
+\label{tab:transformerAcc1}
+}
+\vspace{-8pt}
+\end{table}
+
+\subsection{Extending to Small Transformer Models}
+\label{sec:transformerEval}
+{
+Motivated by the recent PIM based works on transformers~\cite{wolters2024memory, guo2024towards, yang2020retransformer}, we evaluated our analog activation for small-scale transformers in natural language and vision tasks. We substituted ReLU with our diode-based function in \textit{DistilBERT-Tiny}~\cite{jiao2019tinybert}, a 4-layer language model evaluated on the GLUE benchmark~\cite{wang2018glue} (with a hidden dimension of 256), and in \textit{ViT-Micro}~\cite{setyawan2025microvit}, a 4-block vision transformer on Tiny-ImageNet~\cite{le2015tiny} (with 6 attention heads of dimension 192).}
+
+{
+After replacing the ReLU activations, we fine-tuned each transformer under various quantization levels, including floating-point 32-bit (\textbf{FP32}), floating-point 16-bit (\textbf{FP16}), and integer fixed-point precision at 16-bit (\textbf{INT16}) and 8-bit (\textbf{INT8}). Table~\ref{tab:transformerAcc1} summarizes the test accuracies before and after inserting our diode-based activation. Overall, the accuracy drop compared to ReLU is minimal: in both DistilBERT-Tiny and ViT-Micro, diode-based activations achieve results within $0.5\%$ of ReLU even at INT8 precision. Moreover, swapping ReLU for diode activation did not necessitate major architecture changes or specialized hyperparameters; both models adapted effectively over 5--10 additional fine-tuning epochs.
+}
+
+{
+These findings suggest that the proposed analog diode-based activation can extend beyond CNNs to small transformer models for both language and vision tasks, preserving accuracy under moderate or strict quantization. Our future work aims to investigate deeper transformer configurations (12--24 layers) to further validate our robustness of our proposed method for advanced transformers.
+}
+%%%%% %%%%% %%%%%

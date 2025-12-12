@@ -1,0 +1,34 @@
+\begin{algorithm}
+\caption{Energy-Aware Priority Scheduling Algorithm}
+\begin{algorithmic}[1]
+\Require Set of tasks $\mathcal{T} = \{ T_1, T_2, \dots, T_N \}$ with parameters $E_i$, $\tau_i$, $p_i$, $D_i$, $c_i$; Energy availability function $E_b(t)$
+\Ensure Schedule $\{ s_i, x_i \}$ for tasks
+\State Initialize current time $t \leftarrow 0$
+\While{there are unscheduled tasks in $\mathcal{T}$}
+    \State Update available energy $E_b(t)$ from DynAgent
+    \State Identify schedulable tasks $\mathcal{C} \subseteq \mathcal{T}$ where for each $T_i \in \mathcal{C}$:
+    \begin{itemize}
+        \item All predecessor tasks are completed
+        \item $t + \tau_i \leq D_i$ \hfill \textit{// Deadline constraint}
+        \item $E_i \leq E_b(t)$ \hfill \textit{// Energy constraint}
+        \item Resource constraints are satisfied
+    \end{itemize}
+    \If{$\mathcal{C}$ is not empty}
+        \For{each task $T_i$ in $\mathcal{C}$}
+            \State Compute effective priority:
+            \[
+            P_i^{\text{eff}} = \frac{p_i}{E_i} \times \phi_i
+            \]
+            where $\phi_i = \left( 1 + \frac{D_{\max} - D_i}{D_{\max}} \right) \times c_i$
+        \EndFor
+        \State Select task $T_k$ with the highest $P_i^{\text{eff}}$
+        \State Schedule task $T_k$: set $s_k \leftarrow t$, $x_k \leftarrow 1$
+        \State Update available energy: $E_b(t) \leftarrow E_b(t) - E_k$
+        \State Update current time: $t \leftarrow t + \tau_k$
+    \Else
+        \State Wait until energy is harvested or tasks become schedulable
+        \State Increment time $t \leftarrow t + \Delta t$
+    \EndIf
+\EndWhile
+\end{algorithmic}
+\end{algorithm}

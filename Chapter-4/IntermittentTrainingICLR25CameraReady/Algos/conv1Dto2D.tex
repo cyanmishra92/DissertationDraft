@@ -1,0 +1,21 @@
+\begin{algorithm}[h]
+%\caption{Implementing Depth-wise Separable Convolution - DWSConv2D() using CONV1D ()}
+\begin{algorithmic}[1]
+\STATE \textbf{Function} DWSepConv2D($inputMatrix$, $DWsKernels$, $PtWsKernel$, $outputMatrix$):
+\STATE \quad Initialize $DWsOutput$ with zero values, same shape as $inputMatrix$
+\STATE \quad \# Depth-wise Separable (DWs) convolution
+\STATE \quad \textbf{for} $c \leftarrow 0$ \textbf{to} $channels(inputMatrix) - 1$:
+\STATE \quad \quad CONV2D($inputMatrix[c]$, $DWsKernels[c]$, $DWsOutput[c]$)
+\STATE \quad \# Point-wise (PtWs) convolution
+\STATE \quad Initialize $finalOutput$ with zero values, with shape [rows($DWsOutput$), cols($DWsOutput$), channels($PtWsKernel$)]
+\STATE \quad \textbf{for} $i \leftarrow 0$ \textbf{to} $rows(DWsOutput) - 1$:
+\STATE \quad \quad \textbf{for} $j \leftarrow 0$ \textbf{to} $cols(DWsOutput) - 1$:
+\STATE \quad \quad \quad \textbf{for} $k \leftarrow 0$ \textbf{to} $channels(PtWsKernel) - 1$:
+\STATE \quad \quad \quad \quad Initialize $PtWsSum \leftarrow 0$
+\STATE \quad \quad \quad \quad \textbf{for} $c \leftarrow 0$ \textbf{to} $channels(DWsOutput) - 1$:
+\STATE \quad \quad \quad \quad \quad $PtWsSum \leftarrow PtWsSum + DWsOutput[c][i][j] \times PtWsKernel[c][k]$
+\STATE \quad \quad \quad \quad $finalOutput[i][j][k] \leftarrow PtWsSum$
+\end{algorithmic}
+%\caption{Converting CONV1D to DWSConv2D}
+%\label{conv1D2conv2D}
+\end{algorithm}

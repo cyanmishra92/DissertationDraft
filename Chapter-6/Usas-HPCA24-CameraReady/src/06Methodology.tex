@@ -1,0 +1,451 @@
+%\subsection{Experimental Setup}
+We  focus our evaluation on urban mobility, i.e. performing {\em single shot} object detection for traffic monitoring using the \textbf{MobileNetV2}~\cite{mobilenetv2} model on the urban traffic data set~\cite{UrbanTraffic}. This is a traffic video dataset containing 62GB of videos recorded from five pole-mounted fish-eye cameras in the city of Bellevue, WA, USA. Each video stream is recorded  with a resolution of $1280 \times 720$ at 30fps. This contains a total of 101 hour of video across all cameras of which 30 hours of video is used to fine-tune the teacher models and the rest 71 hours of data is used to evaluate our continuous learning solution. For annotating the incoming video stream we use three teachers models, namely, ResNet101~\cite{resnet}, YOLOV2~\cite{yolo2}, and VGG16~\cite{VGG}. For sustainability, we use solar power to perform our compute. Since our dataset is from Bellevue, WA, we took the SOLRAD  solar radiation data~\cite{SOLRAD}
+(managed and published by National Oceanic and Atmospheric Administration, NOAA) 
+%\footnote{The SOLRAD Network is for monitoring surface radiation in the continental United States, in collaboration with NOAA's SURFRAD SURFace RADiation Budget Measurement Network.}
+of Seattle, WA (the SOLRAD center closest to Bellevue and hence we believe is a good approximation). 
+%\textcolor{blue}
+{In our experiments we assume the hardware to be powered by a solar panel of one square-meter, and the powers are scaled accordingly (data is available as $W/m^2$).} Finally, we assume the exact same setup of the Urban traffic dataset and hence have 5 different MobileNetV2 models trying to classify the traffic they are facing, and learning from the streaming data. We vary the training intervals to see the effect of frequency of retraining. 
+
+\noindent\underline{\textbf{Existing Approaches:}}  Although there has been significant research~\cite{resiRCA,chinchilla,Origin,footprint,intNAS, stateful, more, intermittentLearning} on enabling machine learning in intermittently powered devices, a majority of it focuses on performing inference. Only intermittent learning~\cite{intermittentLearning} focuses on performing on-device training, but with very small workloads and models. Considering the scale, scope and workload of our problem, limits direct comparisons, except for comparing their exemplar selection method (refer Fig.~\ref{Fig:teachers}). Similarly, Ekya~\cite{ekya} only focuses on co-location of computation, and it's efficiency on finishing compute even on custom hardware is shown in Fig.~\ref{Fig:DVFSPrim}.
+
+\subsection{Continuous Learning: Accuracy}
+Fig.~\ref{Fig:AccRL} shows the accuracy improvement 
+%\textcolor{blue}
+{over a time window of 8 hours} by using the continuous learning algorithm. We compare against a baseline using na\"ive continuous learning algorithm with no representation learning. In contrast, $\USS$ uses a 2 level exemplar selection algorithm (one using the confidence matrix, and then further refined by the representation learning). We observe that, with representation learning, $\USS$ is $\approx$$4.94\%$ (maximum $\approx$$8.03\%$, and minimum $\approx$$2.62\%$) more accurate than the na\"ive learner. Further, $\USS$ converges closer to the accuracy of the teacher model. This was possible by restricting the training space and by using the superior exemplar set construction by using representation learning. 
+
+\begin{figure}[t]
+  \centering 
+\includegraphics[trim={0 2mm 0 0},clip,width=\linewidth]{figs/AccRL.pdf}
+  %\vspace{-12pt}
+  \caption{
+  %\textcolor{blue}
+  {Accuracy boost due to proper exemplar selection over 8 hours of time window. Labels:
+  MN -- MobileNet-V2, BL -- Baseline, Teacher -- the ensemble of teacher models, MN--\#: targeted MobileNet-V2 model for the particular time of day.}}
+  \label{Fig:AccRL}
+  %%\vspace{-8pt}
+\end{figure}
+Fig.~\ref{fig:microProf} shows the impact of micro-profiling on the hyper parameter selection. Due to the drift- and weighted accuracy-aware micro-profiler, the suggested configuration is almost every time the same as an oracular selection. Fig.~\ref{Fig:Layers} shows the number of layers trained for a DNN, in contrast to the ideal number of layers to achieve maximum accuracy. Over 10 training iterations, we observed the micro-profiler to be consistent with the oracle (except for one case of iteration 7). Note that the hyperparameter selected in iteration 7 by the micro-profiler performs as good as the the oracle model in terms of achieving accuracy, albeit by performing more computation. A deep dive into $7^{th}$ iteration reveals that the micro-profiler chose a higher learning rate (compared to the oracle), which biased the convergence curve fitting and extrapolation (as discussed in \S\ref{sec:HP}) and hence suggested a larger number of layers to be trained to achieve the required convergence. Similarly, the micro-profiler shows consistent behaviour while choosing the right number of batches. Fig.~\ref{Fig:Config} also shows the error rate of retraining performed by choosing the hyperparameters given by the micro-profiler vs an oracle selection. Observation over 40 hours of continuous learning on the dataset suggest that the micro-profiler has, on average, an accuracy deviation of $2.46\%$, compared to an oracle parameter selection. Along with that, the micro-profiler selects correct batch size $82.64\%$ of the time and the correct number of layers for $87.06\%$ of the time.  
+
+% \begin{figure*} 
+%  \centering
+%     \subfloat[Number of layers trained.]
+%     {
+%      \includegraphics[width=0.24\textwidth, height = 3cm]{figs/4.pdf}%
+%     \label{Fig:Layers}
+%     }
+%     \subfloat[Batch-size and convergence.]
+%     {
+%      \includegraphics[width=0.24\textwidth,height = 3cm]{figs/5.pdf}%
+%     \label{Fig:Config}
+%     }
+%     \subfloat[Exemplar selection w.r.t. training.]
+%     {
+%      \includegraphics[width=0.24\textwidth,height = 3cm]{figs/6.pdf}%
+%     \label{Fig:ExTr}
+%     }
+%     {
+%      \includegraphics[width=0.24\textwidth,height = 3cm]{figs/genze.pdf}%
+%     \label{Fig:gen}
+%     }
+%     %\vspace{-8pt}\caption{Micro-profiling configuration selection and their performance against oracle.}
+%     \label{fig:microProf}%\vspace{-16pt} 
+% \end{figure*}
+
+\begin{figure} 
+ \centering
+    \subfloat[Number of layers trained.]
+    {
+    \includegraphics[width=\linewidth]{figs/4.pdf}%
+    %\vspace{-6pt}
+    \label{Fig:Layers}
+    }
+    
+    \subfloat[Batch-size and convergence.]
+    {
+    \includegraphics[width=\linewidth]{figs/5.pdf}%
+    %\vspace{-6pt}
+    \label{Fig:Config}
+    }
+    
+    \subfloat[Exemplar selection w.r.t. training.]
+    {
+    \includegraphics[width=\linewidth]{figs/6.pdf}%
+    %\vspace{-6pt}
+    \label{Fig:ExTr}
+    }
+    %  {
+     
+    % \includegraphics[width=0.45\textwidth]{figs/genze.pdf}%
+    % \label{Fig:gen}
+    % }
+    %\vspace{-8pt}
+    \caption{Algorithmic performance of $\USS$: the benifits of the exemplar selection and $\mu$-profiler.}
+    \label{fig:microProf}%\vspace{-16pt} 
+\end{figure}
+
+% \begin{figure} 
+%  \centering
+%     \subfloat[Number of layers trained.]
+%     {
+%     \includegraphics[width=0.8\linewidth]{figs/4.pdf}%
+%     %\vspace{-6pt}
+%     \label{Fig:Layers}
+%     }
+    
+%     \subfloat[Batch-size and convergence.]
+%     {
+%     \includegraphics[width=0.8\linewidth]{figs/5.pdf}%
+%     %\vspace{-6pt}
+%     \label{Fig:Config}
+%     }
+    
+%     \subfloat[Exemplar selection w.r.t. training.]
+%     {
+%     \includegraphics[width=0.8\linewidth]{figs/6.pdf}%
+%     %\vspace{-6pt}
+%     \label{Fig:ExTr}
+%     }
+%     % {
+%     %  \includegraphics[width=0.24\textwidth]{figs/genze.pdf}%
+%     % \label{Fig:gen}
+%     % }
+%     %\vspace{-8pt}\caption{Algorithmic performance of $\USS$: the benifits of the exemplar selection and $\mu$-profiler.}
+%     \label{fig:microProf}
+%     %%\vspace{-16pt} 
+% \end{figure}
+
+
+\begin{table}
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{|l|c|c|c|} 
+\hline
+Component & Spec & Power & Area(mm\textsuperscript{2}) \\ 
+\hline
+SRAM Buffers & \begin{tabular}[c]{@{}c@{}}1kB*256+8kB*256+64kB+16*256kB\end{tabular} & 10.372W & 117.164 \\ 
+\hline
+MAC Unit & \begin{tabular}[c]{@{}c@{}}(8*8)*256\end{tabular} & 8.46W & 32.72 \\ 
+\hline
+\begin{tabular}[c]{@{}l@{}}Adder Tree and Comparator\end{tabular} & 16*16bit + 256 & 2.4W & 21.556 \\ 
+\hline
+Control & -- & 0.96W & 12.2 \\ 
+\hline
+Host & $\sim$Cortex A78 series & 11W & -- \\ 
+\hline
+\multicolumn{4}{|c|}{Design at 592MHz with~Synopsys AED 32nm library} \\ 
+\hline
+\multicolumn{1}{|c|}{\textbf{Total}} & 256 tiles & 33.192W & 183.64 \\
+\hline
+\end{tabular}
+}
+%\vspace{-4pt}
+\caption{Area and power estimation of our design.}
+\label{tab:specs}
+%%\vspace{-20pt}
+\end{table}
+
+\subsection{Impact on Exemplar Selection}
+$\USS$ benefits from the use of {\em multiple}  teacher models for data annotation and exemplar selection. Prior works on intermittent learning have either chosen one teacher model (e.g. Ekya~\cite{ekya} using ResNeXt101) to annotate the data or used a heuristic on top of the teacher model (e.g. intermittent learning~\cite{intermittentLearning} using randomized selection, K--Last List, or round-robin policy). As shown in Fig.~\ref{Fig:teachers}, a single teacher, even with the augmented heuristics, typically fails to select the right exemplar set. The exemplar set significantly impacts the accuracy in two ways: 1. missing valid exemplars will result in the student model missing out in learning vital information, increasing its drift, and 2. a wrong annotation by the teacher can also result in the student learning wrong labels, resulting in increased mis-predictions. To avoid this, in $\USS$,  the teacher models perform majority voting to decide the right exemplar, which significantly reduces false positives and true negatives (refer to the top bar in Fig.~\ref{Fig:teachers}: with the ensemble, the best case annotation is the ideal one with only 2 false positives). Furthermore, the feature extraction for each of the potential exemplars for the teacher model is hardware-assisted (\S\ref{subsec:HWEval}), and hence poses no overhead to the inference task. 
+
+\begin{figure}[!ht]
+  \centering 
+\includegraphics[trim={0 4 0 0},clip, width=\linewidth]{figs/teachers3.pdf}
+  %\vspace{-4pt}
+  \caption{Impact of multiple teachers on exemplar selection. X-axis shows \#exemplars/100 inferred frames over a 2hr window. Having an ensemble provides robust exemplar selection and  improves accuracy over a single teacher. The X-Axis has different DNNs , R: ResNeXt101, T: YOLO-V3, V: VGG-16, IL: Intermittent Learning, RR: Round Robin.}
+  %\vspace{-10pt}
+  \label{Fig:teachers}
+\end{figure}
+\subsection{Hardware Implementation and Evaluation}
+\label{subsec:HWEval}
+The proposed morphable hardware was simulated using an in-house simulator based on ScaleSim~\cite{scalesim}. We included a wrapper around ScaleSim to {\em dynamically} change the configuration of the systolic array. Further, the simulator was integrated with CACTI~\cite{cacti} and DRAMSIM3~\cite{dramsim3} to estimate access latency, power, and simulate the memory access pattern. Rather than including a cycle accurate CPU (host) simulator to orchestrate the compute, we used a simple program to act as proxy for the host CPU and send control signals to schedule and orchestrate the compute on the systolic array. To correctly estimate accelerator power and area, we implemented a register-transfer level model using System Verilog and synthesized using Synopsys Design Compiler~\cite{SynDC} with a 32nm library~\cite{SAED32}. Table~\ref{tab:specs} lists the estimated power consumption and area of the major components. Instead of simulating the CPU, we tested the K-means clustering and cluster optimization on a mobile SoC with $8\times$ ARM Cortex A78 series CPU. Table~\ref{tab:comp} gives the key attributes of the implemented hardware against some of the prior accelerators. Note that $\USS$ hardware is not outperforming any of them as the goal was greater {\em scheduling flexibility} for power tracking rather than performance or area.
+\begin{figure}[!ht] 
+ \centering
+    \subfloat[Contribution of components on video data]
+    {
+     %\includegraphics[trim={2mm 0 6mm 0},width=0.3\linewidth, height=2.2cm]{figs/contri.pdf}%
+     \includegraphics[trim={0 12pt 0 0},width=\linewidth]{figs/contri.pdf}%
+     %\vspace{-4pt}
+    \label{Fig:contri}
+    }
+    
+    \subfloat[$\USS$ beyond video data]
+    {
+     \includegraphics[width=\linewidth]{figs/genrl.pdf}%
+     %\vspace{-4pt}
+    \label{Fig:genrl}
+    }
+    
+    \subfloat[$\USS$ hardware - different data and energy]
+    {
+     \includegraphics[width=\linewidth]{figs/Sens.pdf}%
+     %\vspace{-4pt}
+    \label{Fig:Sens}
+    }
+    %\vspace{-4pt}
+    \caption{Contribution of different components of $\USS$ on other applications, data modalities, and power environments.}
+    \label{fig:beyond}  
+    %\vspace{-16pt}
+\end{figure}
+
+
+% \begin{figure*}[!ht] 
+%  \centering
+%     \subfloat[Contribution of components on video data]
+%     {
+%      %\includegraphics[trim={2mm 0 6mm 0},width=0.3\linewidth, height=2.2cm]{figs/contri.pdf}%
+%      \includegraphics[trim={0 12pt 0 0},width=0.3\linewidth]{figs/contri.pdf}%
+%      %\vspace{-4pt}
+%     \label{Fig:contri}
+%     }
+%     \subfloat[$\USS$ beyond video data]
+%     {
+%      \includegraphics[width=0.3\linewidth]{figs/genrl.pdf}%
+%      %\vspace{-4pt}
+%     \label{Fig:genrl}
+%     }
+%     \subfloat[$\USS$ hardware - different data and energy]
+%     {
+%      \includegraphics[width=0.3\linewidth]{figs/Sens.pdf}%
+%      %\vspace{-4pt}
+%     \label{Fig:Sens}
+%     }
+%     %\vspace{-4pt}
+%     \caption{Contribution of different components of $\USS$ on other applications, data modalities, and power environments.}
+%     \label{fig:beyond}  
+%     %\vspace{-16pt}
+% \end{figure*}
+
+% \begin{figure}[!ht] 
+%  \centering
+%     \subfloat[Contribution of components on video data]
+%     {
+%      %\includegraphics[trim={2mm 0 6mm 0},width=0.3\linewidth, height=2.2cm]{figs/contri.pdf}%
+%      \includegraphics[trim={0 12pt 0 0},width=0.8\linewidth]{figs/contri.pdf}%
+%      %\vspace{-4pt}
+%     \label{Fig:contri}
+%     }
+    
+%     \subfloat[$\USS$ beyond video data]
+%     {
+%      \includegraphics[width=0.8\linewidth]{figs/genrl.pdf}%
+%      %\vspace{-4pt}
+%     \label{Fig:genrl}
+%     }
+    
+%     \subfloat[$\USS$ hardware - different data and energy]
+%     {
+%      \includegraphics[width=0.8\linewidth]{figs/Sens.pdf}%
+%      %\vspace{-4pt}
+%     \label{Fig:Sens}
+%     }
+%     %\vspace{-4pt}
+%     \caption{Contribution of different components of $\USS$ on other applications, data modalities, and power environments.}
+%     \label{fig:beyond}  
+%     %\vspace{-16pt}
+% \end{figure}
+
+% \begin{table}
+% \centering
+% \resizebox{\linewidth}{!}{%
+% \begin{tabular}{|c|c|c|c|c|c|} 
+% \hline
+% \textbf{Platform} & \begin{tabular}[c]{@{}c@{}}Freq.\\(MHz)\end{tabular} & \begin{tabular}[c]{@{}c@{}}Area\\(mm\textsuperscript{2})\end{tabular} & \begin{tabular}[c]{@{}c@{}}Power\\(W)\end{tabular} & \begin{tabular}[c]{@{}c@{}}Peak Thpt.\\(GOps)\end{tabular} & \begin{tabular}[c]{@{}c@{}}Energy Eff.\\(GOps/W)\end{tabular} \\ 
+% \hline
+% DaDianNao~\cite{dadiannao} & 606 & 67.3 & 16.3 & 4964 & 304.54 \\ 
+% \hline
+% CNVLUTIN~\cite{cnvlutin} & 606 & 70.1 & 17.4 & 4964 & 285.29 \\ 
+% \hline
+% Activation Sparse~\cite{sarmaSparse} & 667 & 292 & 19.2 & 5466 & 284.69 \\ 
+% \hline
+% $\USS$ & 592 & 168.2 & 22.7 (17.2  if only train) & 4016 & 159.42 \\
+% \hline
+% $\USS$ & \multicolumn{4}{|c|}{Fully powered, DNN Compute only} & 278.44 \\
+% \hline
+% $\USS$ & \multicolumn{4}{|c|}{Fully powered, DNN $\mu-$profiler} & 255.39 \\
+% \hline
+% $\USS$ & \multicolumn{4}{|c|}{EH + $\mu-$profile + NV-mems + resizing RAM + Host} & 159.4 \\
+% \hline
+% \end{tabular}
+% }
+% %\vspace{-4pt}\caption{Comparison with prior accelerator-based platforms.}
+% \label{tab:comp}
+% %\vspace{-20pt}
+% \end{table}
+
+% Please add the following required packages to your document preamble:
+% \usepackage{multirow}
+% Please add the following required packages to your document preamble:
+% \usepackage{multirow}
+\begin{table}[!h]
+%%\vspace{-8pt}
+\centering
+\resizebox{\linewidth}{!}{
+\begin{tabular}{|c|cccc|c|}
+\hline
+\textbf{Platform}                    & \multicolumn{1}{c|}{\begin{tabular}[c]{@{}c@{}}Freq.\\(MHz)\end{tabular}} & \multicolumn{1}{c|}{\begin{tabular}[c]{@{}c@{}}Area\\(mm\textsuperscript{2})\end{tabular}} & \multicolumn{1}{c|}{\begin{tabular}[c]{@{}c@{}}Power\\(W)\end{tabular}} & \begin{tabular}[c]{@{}c@{}}Peak Thpt.\\(GOps)\end{tabular} & \begin{tabular}[c]{@{}c@{}}Energy Eff.\\(GOps/W)\end{tabular} \\ \hline
+DaDianNao~\cite{dadiannao}           & \multicolumn{1}{c|}{606}                                                  & \multicolumn{1}{c|}{67.3}                                                                  & \multicolumn{1}{c|}{16.3}                                               & 4964                                                       & 304.54                                                        \\ \hline
+CNVLUTIN~\cite{cnvlutin}             & \multicolumn{1}{c|}{606}                                                  & \multicolumn{1}{c|}{70.1}                                                                  & \multicolumn{1}{c|}{17.4}                                               & 4964                                                       & 285.29                                                        \\ \hline
+Activation Sparse~\cite{sarmaSparse} & \multicolumn{1}{c|}{667}                                                  & \multicolumn{1}{c|}{292}                                                                   & \multicolumn{1}{c|}{19.2}                                               & 5466                                                       & 284.69                                                        \\ \hline
+EyerissV2~\cite{eyeriss2} & \multicolumn{1}{c|}{200MHz}                                                  & \multicolumn{1}{c|}{N/A}                                                                   & \multicolumn{1}{c|}{N/A}                                               & 153.6G 8b fixed pt/s                                                       & 193.7                                                        \\ \hline
+FlexBlock~\cite{flexblock} & \multicolumn{1}{c|}{333MHz}                                                  & \multicolumn{1}{c|}{160.3 (65nm)}                                                                   & \multicolumn{1}{c|}{34.4 (when same \#PEs)}                                               & 4504                                                       & 131.03                                                        \\ \hline
+\multirow{4}{*}{$\USS$}         & \multicolumn{1}{c|}{592}                                                  & \multicolumn{1}{c|}{168.2}                                                                 & \multicolumn{1}{c|}{22.7 (17.2  if only train)}                         & 4016                                                       & 159.42                                                        \\ \cline{2-6} 
+                                     & \multicolumn{4}{c|}{\textbf{Fully powered, DNN Compute only}}                                                                                                                                                                                                                                                          & \textbf{287.44}                                                        \\ \cline{2-6} 
+                                     & \multicolumn{4}{c|}{Fully powered, DNN $\mu-$profiler}                                                                                                                                                                                                                                                        & 255.39                                                        \\ \cline{2-6} 
+                                     & \multicolumn{4}{c|}{EH + $\mu-$profile + NV-mems + resizing RAM + Host}                                                                                                                                                                                                                                       & 159.40                                                         \\ \hline
+\end{tabular}
+}
+%\vspace{-6pt}
+\caption{Comparison with prior accelerator-based platforms.}
+\label{tab:comp}
+%%\vspace{-20pt}
+\end{table}
+
+The systolic array accelerator time multiplexes between performing feature extraction for exemplar selection and running the training.  Fig.~\ref{Fig:ExTr} shows the time distribution of the accelerator between performing exemplar selection and training. It also shows the number of exemplar frames per 100 frame, i.e., of any 100 frame encountered, how many of those will contain a relatively new data. Over 10 iterations of retraining, the learner classified $\approx$4.5 frames/100-frames (on an average) as exemplar data. And,  over 40 hours of continuous learning, we get $\approx$5.02 frames/100-frames as exemplar data (resulting in $\approx$17.4\% of total accelerator time).
+
+\noindent\textbf{Performance-Power Trade-offs:} As Table~\ref{tab:comp} suggest, $\USS$ does not deliver the highest throughput and also consumes more power compared to the other accelerators. $\USS$ was designed on a intermittency friendly approach, and was never designed to hit the best throughput. The unit compute (only a $3\times3$ convolution per tile) that $\USS$ can perform is much smaller than the other accelerators, limiting its throughput but increasing its modularity of handling intermittent power failures (or power changes). $\USS$ also consumes more power than the other accelerators since it also performs the exemplar selection along with the DNN training, and also houses NV-SRAM buffers for hardware check-pointing. While fully powered, $\USS$ is competitive in terms of energy efficiency for training-only tasks. We include details on the energy efficiency of $\USS$ under different of operation configurations in Table~\ref{tab:comp}. Note that the energy inefficiency arises primarily from i) multiple saves and restores, ii) use of NV memories and iii) reconfiguring the DRAM (along with a commercial ARM based host CPU). Note that most prior works ignore memory and host overheads while reporting the throughput, efficiency and power numbers.
+Moreover, $\USS$ needs more I/O operations to store the streaming data to compute the exemplars. We believe it will not be fair to compare the energy efficiency and throughput of a system like ours, which inherently has more memory, I/O and reconfiguration operation with a pure compute based systems mentioned in the hardware baseline. Further, we are the first of a kind system to imagine sustainability first and design a morphable hardware which can facilitate multiple functionality. We also compare our work against two reconfigurable platforms~\cite{eyeriss2, flexblock}. 
+%Our efficiency comes from instantaneous use of energy without relying on any energy storage.
+
+
+\noindent\textbf{Power Aware Scaling:~~} 
+The $\USS$ hardware's most important feature is its ability to {\em morph}  according to power availability. Fig.~\ref{fig:scaleFig} shows its ability to maximize the instantaneous power utilization and scale the number of tiles. This allows $\USS$ to effectively perform more computation with an intermittent power source. As shown in Fig.~\ref{Fig:fickle}, $\USS$ maintains a high duty cycle across power variance, whereas DaDianNao~\cite{dadiannao} could not be active for all the power cycles. Considering the power profile of Fig.~\ref{Fig:fickle}, $\USS$ can finish about 50 cycles of retraining (50 complete training cycles) and DaDianNao can only finish 22 training cycles, even assuming a zero overhead, seamless save-restore of the partial computes of DaDianNao during a power failure/emergency.
+\begin{table}[!h]
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{|l|l|l|c|}
+\hline
+\multicolumn{1}{|c|}{\textbf{Setup}} & \multicolumn{1}{c|}{\textbf{Effective Training}} & \multicolumn{1}{c|}{\textbf{Accuracy Degradation}} & \textbf{Replacement Cycle*} \\ \hline
+Battery Backed Custom HW{[}5000mAH{]} & 93.17 & 2.48 & 2 - 3 years         \\ \hline
+Battery Backed Mobile GPU             & 78.55 & 7.43 & 18 - 24 months      \\ \hline
+Fixed Power {[}15W{]}                 & 67.54 & 12.6 & \multirow{2}{*}{NA} \\ \cline{1-3}
+Fixed Power {[}35W{]}                 & 100   & 1.87 &                     \\ \hline
+$\USS$                                    & 95.3  & 1.92 & 7 - 10 years        \\ \hline
+\end{tabular}%
+}
+\caption{Comparing $\USS$ with other possible solutions.}
+\label{tab:cmptab}
+%\vspace{-20pt}
+\end{table}
+%\subsection{Comparision with Ekya:}
+
+\begin{figure} 
+ \centering
+    \subfloat[Monotonically increasing]
+    {
+     \includegraphics[width=\linewidth]{figs/fickle.pdf}%
+     %\vspace{-8pt}
+    \label{Fig:mono}
+    }
+    
+    \subfloat[Rapidly varying]
+    {
+     \includegraphics[width=\linewidth]{figs/mono.pdf}%
+     %\vspace{-8pt}
+    \label{Fig:fickle}
+    }
+    %\vspace{-8pt}
+    \caption{Tile utilization against available power: $\USS$ with eager scheduling vs an oracle scheduler. $\USS$ closely tracks oracle, where as DaDianNao~\cite{dadiannao} falls short.}
+    \label{fig:scaleFig}  
+   %\vspace{-8pt}
+\end{figure}
+% \noindent\textbf{Sustainability:~~}
+% One of the major goals of $\USS$ was to ensure sustainability and perform continuous learning at the edge without depending on the grid or the cloud. We simulated over 40 hours of continuous learning, with 5 different models, on Urban Traffic data~\cite{UrbanTraffic} and $\USS$ hardware using the Seattle SOLRAD~\cite{solardata} power trace for $1^{st} January, 2022$. We choose this particular trace as it is on the lower side of the harvesting budget, but with no sporadic change in power income throughout the day. Our goal is to measure how effectively $\USS$ works compared to state of the art hardware. Our baseline hardware of choice is DaDianNao as it is one of the most power-efficient DNN training accelerators (see Table~\ref{tab:comp}. We make the following modifications to DaDianNao to compare it against $\USS$. First, we wanted to see how a no cost save and restore framework fared against $\USS$. To achieve this, we reconfigured DaDianNao~\cite{dadiannao} to {\em operate only when there is enough power}, and seamlessly save the partially computed data upon a power failure and restore the same without any overhead upon power availability. Second, how the software-only solution, i.e., representation learning and micro-profiler, fare against the morphable hardware design. We integrated the software solution into DaDianNao, but without any additional hardware support. Note that this solution is the closest one to Ekya~\cite{ekya}.  Finally, we also compare $\USS$ against DadianNao {\em without any change}, the commercial edge server, and classical cloud deployment. Except for cloud, we assume all other systems to be powered by the aforementioned harvested source. Over the 40 hours of continuous learning, each model gets trained in 3~hour intervals resulting in 13 scheduled trainings of which 12 are expected to be completed (the deadline for the last training extends beyond the timeline). Table~\ref{tab:DaDianNaoComp} shows how much of the scheduled training could be completed in each setting. It is clear that the morphable design of $\USS$ helps make {\em continuous forward progress}, compared to the other options, resulting in more completed training tasks. We also calculate the mean power consumption in performing each of the trainings and the mean power wasted (doing no or redundant compute). Finally, we also estimate the required energy needed for each of the settings to complete the leftover compute and estimate the carbon footprint for the same. Clearly, sending data to the cloud is the worst, in terms of sustainability, as it would be utilizing high-power-consuming GP-GPUs (possibly $20\times$ more than DaDianNao). Similarly, due to the power constraint, the typical edge server~\cite{aws-outposts} cannot even turn on, let alone completing any compute. Finally, the modified hardware also struggles to maintain the forward progress, and hence it cannot run in a {\em carbon-neutral} way. 
+% \noindent\textbf{Sustainability:~~}
+% $\USS$ aims to achieve sustainable and continuous learning at the edge, independently of the power grid or cloud dependency. To evaluate its effectiveness, we simulated over 40 hours of continuous learning using 5 different models on Urban Traffic data~\cite{UrbanTraffic} and $\USS$ hardware, leveraging the Seattle SOLRAD~\cite{solardata} power trace for January 1, 2022. We compare $\USS$ with DaDianNao, a highly power-efficient DNN training accelerator, with a few modifications for comparison. First, we reconfigured DaDianNao~\cite{dadiannao} to operate only when sufficient power is available, seamlessly saving partially computed data upon a power failure, and restoring it without any overhead when power is restored. Second, we integrate the software-only solution, i.e., representation learning and micro-profiler, into DaDianNao, without any additional hardware support, resembling the closest approach to Ekya~\cite{ekya}. Finally, we also compare $\USS$ against the unmodified DaDianNao, a commercial edge server (with no power availability), and a classical cloud deployment. We assume all systems, except the cloud, to be powered by the aforementioned harvested source.
+
+% Table~\ref{tab:DaDianNaoComp} summarizes the results of the comparison. The morphable design of $\USS$ enables continuous forward progress, completing more training tasks compared to the other options. We evaluate the mean power consumption and wasted power (due to no or redundant compute) for each setting. Furthermore, we estimate the required energy to complete the leftover compute and assess the associated carbon footprint. Notably, the cloud approach shows the least sustainability, utilizing high-power-consuming GP-GPUs (possibly 20 times more than DaDianNao). On the other hand, typical edge servers~\cite{aws-outposts} struggle due to power constraints and cannot perform any compute. The modified hardware also faces challenges in maintaining forward progress, hindering its carbon-neutral operation.
+
+% $\USS$ emerges as a promising solution, effectively achieving sustainable and carbon-neutral continuous learning at the edge, addressing the critical challenges associated with power constraints and environmental impact.
+
+\noindent\textbf{Sustainability:}
+To ensure sustainable and continuous learning at the edge, $\USS$ operates independently of the power grid or cloud dependency. We evaluated $\USS$ against DaDianNao, a power-efficient DNN training accelerator, with some modifications for comparison. Using the Seattle SOLRAD power trace for January 1, 2022, we simulated 40 hours of continuous learning with 5 different models on Urban Traffic data~\cite{UrbanTraffic} and $\USS$ hardware. The results, summarized in Table~\ref{tab:DaDianNaoComp}, demonstrate the effectiveness of $\USS$ in achieving continuous forward progress compared to other approaches. It completed more training tasks while consuming less power and minimizing wastage. In contrast, cloud-based solutions exhibited poor sustainability, relying on high-power-consuming GP-GPUs, and edge servers without power availability struggled to perform any compute. $\USS$ emerges as a promising solution, effectively achieving sustainable and carbon-neutral continuous learning at the edge, addressing critical challenges related to power constraints and environmental impact.
+
+\noindent
+%\textcolor{blue}
+{\textbf{Alternate Solutions:} Although $\USS$ works completely using intermittent power, it is imperative to compare and contrast it with other possible solutions. TABLE~\ref{tab:cmptab} depicts some of such possible comparison points. The possible alternate solutions being battery-backed custom HW~\cite{dadiannao}, battery-backed commercial GPU and fixed power budget with store and execute (using a capacitor/ battery). We quantitatively compare the effective training, i.e. the ratio of number of scheduled training to the number of completed training, loss of accuracy compared to the baseline. It is clear that even with intermittent power availability $\USS$ is objectively finishing more tasks (except compared to a system with a consistently high power availability). Furthermore, we also present a qualitative comparison on the maintenance cycle needed for these solutions. While a completely grid based solution is best in terms of reliability, it is not feasible because of the power demands. Any battery backed system will be limited to the charging cycle of the batteries ($\approx 500$ cycles for Li-ion batteries) which leads to a typical 18 to 24 months of life for such devices (compared to this, a super capacitor have a life of more than 100 years). We believe that the lifetime of $\USS$ will be limited either by the live of the harvesting source ($\approx$ 20 -- 30 years for solar, $\approx$ 10 -- 12 years for portable wind turbines), or the training hardware (typical life cycle of embedded devices are of range of 7 -- 10 years). We agree that a limitation of our work comes from the choice of solar energy: unavailability during night and bad weather makes the deployment harder. However, there has been significant recent  development in portable wind turbines~\cite{aero}, which can be deployed on rooftops, can work with $\ge 5mph$ wind speed, and can provide power equivalent of 15 solar cells. Therefore, similar technologies can be used to augment the harvesting mechanism. }
+
+\begin{table}
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{|l|c|c|c|c|} 
+\hline
+\multicolumn{1}{|c|}{\textbf{Deployment}} & \begin{tabular}[c]{@{}c@{}}\textbf{Training }\\\textbf{Completed}\end{tabular} & \begin{tabular}[c]{@{}c@{}}\textbf{Mean Power}\\\textbf{~Consumed (W)}\end{tabular} & \begin{tabular}[c]{@{}c@{}}\textbf{Mean Power }\\\textbf{Wasted (W)}\end{tabular} & \begin{tabular}[c]{@{}c@{}}\textbf{Carbon }\\\textbf{Footprint (lbs/yr)}\end{tabular} \\ 
+\hline
+$\USS$ & 11 & 17.2 & 3.54 & 8.33 \\ 
+\hline
+DaDianNao (persistent) & 6 & 6.4 & 10.8 & 128.0712 \\ 
+\hline
+DaDianNao (Software Only) & 4 & 5.8 & 12.46 & 135.964 \\ 
+\hline
+DaDianNao (actual) & 2 & 2.09 & 24.73 & 199.70 \\ 
+\hline
+Edge Cloud & 0 & 0 & -- &  \\ 
+\hline
+Cloud & 1 & 200 & 0 & 2233.8 \\ 
+\hline
+\multicolumn{5}{|c|}{Max Power = 32W; Min
+  Power = 12W; Training Scheduled = 12} \\
+\hline
+\end{tabular}
+}
+%\vspace{-6pt}
+\caption{Comparing $\USS$ hardware with other state of the art offerings for both performance and sustainability.}
+\label{tab:DaDianNaoComp}
+%\vspace{-18pt}
+\end{table}
+
+
+
+% \noindent \textbf{Overheads and Alternate Solutions:} Since $\USS$ contains multiple other components, namely, $\mu$--profiler, exemplar selection and power predictor beyond the training hardware, it is imperatives to understand their contribution and overheads.
+
+\subsection{Towards Other Applications and Domains}\label{sec:sensitivity}
+% The contribution of the morphable hardware $\USS$ dominates as the workload side and the operationally available power decreases. For a larger and predictable energy income, a software based backup and restore could provide major benefits as the energy consumed for backup and restore is typically a small fraction of the entire energy income, and a predictive action for saving the state could be easily taken. However, as the energy income becomes more sporadic, the hardware assistated scheduling seamlessly transfers the work to active PEs thereby finishing more work which could have been lost (and possible needed a start from the beginning). Fig.~\ref{Fig:Sens} shows the impact of hardware assisted scheduling on different data modalities (from large data to small data), and different magnitude of energy income. As the data and model size decreases, so does the need for additional non-volatile memory and compute units, and hence the hardware assitance shows a much greater impact for smaller application which makes $\USS$ a great candidate for performing continuous learning at all scales.
+The morphable hardware design of $\USS$ plays a crucial role in efficiently handling varying energy income and workloads. As the energy income becomes more sporadic, hardware-assisted scheduling seamlessly transfers work to active processing elements (PEs), maximizing the completion of tasks that could have otherwise been lost. This hardware-driven adaptive scheduling significantly impacts different data modalities, from large-scale to small-scale, and various magnitudes of energy income, as depicted in Fig.~\ref{Fig:Sens}.
+For scenarios with larger and predictable energy income, software-based backup and restore mechanisms can offer significant benefits, as the energy consumed for such operations is typically a small fraction of the overall energy income. Predictive actions for saving the system state can be easily taken. However, in situations with sporadic energy income, the hardware-assisted scheduling becomes paramount. It ensures that active PEs efficiently utilize available power to complete work, preventing potential losses and eliminating the need to restart tasks from the beginning.
+$\USS$ excels as a candidate for continuous learning at all scales due to the hardware's adaptability to varying data and model sizes. As data and model dimensions decrease, the hardware assistance's impact becomes more pronounced, making $\USS$ an excellent solution for continuous learning across diverse application sizes.
+
+Along with morphable hardware, the exemplar selection and the micro-profiler play an important role for the success of $\USS$. When power is highly uncertain, the morphable hardware also strongly contributes, however, as the power profile becomes stable, the algorithmic contributions dominate. Fig.~\ref{Fig:contri} shows the contribution of the different components of $\USS$ under different power profiles. Moreover, the algorithmic contributions can be extended into any classification based application or data modality. If the learning has to be unsupervised, one needs to experiment with known clustering techniques to decide the right classification approach. We demonstrate this by testing the exemplar selection and the $\mu-$profiler with different modalities of data. Our workloads included Audio~\cite{audioMNIST, chime}(speech classification), 3D Point Clouds~\cite{kitti, nuscenes}(object classification) and Inertial Measurement Unit sensor data~\cite{bearning, mhealth}(fault and activity detection). Observe that, as $\USS$ is designed to handle dense and noisy data, it outperforms the respective state-of-the-arts (which were tuned for small, clean  benchmark data).
+% Please add the following required packages to your document preamble:
+% \usepackage{multirow}
+% \usepackage{graphicx}
+
+
+
+%by a large margin. 
+
+% \begin{figure} 
+%  \centering
+%     \subfloat[Contribution of components]
+%     {
+%      % \includegraphics[trim={2mm 0 6mm 0}, clip,width=0.4\linewidth, height=2.2cm]{figs/contri.pdf}%
+%      \includegraphics[width=0.4\linewidth, height=2.2cm]{figs/contri.pdf}%
+%      %\vspace{-8pt}
+%     \label{Fig:contri}
+%     }
+%     %\hspace{-2pt}
+%     \subfloat[$\USS$ beyond video data]
+%     {
+%      \includegraphics[trim={4mm 0 0 -4mm},width=0.6\linewidth]{figs/genrl.pdf}%
+%      %\includegraphics[width=0.6\linewidth]{figs/genrl.pdf}%
+%      %\vspace{-8pt}
+%     \label{Fig:genrl}
+%     }
+%     %\vspace{-8pt}\caption{Analysis of software $\USS$ and its contribution}
+%     \label{fig:beyond}  
+%     %\vspace{-12pt}
+% \end{figure}
+
+% \begin{figure}
+%   \centering 
+% \includegraphics[trim={0 4 0 0},clip, width=0.75\linewidth]{figs/Sens.pdf}
+%   %\vspace{-4pt}\caption{}
+%   %\vspace{-16pt}\label{Fig:sens}
+% \end{figure}
+
+% \begin{figure}
+%   \centering 
+% \includegraphics[trim={2 0 0 4},clip, width=0.9\linewidth]{figs/genrl.pdf}
+%   %\vspace{-12pt}\caption{$\USS$ beyond video data (lower is better).}
+%   %\vspace{-16pt}\label{Fig:beyond}
+% \end{figure}
+%%%%%
+

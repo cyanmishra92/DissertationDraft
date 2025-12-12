@@ -1,0 +1,126 @@
+NExUME can be seamlessly integrated as a ``plug-in'' for \emph{both} training and inference frameworks in deep neural network (DNN) applications, specifically designed for intermittent and (ultra) low-power deployments. In this section, we discuss the effectiveness of NExUME across two distinct types of environments, highlighting its versatility and broad applicability. Firstly, we evaluate NExUME using publicly available datasets (\S \ref{sec:pubdata}) commonly utilized in embedded applications across multiple modalities—including image, time series sensor, and audio data. These datasets represent typical use cases in embedded systems where energy efficiency and minimal computational overhead are crucial. We use both commercial-off-the-shelf (COTS) hardware and state-of-the-art ReRAM Xbar-based hardware for this evaluation. Secondly, we introduce a novel dataset aimed at advancing research in predictive maintenance and Industry 4.0~\cite{industry4}, and test NExUME on a real manufacturing testbed (\S \ref{sec:mstatus}) with COTS hardware. We have developed a first-of-its-kind machine status monitoring dataset, available at \url{https://hackmd.io/@Galben/rk7YN6jmR}, which involves mounting multiple types of sensors at various locations on a Bridgeport machine to monitor its activity status.
+
+\subsection{Development and Profiling of NExUME}
+NExUME uses a combination of programming languages and technologies to optimize its functionality in intermittent and low-power computing environments. The software stack comprises Python3 (2.7k lines of code), CUDA (1.1k lines of code), and Embedded C (2.1k lines of code, not including DSP libraries). Our training infrastructure utilizes NVIDIA A6000 GPUs with 48 GiB of memory, supported by a 24-core Intel Xeon Gold 6336Y CPU. We employ PyTorch v2.3.0 coupled with CUDA version 11.8 as our primary training framework. To assess the computational overhead introduced by DynFit, a component of NExUME, we use NVIDIA Nsight Compute. During the training sessions enhanced by DynFit, we observed an increase in the number of instructions ranging from a minimum of 11.4\% to a maximum of 34.2\%. While the overhead in streaming multi-processor (SM) utilization was marginal (within 5\%), there was a noticeable increase in memory bandwidth usage, ranging from 6\% to 17\%. Moreover, we have implemented a modified version of the matrix multiplication operation that strategically skips the loading of rows and/or columns from the input matrices into the GPU's shared memory and register files. This adaptation is guided by the dropout mask vector and the specific type of sparse matrix operation being performed. This technique effectively reduces the number of load operations by an average of 12\%, thereby enhancing the efficiency of computations under energy constraints and contributing to the overall performance improvements in NExUME.
+
+\subsection{NExUME on Publicly Available Datasets}
+\label{sec:pubdata}
+
+\noindent \textbf{Datasets:} For image data, we consider the Fashion-MNIST~\cite{fmnist} and CIFAR10~\cite{cifar10} datasets; for time series sensor data, we focus on popular human activity recognition (HAR) datasets, MHEALTH~\cite{mhealth} and PAMAP2~\cite{pamap2}; and for audio, we use the AudioMNIST~\cite{audiomnist} dataset.
+
+\noindent \textbf{Inference Deployment Embedded Platforms:} For commercially off-the-shelf micro-controllers, we choose Texas Instruments MSP430FR5994~\cite{ti_msp430fr5994}, and Arduino Nano 33 BLE Sense~\cite{arduino_nano33_ble_sense} as our deployment platforms with a Pixel-5 phone as the host device. The host device is used for data logging---collecting SLOs, violations, power failures, etc., along with running the ``baseline'' inferences without intermittency.
+
+\noindent \textbf{Baselines:} We take the combination of best available approaches for DNN inference on intermittent environment as baselines. All these DNNs are executed with the state-of-the-art checkpointing and scheduling approach~\cite{chinchilla}. Baseline \textbf{Full Power} is a DNN designed by iNAS~\cite{intermittentNAS} for running while the system is battery-powered and has to hit a target SLO (latency < 500ms). Baseline \textbf{AP} is a DNN compressed to fit the average power of the energy harvesting (EH) environment using iNAS~\cite{intermittentNAS} and energy-aware pruning (EAP)~\cite{eap, netadapt}. Baseline \textbf{PT} takes the \textbf{Full Power} DNN and uses techniques proposed by~\cite{netadapt} and~\cite{eap} to prune, quantize, and compress the model. Baseline \textbf{iNAS+PT} designs the network from the ground up while combining the work of iNAS~\cite{intermittentNAS} and EAP~\cite{netadapt, eap}.
+
+{We also compare our approach with recent state-of-the-art methods specifically designed for intermittent systems, namely \textbf{Stateful}~\cite{yen2022stateful}, \textbf{ePerceptive}~\cite{patel2019eperceptive}, and \textbf{DynBal}~\cite{yen2023keep}. These methods introduce various techniques such as embedding state information into the DNN, multi-resolution inference, multi-exit architectures, and runtime reconfigurability to handle intermittency in energy-harvesting devices. We have faithfully re-implemented these methods as per the descriptions and adjusted them for a fair comparison under our setup.}
+
+\noindent \textbf{Results:}
+Table~\ref{tab:AccuracyComparison} shows the accuracy of our approach against the baselines and the recent state-of-the-art methods using the TI MSP board powered by piezoelectric energy harvesting. The inferences meeting the SLO requirements are the only ones considered for accuracy; i.e., a correct classification violating the latency SLO is considered as ``incorrect''.
+
+\begin{table}[ht]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}ccccccccccc@{}}
+\toprule
+\textbf{Datasets} & \textbf{Full Power} & \textbf{AP} & \textbf{PT} & \textbf{iNAS+PT} & \textbf{Stateful} & \textbf{ePerceptive} & \textbf{DynBal} & \textbf{NExUME} \\ \midrule
+FMNIST            & 98.70               & 71.90       & 79.72       & 83.68           & 85.40             & 86.25               & 87.50           & \textbf{88.90}  \\
+CIFAR10           & 89.81               & 55.05       & 62.00       & 66.98           & 68.50             & 70.20               & 71.75           & \textbf{76.29}  \\
+MHEALTH           & 89.62               & 59.76       & 65.40       & 71.56           & 73.80             & 74.95               & 76.10           & \textbf{80.75}  \\
+PAMAP             & 87.30               & 57.38       & 65.77       & 70.33           & 72.20             & 73.35               & 74.50           & \textbf{75.16}  \\
+AudioMNIST        & 88.20               & 67.29       & 73.16       & 75.41           & 76.80             & 77.95               & 78.60           & \textbf{80.01}  \\ \bottomrule
+\end{tabular}%
+}
+\caption{Accuracy comparison on TI MSP board using piezoelectric energy harvesting.}
+\label{tab:AccuracyComparison}
+\end{table}
+
+{As observed in Table~\ref{tab:AccuracyComparison}, NExUME consistently outperforms the state-of-the-art methods across all datasets. For instance, on CIFAR10, NExUME achieves an accuracy of 76.29\%, which is approximately 4.54\% higher than DynBal, the next best method. This improvement is significant in the context of energy-harvesting intermittent systems, where achieving high accuracy under strict energy constraints is challenging.}
+{The superior performance of NExUME can be attributed to its unique integration of energy variability awareness directly into both the training (DynFit) and inference (DynInfer) processes. Unlike other methods that either focus on modifying the DNN architecture or optimizing inference configurations, NExUME adapts the DNN's computational complexity in real-time based on instantaneous energy availability, leading to more efficient use of scarce energy resources and improved accuracy.}
+
+
+\begin{table}[ht]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}ccccccccc@{}}
+\toprule
+\textbf{Dataset} & \textbf{Platform} & \textbf{Energy Source} & \textbf{Stateful} & \textbf{ePerceptive} & \textbf{DynBal} & \textbf{NExUME} \\ \midrule
+FMNIST           & MSP430FR5994      & Piezoelectric          & 20.1              & 20.8                & 21.5            & \textbf{23.4}   \\
+CIFAR10          & Arduino Nano      & Thermal                & 16.0              & 16.5                & 17.0            & \textbf{18.5}   \\
+MHEALTH          & ESP32 S3 Eye      & Piezoelectric          & 18.5              & 19.0                & 19.6            & \textbf{21.0}   \\
+PAMAP            & STM32H7           & Thermal                & 16.5              & 17.0                & 17.5            & \textbf{19.0}   \\
+AudioMNIST       & Raspberry Pi Pico & Piezoelectric          & 20.5              & 21.0                & 21.7            & \textbf{23.2}   \\ \bottomrule
+\end{tabular}%
+}
+\caption{Energy efficiency comparison on different hardware platforms.}% using piezoelectric and thermal energy harvesting.}
+\label{tab:EnergyEfficiency}
+\end{table}
+
+
+{Table~\ref{tab:EnergyEfficiency} presents the energy efficiency in MOps/Joule for each dataset on different hardware platforms using piezoelectric and thermal energy harvesting. NExUME achieves the highest energy efficiency across all platforms and datasets. This demonstrates that NExUME not only improves accuracy but also enhances energy utilization, making it highly suitable for deployment in energy-constrained intermittent environments. The improvements in energy efficiency are due to NExUME's ability to adjust computational workload dynamically, minimizing energy wastage and ensuring that computations are matched to the available energy budget. NExUME, thanks to its inherent learnt adaptability, significantly reduces saves, restores, reconfigurations and READ/WRITE from/to nonvolatile memory or to the flash memory in the cases and devices where NVMs are not present which gives it edge over the baselines across multiple devices.}
+
+\noindent \textbf{Discussion of Results:}
+1. \emph{Dynamic Adaptation:} NExUME's DynFit and DynInfer components enable real-time adjustments of dropout rates and quantization levels during training and inference based on instantaneous energy availability. This allows the DNN to maintain high accuracy even under severe energy constraints.
+2. \emph{Energy Variability Awareness:} By integrating energy profiles directly into the training process, NExUME ensures that the model learns to handle fluctuations in energy supply, leading to more robust performance compared to methods that do not consider energy variability during training.
+3. \emph{Efficient Scheduling:} DynInfer's energy-aware task scheduling and task fusion mechanisms reduce overhead from checkpointing and optimize the execution of tasks within the available energy budget.
+4. \emph{Holistic Approach:} Unlike other methods that focus on either training or inference optimizations, NExUME provides a comprehensive solution that addresses both phases, leading to superior overall performance.
+
+\vspace{-10pt}
+
+\subsection{NExUME on Machine Status Monitoring \textit{[Our New Dataset]}}
+\label{sec:mstatus}
+Automation and monitoring and analytics are the key ingredients in the upcoming Industry 4.0. To enable sustainable machine status monitoring with energy harvesting (from machine vibrations or Wifi signals) we evaluate our setup using Bridgeport machines for monitoring their status. Prior works~\cite{CaseWesternBearingDataCenter} majorly focused on fault analysis but there are little to no datasets on predictive maintenance. \noindent \textbf{Setup and Sensor Arrangement:} Two different types of 3-axis accelerometers (with 100Hz and 200Hz sampling rate) were placed in three different locations of a Bridgeport machine to collect and analyze data under different operating status. There were 5 operating statuses: three different speeds of rotation of the spindle {(\textbf{R1: 100RPM}, \textbf{R2: 200RPM}, \textbf{R3: 300RMP} with no job; RPM -- rotations per minute)}, spindle under job (\textbf{SJ}), and spindle idle (\textbf{SI}). We collected over 700,000 samples over a period of 2 hours for each of the sensors. The sensor data were cleaned, normalized, and converted to the power spectrum density for further analysis. We use iNAS~\cite{intermittentNAS} to find the DNNs meeting the energy income and train them using our proposed DynFit. Table~\ref{tab:AccMSPonIND} shows the accuracy of classification tasks against the different baselines and state-of-the-art methods.
+
+\begin{table}[ht]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}ccccccccccc@{}}
+\toprule
+\textbf{Class} & \textbf{Full Power} & \textbf{AP} & \textbf{PT} & \textbf{iNAS+PT} & \textbf{Stateful} & \textbf{ePerceptive} & \textbf{DynBal} & \textbf{NExUME} \\ \midrule
+\textbf{R1}    & 84.93               & 74.46       & 77.02       & 79.62           & 80.85             & 81.50               & 82.15           & \textbf{83.60}  \\
+\textbf{R2}    & 85.85               & 76.21       & 79.18       & 80.36           & 81.95             & 82.60               & 83.25           & \textbf{84.50}  \\
+\textbf{R3}    & 81.09               & 72.43       & 75.38       & 78.18           & 79.05             & 79.70               & 80.35           & \textbf{80.85}  \\
+\textbf{SJ}    & 90.95               & 82.33       & 85.00       & 87.58           & 88.60             & 89.15               & 89.80           & \textbf{90.50}  \\
+\textbf{SI}    & 94.76               & 85.31       & 88.05       & 89.90           & 91.00             & 91.65               & 92.30           & \textbf{93.00}  \\ \bottomrule
+\end{tabular}%
+}
+\caption{Accuracy of NExUME and other methods for industry status monitoring dataset using TI MSP board and piezoelectric energy source. Results collected over 200 experiment cycles.}
+\label{tab:AccMSPonIND}
+\end{table}
+
+{NExUME demonstrates superior performance across all operating classes, achieving the highest accuracy in each case. For example, for the spindle idle (SI) class, NExUME attains an accuracy of 93.00\%, outperforming DynBal by 0.70\%. While the margins may appear small, in industrial settings, even minor improvements in classification accuracy can have significant implications for predictive maintenance and operational efficiency.}
+{The improved performance of NExUME in this real-world application further validates its effectiveness and practical utility. By effectively managing energy constraints and adapting to intermittent power conditions, NExUME enables more reliable and accurate monitoring in industrial environments where energy harvesting is a viable power solution.} 
+
+\subsection{Sensitivity and Ablation Studies of NExUME}
+To elucidate the influence of variable SLOs and hardware-specific settings on system performance, we conducted a comprehensive sensitivity study. This study involved adjusting the acceptable latency and the capacitance of the energy harvesting setup to assess their impacts on accuracy. As shown in Figure~\ref{Fig:accVlat}, the accuracy improves with increased latency, but with diminishing returns. Similarly, Figure~\ref{Fig:accVcap} demonstrates that, while increasing capacitance should theoretically stabilize the system, its charging characteristics can lead to extended charging times, thus exceeding the latency SLO. Notably, some anomalies in the data were attributed to abrupt power failures, a common challenge in intermittent energy harvesting systems.
+An ablation study evaluates the contributions of individual components within NExUME. The results, plotted in Figure~\ref{Fig:abal}, indicate that the greatest improvements are derived from the ``synergistic operation'' of all components, particularly DynFit and DynInfer. Although iNAS enhances network selection, its lack of intermittency awareness significantly impacts accuracy.
+
+\begin{figure}[]
+ \centering
+    \subfloat[Accuracy vs Latency]
+    {
+     \includegraphics[width=0.32\linewidth]{figs/ALcurve.pdf}%
+    \label{Fig:accVlat}
+    }
+    \hfill
+    \subfloat[Accuracy vs Capacitance]
+    {
+     \includegraphics[width=0.32\linewidth]{figs/ACcurve.pdf}%
+    \label{Fig:accVcap}
+    }\hfill
+    \subfloat[Ablation Study]
+    {
+     \includegraphics[width=0.32\linewidth]{figs/ablationBW.pdf}%
+    \label{Fig:abal}
+    }
+    \vspace{-10pt}
+    \caption{Sensitivity and ablation study. DN is DynNAS, DF is DynFit, and DI is DynInfer.}
+    \label{fig:sensitivity}  
+    \vspace{-12pt}
+\end{figure}
+
+\subsection{Limitations and Discussion}
+
+{We recognize that modern architectures like Transformers have become prevalent in the ML community due to their superior performance on large-scale datasets. However, deploying such architectures on ultra-low-power, energy-harvesting devices presents significant challenges due to their substantial computational and memory requirements. NExUME focuses on enabling efficient and reliable deployment of DNNs in intermittent environments, which are often constrained in terms of computational resources and energy availability. In many real-world applications, especially in IoT and edge computing, there is a critical need for smaller, energy-efficient models that can operate autonomously without reliance on batteries. These tiny, reusable devices contribute to reducing embodied carbon and represent a significant step toward sustainability.}
+{Moreover, we believe that advancing the capabilities of smaller models in intermittent environments is crucial for widespread adoption of sustainable, battery-free devices in various domains, including environmental monitoring, industrial IoT, and healthcare. By addressing the challenges of intermittent computing, our work contributes to the broader goal of enabling pervasive, sustainable intelligence at the edge.}
+
+NExUME is especially advantageous in intermittent environments, and its utility extends to ultra-low-power or energy scavenging systems. However, the efficacy of DynFit and iNAS is contingent upon the breadth and depth of the available dataset. Additionally, profiling devices to ascertain their energy consumption, computational capabilities, and memory footprint necessitates detailed micro-profiling using embedded programming. This process, while informative, yields only approximate models that are inherently prone to errors. DynFit, with its stochastic dropout features, occasionally leads to overfitting, necessitating meticulous fine-tuning. While effective in smaller networks, our studies involving larger datasets (such as ImageNet) and more complex network architectures (like MobileNetV2 and ResNet) reveal challenges in achieving convergence without precise fine-tuning. DynFit tends to introduce multiple intermediate states during the training process, resulting in approximately 14\% additional wall-time on average. The development of DynInfer requires an in-depth understanding of microcontroller programming and compiler directives. The absence of comprehensive library functions along with the need for computational efficiency frequently necessitates the development of in-line assembly code for certain computational kernels.

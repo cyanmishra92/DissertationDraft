@@ -1,0 +1,88 @@
+% %%%%% %%%%% %%%%%
+\section{Analog-Aware Trainings}
+\label{sec:analogTraining}
+Deploying neural networks on analog ReRAM crossbars requires accounting for a range of circuit ``non-idealities" to ensure robust inference. In addition to device-level variations in the diodes (Section~\ref{sec:analog-activation}), the crossbar itself can suffer from IR drops, noise, and multi-bit cell variability. Furthermore, the transimpedance amplifier (TIA) that converts crossbar currents to voltages introduces its own offset and gain errors. In this section, we describe how all these analog factors are integrated into a ``hardware-aware" training procedure so that the network learns to mitigate them, preserving accuracy while enabling extended analog domain computations.
+
+\subsection{Incorporating IR Drop and TIA Variations}
+\textbf{IR drop in crossbars.} Large ReRAM arrays experience spatial voltage drops along the word and bit lines, causing cells at different locations to see unequal voltages and therefore produce inconsistent outputs~\cite{IRDropICCD, IRDropTCAD}. To approximate this, we treat the crossbar interconnect as having uniform resistances $R_W$ and $R_B$ per unit length on the word and bit lines, respectively. Each memristor at crosspoint $(i, j)$ has nominal resistance $R_{\text{mem}_{ij}}$, but the actual voltage it receives is reduced by
+$%\[
+\Delta V_{ij} = I_{\text{out},ij}\,\bigl(R_W^{(i)} + R_B^{(j)}\bigr),
+$%\]
+where $I_{\text{out},ij}$ is the local cell current. The net attenuation can be captured by a factor
+$%\[
+\gamma_{ij} \;=\; 1 \;-\; \frac{\Delta V_{ij}}{V_{\text{in}}},
+$%\]
+which indicates that only $\gamma_{ij}\,V_{\text{in}}$ is effectively applied across $R_{\text{mem}_{ij}}$. Although one could compute a unique $\gamma_{ij}$ for each cell, this can clearly become expensive for large arrays. Instead, we adopt a practical layer-wise scaling approach by letting each layer $l$ have a \emph{single} attenuation parameter $\gamma^{(l)}$ that represents an average or worst-case IR drop for that layer:
+$%\[
+a_i^{(l)} \;=\; \gamma^{(l)} \;\Bigl[a_i^{(l), 0}\Bigr],
+$%\]
+where $a_i^{(l), 0}$ is the neuron’s activation before the IR-drop adjustment. By allowing $\gamma^{(l)}$ to be learned or sampled, the network can develop internal redundancy to compensate for IR drops~\cite{he2019noise,lee2024mitigating}.
+
+\noindent
+\textbf{TIA Offset and Gain Errors:} After partial sums leave the crossbar, a TIA converts the current into a voltage suitable for our diode-based activation (Section~\ref{sec:analog-activation}). However, TIAs can exhibit an offset voltage $\delta_{V}$ and a gain deviation $\delta_{G}$ (i.e., $V_{\text{TIA}} = (1+\delta_{G})\,R_f\,I_{\text{xbar}} + \delta_{V}$). We treat these as random variables with small standard deviations around nominal designs~\cite{TIA}, and integrate them in the same manner as IR drops:
+$%\[
+V_{\text{TIA}} \leftarrow \bigl(1+\delta_{G}\bigr)\,V_{\text{TIA}} \;+\;\delta_{V}.
+$%\]
+In training, we sample $(\delta_{G}, \delta_{V})$ from known distributions
+%(e.g., \textcolor{red}{$\pm 2\%$ gain error, \(\pm 5\,\text{mV}\) offset})
+, allowing the model to remain robust despite these analog front-end imperfections.
+
+\subsection{Noise Injection and Multi-Bit Variations}
+Beyond IR drops and TIA inaccuracies, analog circuits face thermal noise, flicker noise, and programming uncertainty in multi-level ReRAM cells. We incorporate these by:
+%\begin{itemize}
+%\item 
+\textbf{1. Additive noise injection:} For each crossbar output, we add a Gaussian $\mathcal{N}\bigl(0,\sigma^2\bigr)$ with $\sigma$ set to match a target SNR. If the signal power is $\mathcal{P}_{\text{sig}}$, we define $\text{SNR} = 20\,\log_{10}(\tfrac{\mathcal{P}_{\text{sig}}}{\mathcal{P}_{\text{noise}}})$ and pick $\sigma$ accordingly~\cite{puglisi2018random}.
+%\item 
+\textbf{2. Multi-bit cell variation:} Each $R_{\text{mem}_{ij}}$ is sampled from $\mathcal{N}\bigl(\bar{R}_{ij},\,(\Delta R)^2\bigr)$ to reflect manufacturing tolerances and cycle-to-cycle drifts~\cite{xu2022multi}.
+%\end{itemize}
+All of these perturbations are injected into the \emph{forward pass} during each mini-batch, ensuring that the network learns to adapt to them.
+
+\subsection{Unified Loss and Hardware-Aware Backprop}
+We unify the above non-idealities—IR drop via $\gamma^{(l)}$, diode threshold shifts $V_{\text{th}}^{(l)}$, slope deviations $\alpha^{(l)}$, and noise injections—under a single training loop. Concretely, we augment the standard classification loss $\mathcal{L}_{\text{cls}}$ with regularization terms that discourage $\gamma^{(l)}$, $\alpha^{(l)}$, or $V_{\text{th}}^{(l)}$ from drifting too far from nominal design values:
+% \begin{equation}
+% \label{eq:total_loss_proposed}
+% \mathcal{L} \;=\; 
+% \mathcal{L}_{\text{cls}} 
+% \;+\;\lambda_{\gamma}\,\sum_{l}\bigl(\gamma^{(l)}-1\bigr)^2
+% \;+\;\lambda_{\alpha}\,\sum_{l}\bigl(\alpha^{(l)}-\mu_{\alpha}\bigr)^2
+% \;+\;\lambda_{V_{\text{th}}}\,\sum_{l}\bigl(V_{\text{th}}^{(l)}-\mu_{V_{\text{th}}}\bigr)^2.
+% \end{equation}
+\begin{equation}
+\label{eq:total_loss_proposed}
+\begin{aligned}
+\mathcal{L} &= 
+\mathcal{L}_{\text{cls}}
++ \lambda_{\gamma}\sum_{l}(\gamma^{(l)}-1)^2
++ \lambda_{\alpha}\sum_{l}(\alpha^{(l)}-\mu_{\alpha})^2 \\ 
+&\quad{}+ \lambda_{V_{\text{th}}}\sum_{l}(V_{\text{th}}^{(l)}-\mu_{V_{\text{th}}})^2.
+\end{aligned}
+\end{equation}
+
+Here, $\mu_{\alpha}$ and $\mu_{V_{\text{th}}}$ are nominal circuit-level parameters (e.g., $\mu_{V_{\text{th}}}\approx 0.15\,\text{V}$), and the regularization coefficients $(\lambda_{\gamma},\lambda_{\alpha},\lambda_{V_{\text{th}}})$ control how tightly the training process adheres to physically plausible settings. In forward propagation, each parameter is sampled from a normal distribution reflecting process corners; in backward propagation, we compute gradients w.r.t.\ the network weights (and optionally $\gamma^{(l)}$) to compensate for these variations~\cite{ma2023leca}.
+
+\subsection{Architectural Implications}
+Having modeled the diode activation and the crossbar’s IR drop, our system design allows two consecutive analog layers to be computed {\em without} an intermediate A/D conversion. In practice, this means:
+%\begin{enumerate}
+%\item 
+\textbf{Crossbar 1} completes an MVM, the TIA drives each column into the diode activation, yielding an analog voltage vector.
+%\item 
+That voltage vector immediately feeds \textbf{Crossbar 2} for the second MVM + diode stage.
+%\item 
+Only \emph{then} do we digitize the partial sums with a {$k$-bit ADC} (e.g., 4-bit).
+%\end{enumerate}
+While this halves the frequency of costly ADC/DAC cycles, it also makes the second layer more sensitive to accumulated IR drops and TIA offset. Our training routine’s integrated modeling of $\gamma^{(l)}$ and $(\delta_G,\delta_V)$ ensures the second layer remains reliable under these extended analog conditions. 
+
+Empirically, we find that two layers is a sweet spot: additional layers in analog may magnify IR drop and noise beyond acceptable limits, unless more buffer amplifiers are inserted~\cite{chi2016prime,singh2020nebula}. This can increase area and power, offsetting any gains from skipping ADC conversions. Hence, {\em restricting ourselves to pairs of analog layers strikes a balance between system complexity and energy efficiency.} 
+
+%\subsection{Quantization-Aware Training}
+\noindent\textbf{Quantization-Aware Training:}
+Finally, after two analog layers, the partial sums are quantized with low precision. We incorporate this step directly into training—known as quantization-aware training (QAT)—by rounding the intermediate activations to {4-bit or 8-bit} during the forward pass (only after every second layer). This ensures that the model learns to tolerate not only analog circuit variations but also the discretization error from the limited-resolution ADC. Our implementation uses a straight-through gradient estimator for backprop through this rounding operation. Combining QAT with analog variation modeling allows the network to fully exploit the \emph{two-layer analog pipeline} while retaining high accuracy.
+
+\noindent
+\textbf{Extension to Digital or MCU-Based Systems:}
+Although the core of our design exploits analog computation for two consecutive layers without intermediate digitization, many practical systems use a digital microcontroller or accelerator for control or additional layers. Our hardware-aware training naturally extends to these hybrid pipelines by including appropriate quantization steps in the forward pass. For example, if an MCU enforces $n$-bit fixed-point arithmetic, we can quantize the outputs of certain layers to $n$ bits during training. Similarly, if sensor data arrive with a certain signal-to-noise range, we can inject that variation at the input to ensure the model accounts for real-world sampling imprecision. In this way, the same framework that corrects IR drop and diode shifts can also compensate for digital truncation or sensor-level noise. The network effectively learns a unifying error budget, distributing redundancy across weights so that neither analog nor digital imperfections collapse inference accuracy.
+
+% \noindent
+% \textbf{Key Takeaway:} By jointly modeling IR drop, TIA imperfections, diode parameter shifts, and noise during training, we equip the network to overcome the pitfalls of analog computing. Section~\ref{sec:eval} will demonstrate that this hardware-aware approach can sustain accuracy under realistic crossbar conditions, enabling efficient two-layer analog execution with minimal performance loss.
+%%%%% %%%%% %%%%%
+

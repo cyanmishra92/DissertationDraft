@@ -1,0 +1,119 @@
+% \begin{algorithm}[h]
+% \caption{Unified Training Algorithm Incorporating Diode Activation and IR Drop Modeling}
+% \label{alg:unified_training}
+% \begin{algorithmic}[1]
+% \Require Training data $\{(x^{(i)}, y^{(i)})\}_{i=1}^{N}$, learning rate $\eta$, number of epochs $E$
+% \Ensure Trained weights $\{ w_{ij}^{(l)} \}$, biases $\{ b_i^{(l)} \}$, attenuation factors $\{ \gamma^{(l)} \}$, and activation parameters $\{ \alpha^{(l)}, V_{\text{th}}^{(l)} \}$
+
+% \For{epoch $=1$ to $E$}
+%     \For{each mini-batch}
+%         \State Initialize gradients: $\Delta w_{ij}^{(l)} = 0$, $\Delta b_i^{(l)} = 0$, $\Delta \gamma^{(l)} = 0$, $\Delta \alpha^{(l)} = 0$, $\Delta V_{\text{th}}^{(l)} = 0$
+%         \For{each training example $(x, y)$ in mini-batch}
+%             \State \textbf{Forward Propagation}:
+%             \State Set input activations: $a_j^{(0)} = x_j$
+%             \For{each layer $l$}
+%                 \State Compute pre-activation: $z_i^{(l)} = \sum_{j=1}^{N_{l-1}} w_{ij}^{(l)} a_j^{(l-1)} + b_i^{(l)}$
+%                 \State Sample diode parameters:
+%                 \State \quad $V_{\text{th}}^{(l)} \sim \mathcal{N}(\mu_{V_{\text{th}}}, \sigma_{V_{\text{th}}}^2)$
+%                 \State \quad $\alpha^{(l)} \sim \mathcal{N}(\mu_{\alpha}, \sigma_{\alpha}^2)$
+%                 \State Apply diode activation function:
+%                 \State \quad $a_i^{(l), 0} = f_{\text{diode}}(z_i^{(l)}; \alpha^{(l)}, V_{\text{th}}^{(l)})$
+%                 \State Compute IR drop attenuation factor:
+%                 \State \quad Compute $\gamma^{(l)}$ based on Eq.~\eqref{eq:attenuation_factor} or sample $\gamma^{(l)}$ if modeled as variable
+%                 \State Apply attenuation due to IR drop:
+%                 \State \quad $a_i^{(l)} = \gamma^{(l)} a_i^{(l), 0}$
+%             \EndFor
+%             \State \textbf{Backward Propagation}:
+%             \State Compute loss $\mathcal{L}$ using Eq.~\eqref{eq:total_loss_updated}
+%             \State Compute gradient of loss w.r.t. output activation:
+%             \State \quad $\delta_i^{(L)} = \frac{\partial \mathcal{L}_{\text{cls}}}{\partial a_i^{(L)}}$
+%             \For{each layer $l$ from $L$ down to $1$}
+%                 \State Compute derivative of activation function:
+%                 \State \quad $f_{\text{diode}}'(z_i^{(l)}) = \begin{cases}
+%                 0, & z_i^{(l)} \leq V_{\text{th}}^{(l)} \\
+%                 \alpha^{(l)}, & z_i^{(l)} > V_{\text{th}}^{(l)}
+%                 \end{cases}$
+%                 \State Compute error term:
+%                 \State \quad $\delta_i^{(l)} = \left( \sum_{k} w_{ik}^{(l+1)} \delta_k^{(l+1)} \right) \gamma^{(l)} f_{\text{diode}}'(z_i^{(l)})$
+%                 \State Accumulate gradients:
+%                 \State \quad $\Delta w_{ij}^{(l)} \mathrel{+}= a_j^{(l-1)} \delta_i^{(l)}$
+%                 \State \quad $\Delta b_i^{(l)} \mathrel{+}= \delta_i^{(l)}$
+%                 \State \quad $\Delta \gamma^{(l)} \mathrel{+}= a_i^{(l), 0} \delta_i^{(l)}$
+%                 \State \quad $\Delta \alpha^{(l)} \mathrel{+}= \left( \sum_{k} w_{ik}^{(l+1)} \delta_k^{(l+1)} \right) \gamma^{(l)} (z_i^{(l)} - V_{\text{th}}^{(l)})$
+%                 \State \quad $\Delta V_{\text{th}}^{(l)} \mathrel{+}= -\left( \sum_{k} w_{ik}^{(l+1)} \delta_k^{(l+1)} \right) \gamma^{(l)} \alpha^{(l)}$
+%             \EndFor
+%         \EndFor
+%         \State \textbf{Update Parameters}:
+%         \For{each layer $l$}
+%             \State Update weights and biases:
+%             \State \quad $w_{ij}^{(l)} \leftarrow w_{ij}^{(l)} - \eta \left( \frac{1}{N_{\text{batch}}} \Delta w_{ij}^{(l)} + \lambda_w w_{ij}^{(l)} \right)$
+%             \State \quad $b_i^{(l)} \leftarrow b_i^{(l)} - \eta \left( \frac{1}{N_{\text{batch}}} \Delta b_i^{(l)} \right)$
+%             \State Update attenuation factors:
+%             \State \quad $\gamma^{(l)} \leftarrow \gamma^{(l)} - \eta \left( \frac{1}{N_{\text{batch}}} \Delta \gamma^{(l)} + 2 \lambda_{\gamma} (\gamma^{(l)} - 1) \right)$
+%             \State Update activation parameters:
+%             \State \quad $\alpha^{(l)} \leftarrow \alpha^{(l)} - \eta \left( \frac{1}{N_{\text{batch}}} \Delta \alpha^{(l)} + 2 \lambda_{\alpha} (\alpha^{(l)} - \mu_{\alpha}) \right)$
+%             \State \quad $V_{\text{th}}^{(l)} \leftarrow V_{\text{th}}^{(l)} - \eta \left( \frac{1}{N_{\text{batch}}} \Delta V_{\text{th}}^{(l)} + 2 \lambda_{V_{\text{th}}} (V_{\text{th}}^{(l)} - \mu_{V_{\text{th}}}) \right)$
+%         \EndFor
+%     \EndFor
+% \EndFor
+% \end{algorithmic}
+% \end{algorithm}
+
+
+\begin{algorithm}[th]
+\caption{Unified Training Algorithm Incorporating Diode Activation and IR Drop Modeling}
+%\label{alg:backward_propagation}
+\label{alg:unified_training}
+\begin{algorithmic}[1]
+\Require Activations $\{a_i^{(l)}\}$ from forward propagation, training targets $\{y^{(i)}\}$
+\Ensure Updated weights $\{ w_{ij}^{(l)} \}$, biases $\{ b_i^{(l)} \}$, attenuation factors $\{ \gamma^{(l)} \}$, and activation parameters $\{ \alpha^{(l)}, V_{\text{th}}^{(l)} \}$
+\State \textbf{Backward Propagation}:
+\For{each training example $(x, y)$ in mini-batch}
+    \State Compute loss $\mathcal{L}$ using Eq.~\eqref{eq:total_loss_updated}
+    \State Compute gradient of loss w.r.t. output activation:
+    \State \quad $\delta_i^{(L)} = \frac{\partial \mathcal{L}}{\partial a_i^{(L)}}$
+    \For{each layer $l$ from $L$ down to $1$}
+        \State Compute derivative of activation function:
+        \State \quad $f_{\text{diode}}'(z_i^{(l)}) = \begin{cases}
+        0, & z_i^{(l)} \leq V_{\text{th}}^{(l)} \\
+        \alpha^{(l)}, & z_i^{(l)} > V_{\text{th}}^{(l)}
+        \end{cases}$
+        \State Compute error term for each neuron:
+        \State \quad $\delta_i^{(l)} = \left( \sum_{k} w_{ik}^{(l+1)} \delta_k^{(l+1)} \right) \gamma^{(l)} f_{\text{diode}}'(z_i^{(l)})$
+        \State Accumulate gradients for weights, biases, and other parameters:
+        \State \quad Update $\Delta w_{ij}^{(l)}$, $\Delta b_i^{(l)}$, $\Delta \gamma^{(l)}$, $\Delta \alpha^{(l)}$, $\Delta V_{\text{th}}^{(l)}$
+    \EndFor
+\EndFor
+\State \textbf{Update Parameters}:
+\For{each layer $l$}
+    \State Update weights and biases using accumulated gradients:
+    \State \quad Apply learning rate $\eta$ and regularization if applicable
+    \State Update activation parameters:
+    \State \quad Adjust $\alpha^{(l)}$, $V_{\text{th}}^{(l)}$, $\gamma^{(l)}$ based on gradients
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+
+% \begin{algorithm}[th]
+% \caption{Compact Unified Training Algorithm with Diode Activation and IR Drop Modeling}
+% \label{alg:unified_training}
+% \begin{algorithmic}[1]
+% \Require Activations $\{a_i^{(l)}\}$ from forward propagation, targets $\{y^{(i)}\}$
+% \Ensure Updated weights $\{ w_{ij}^{(l)} \}$, biases $\{ b_i^{(l)} \}$, and parameters $\{ \gamma^{(l)}, \alpha^{(l)}, V_{\text{th}}^{(l)} \}$
+% \State \textbf{Backward Propagation:}
+% \For{each mini-batch $(x, y)$}
+%     \State Compute loss $\mathcal{L}$ and gradient $\delta_i^{(L)} = \frac{\partial \mathcal{L}}{\partial a_i^{(L)}}$
+%     \For{each layer $l = L \to 1$}
+%         \State Compute $f_{\text{diode}}'(z_i^{(l)})$: $0$ if $z_i^{(l)} \leq V_{\text{th}}^{(l)}$, else $\alpha^{(l)}$
+%         \State Compute $\delta_i^{(l)}$: $\delta_i^{(l)} = \gamma^{(l)} f_{\text{diode}}'(z_i^{(l)}) \sum_k w_{ik}^{(l+1)} \delta_k^{(l+1)}$
+%         \State Accumulate $\Delta w_{ij}^{(l)}, \Delta b_i^{(l)}, \Delta \gamma^{(l)}, \Delta \alpha^{(l)}, \Delta V_{\text{th}}^{(l)}$
+%     \EndFor
+% \EndFor
+% \State \textbf{Update Parameters:}
+% \For{each layer $l$}
+%     \State Update $w_{ij}^{(l)}, b_i^{(l)}$ using gradients, LR $=\eta$, and Reg=$f(\gamma)$
+%     \State Update $\gamma^{(l)}, \alpha^{(l)}, V_{\text{th}}^{(l)}$ based on accumulated gradients
+% \EndFor
+% \end{algorithmic}
+% \end{algorithm}

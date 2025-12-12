@@ -1,0 +1,53 @@
+The advent of data driven computing, along with advances in low-power computing platforms, has given rise to the new generation of intelligent and connected  devices that comprise the internet of things (IoT). These devices have become an integral part of our daily lives and, using techniques such as deep learning, these devices are becoming increasingly capable of performing complex inference tasks including machine translation, human activity recognition (HAR), bio-metric authentication, ECG measurement, fall detection etcetera~\cite{AppleECG,AppleFall}. These inference tasks are typically driven by deep neural networks (DNNs), which are known for being compute heavy and power hungry~\cite{netadapt}. Given the power and compute constraints of the IoT devices performing sensing, it is difficult to execute these inference tasks on the sensing device itself, excepting a few intermittent tasks such as bio-metric authentication. Instead, to perform complex and continuous inference, such as HAR, the data is typically offloaded either to the cloud or to a nearby host device which in turn executes the inference or further redirects it~\cite{Google-Assistant-Watch} and, finally, returns the results to the IoT devices responsible for data display or actuation, dependent on the inference task.  
+
+Recent works~\cite{spendthrift,ResiRCA} suggest that processing data at the source is more efficient that sending them to the cloud and getting the results back, owing to the power and latency overhead of data communication. They propose optimizations to efficiently execute the DNNs on low power IoT devices~\cite{IntBeyondEdge,chinchilla}. Other recent works~\cite{NVPMa,spendthrift,IntBeyondEdge,chinchilla} have proposed using energy harvesting (EH) solutions to provide additional energy and increase the battery life in IoT devices. These works provide software, hardware and compiler-level solutions, which can be applied to build a battery-less system working entirely on harvested energy. Moreover, in addition to prolonging device lifetime, energy harvesting can help us reduce the environmental impact of batteries~\cite{incidental}. However, energy harvesting is no panacea due to the fickle nature of harvested energy. To tackle this, recent works~\cite{NVPMa,ResiRCA} use a non-volatile processor (NVP) to ensure sufficient forward progress in the face of frequent power emergencies.
+
+The combination of EH, NVPs and other architectural and compiler optimizations have enabled the use of sensors as smart inference engines. However, these node-level optimizations are not entirely sufficient for sensor networks with multiple sensors collectively working together to achieve a goal, which are very common. %For instance, a
+Although fusing sensor data is not uncommon, it requires one central location where the inference can take place, requiring the communication of sensed data. In networks of energy harvested sensors, the power-hungry nature of communication results in intermittent coordination failures due to one or more of the sensors, or even the fusing node itself, lacking sufficient energy at the time that inter-node communication is required. This work aims to address this limitation by pursuing answers to the following questions - \emph{1) how do we leverage multiple available energy harvesting wireless sensors collectively, and 2) where should each individual sensor perform its own inference, considering that they collectively perform a single task?} 
+
+Our approach to address these questions relies on decentralizing the DNN execution and letting each sensor perform its own inference. These sensors, each individually working as a weak classifier, can together form an ensemble learning environment to achieve better accuracy with lower communication overhead.  For each sensor to perform inference using the limited and unstable harvested energy poses a scheduling problem, as non-deterministic time is required for the EH sensors to accumulate enough energy to perform the inference. This scheduling is made even more difficult as each sensor can harvest and consume different amounts of energy depending upon their location, have different sensor sampling rate, and require different DNNs to be executed. Further, all sensors might not be able to participate in the ensemble due to the fickle nature of harvested energy. This demands the aggregation process for the ensemble to be robust, yet light weight in order to perform accurate classification with minimum overhead. Therefore, this work proposes an intelligent scheduler along with efficient ensemble learning to enable DNN inference in a distributed energy harvesting wireless sensor network (EH-WSN).
+
+This work proposes a novel policy, \emph{Origin}, which enables energy harvesting wireless sensors to perform efficient and accurate DNN inference. Specifically, Origin targets inherent features of sensor data from distributed body area networks in human activity recognition (HAR) tasks and leverages non-volatile processing, intelligent scheduling for energy-harvesting sensor nodes, and ensemble leaning to classify human activity with minimum accuracy loss compared to a state-of-the-art battery powered system. To the best of our knowledge, this is the first work that tries to enable DNN inference for human activity recognition in a distributed energy harvesting wireless sensor network by leveraging ensemble learning. The paper makes the following key contributions:
+
+
+\begin{enumerate}[leftmargin=*]
+\item We design a scheduling policy that chooses the salient sensor for performing the inference depending on the anticipated activity, i.e. the scheduler is \emph{activity aware}.
+
+\item We leverage temporal continuity of human activity, and persist the last successful classification result of a sensor. We use aggressive recall which reduces the number of total inferences performed and mitigates the requirement that all of the sensors be involved in the ensemble process during each inference. 
+
+\item Our proposed policy, \emph{Origin}, combines an adaptive confidence matrix and the activity aware scheduler to perform efficient and accurate classification. The adaptive confidence matrix, which weights the output of each sensor depending upon the classification result, is updated on each successful classification.
+
+\item Finally, we provide a detailed evaluation of \emph{Origin}, and show that, even when powered by an unreliable EH source, the efficiency achieved by the this system results in better accuracy than that of a fully powered system running state of the art classifiers optimized for energy efficiency. \emph{Origin} reaches 83.88\% top-1 accuracy compared to the 81.16\% accuracy of the baseline system.
+
+\end{enumerate}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\squishlist
+% \begin{enumerate}
+
+%     \item We design an intelligent class \cyan{activity aware} aware scheduling policy that chooses the best available accurate sensor to schedule the upcoming inference. Based upon prior knowledge, the scheduler enables the best suited sensor for classifying the anticipated activity.
+%     \cyan{We design a policy that does the scheduling depends on the anticipated activity. salient sensor}
+%     \item We leverage the inherent continual nature of human activity to build an efficient ensemble of DNNs. We use \emph{recall} feature so that all the sensors need not participate together at the same time to make the ensemble possible. \cyan{given the temporal decision persistence redundancies, we use aggressive recall to reduce the number of computation}
+%     % We build a recall feature into the host (the aggregator) which enables it to perform ensemble learning by looking into the most recent classification results of the non-participating sensors. 
+%     \item 
+%     % To build intelligence into the aggregator, we proposed a confidence matrix. 
+%     We propose \emph{Origin}, an ensemble learning bases approach, which combines the intelligent class aware scheduler with an adaptive confidence matrix, enabling the host to run a more precise and accurate classification. \cyan{confidence matrix to adaptive weight the inputs from different sensors}
+%     %Furthermore, we combine this lightweight and adaptive confidence matrix with  and the recall feature to develop \emph{Origin}, a light weight scheduler for  energy harvesting wireless sensor networks. 
+%     \item Finally, we compare the classification accuracy of \emph{Origin} against two baseline models running on a fully powered system. \emph{Origin} reaches 83.88\% top-1 accuracy compared to the 81.16\% accuracy of the energy optimized DNN running on a fully powered system. \cyan{provide a detailed evaluation of origin, and show that even when powered by an unreliable EH source, the efficiency achieved by the this system better than that proped by recently }
+% %\squishend
+% \end{enumerate}
+
+    %Furthermore, we combine this lightweight and adaptive confidence matrix with  and the recall feature to develop \emph{Origin}, a light weight scheduler for  energy harvesting wireless sensor networks. 
+    
+    %, i.e. the confidence matrix weights each class of each sensor differently.
+    
+    %Further, to form an effective ensemble, all the sensors need to participate. This might not be possible thanks to the fickle harvested energy might not be always sufficient. Moreover, the aggregator, which ensemble all the results, also needs to be lightweight yet powerful to effectively work with minimum overhead. Therefore, what we need is an intelligent scheduling along with efficient ensemble learning to enable DNN inference in a distributed energy harvesting wireless sensor network. 
+    
+    %Nevertheless, 
+%most of these works are limited in their scope % and lacks collective optimizations in the fronts of DNN optimization, architectural modification, compiler support, and policy design. 
+%Even with all these proposed solutions, 
+ %the compute and power constraints in these tiny devices still remain a critical challenge. 
