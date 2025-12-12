@@ -13,6 +13,8 @@ The Introduction of the paepers for the corrosponding chapters makes up the Intr
 At the end of each chapter we need to lead towadsrds the next chapter. 
 Always ask for clarity if needed. Organization is very important. Story is most important. Keep the writing clean, and professional. 
 Additional details and appendinx can be added to the appendix of the Dissertation. 
+For Chapter5 read the commands % Custom commands used in the dissertation \newcommand{\US}{U\d{s}\'{a}s }  % For Usas chapter \newcommand{\USS}{\textit{U\d{s}\'{a}s}}. Judiciously use them
+
 
 ## Build Commands
 
