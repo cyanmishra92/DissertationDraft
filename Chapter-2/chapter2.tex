@@ -12,7 +12,7 @@
 
 The previous chapter established the fundamental challenges and opportunities of intermittent computing systems, demonstrating how energy harvesting can enable sustainable, battery-free operation for Internet of Things (IoT) devices. We explored the architectural innovations necessary to maintain computational progress despite frequent power failures, including non-volatile processors, checkpoint mechanisms, and task-based programming models. However, while these foundational techniques enable basic computation under intermittent power, they do not address a critical question facing modern IoT deployments: how can intermittent systems perform sophisticated machine learning inference tasks that typically require coordinated operation across multiple distributed sensors?
 
-This chapter addresses this challenge by presenting a comprehensive approach to enabling intelligent inference on energy-harvesting wireless sensor networks (EH-WSNs). The work spans two interconnected contributions that together enable practical distributed inference on intermittent devices. First, we introduce Origin, a system that leverages ensemble learning to coordinate inference across multiple intermittent nodes despite their unreliable power availability. Origin achieves 83.88\% classification accuracy on human activity recognition tasks---surpassing battery-powered baselines despite operating entirely on harvested energy. Second, we present Seeker, which addresses Origin's communication bottleneck through intelligent data compression using coresets. By providing an efficient fallback path for incomplete inferences, Seeker increases the effective inference completion rate to over 69\% while maintaining 86.8\% classification accuracy---a 5.6\% improvement over Origin alone.
+This chapter addresses this challenge by presenting a comprehensive approach to enabling intelligent inference on energy-harvesting wireless sensor networks (EH-WSNs). The work spans two interconnected contributions that together enable practical distributed inference on intermittent devices. First, we introduce Origin, a system that leverages ensemble learning to coordinate inference across multiple intermittent nodes despite their unreliable power availability. Origin achieves 83.88\% classification accuracy on human activity recognition tasks---surpassing battery-powered baselines despite operating entirely on harvested energy. Second, we present Seeker, which addresses Origin's communication bottleneck through intelligent data compression using coresets. By providing an efficient fallback path for incomplete inferences, Seeker increases the effective inference completion rate while maintaining 87.05\% classification accuracy on MHEALTH---approximately 7\% improvement over Origin alone.
 
 \subsection{The Challenge of Distributed Inference on Intermittent Systems}
 
@@ -20,14 +20,7 @@ Modern IoT applications increasingly demand real-time inference capabilities for
 
 Traditionally, such systems have addressed the computational demands of DNN inference by transmitting raw sensor data to cloud servers or nearby edge devices with sufficient computational resources. However, this approach faces fundamental limitations in energy-harvesting scenarios. Communication is notoriously power-hungry---transmitting raw sensor data can consume 10-100$\times$ more energy than local computation~\cite{spendthrift,ResiRCA}. For devices powered by harvested energy measured in microwatts, continuous data transmission is simply infeasible. Moreover, the sporadic nature of harvested energy means that sensors may lose power mid-transmission, corrupting entire data packets and wasting precious energy.
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.9\textwidth]{Chapter-2/Origin-DATE21-CameraReady/Figures/SensorSetup.pdf}
-\caption{System architecture for distributed inference on energy-harvesting wireless sensor networks. Multiple EH-powered sensor nodes perform local inference when energy permits, with a mobile host device coordinating ensemble decisions through our Origin framework.}
-\label{fig:ch2-sensor-setup}
-\end{figure}
-
-Recent advances in edge computing have proposed performing inference directly on sensor nodes to reduce communication overhead~\cite{IntBeyondEdge,chinchilla}. While this approach shows promise for battery-powered systems, it faces unique challenges in intermittent computing environments. Figure~\ref{fig:ch2-sensor-setup} illustrates our target scenario where multiple energy-harvesting sensors collaborate for distributed inference. The fundamental challenge lies in coordination---ensemble learning typically requires all participating nodes to complete their inference tasks synchronously. In EH-WSNs, the probability that all nodes have sufficient energy simultaneously is vanishingly small. Our experiments show that only 1\% of inference attempts succeed when requiring all three sensors to operate concurrently. Even when individual nodes attempt inference, the DNN computation may exceed available energy, causing the node to fail mid-inference. Without careful management, this results in wasted energy with no useful output. Furthermore, when local inference fails due to insufficient energy, nodes must still communicate something useful to maintain system operation. Transmitting raw data is prohibitively expensive, yet dropping samples entirely degrades accuracy unacceptably.
+Recent advances in edge computing have proposed performing inference directly on sensor nodes to reduce communication overhead~\cite{IntBeyondEdge,chinchilla}. While this approach shows promise for battery-powered systems, it faces unique challenges in intermittent computing environments. Consider a scenario where multiple energy-harvesting sensors collaborate for distributed inference. The fundamental challenge lies in coordination---ensemble learning typically requires all participating nodes to complete their inference tasks synchronously. In EH-WSNs, the probability that all nodes have sufficient energy simultaneously is vanishingly small. Our experiments show that only 1\% of inference attempts succeed when requiring all three sensors to operate concurrently. Even when individual nodes attempt inference, the DNN computation may exceed available energy, causing the node to fail mid-inference. Without careful management, this results in wasted energy with no useful output. Furthermore, when local inference fails due to insufficient energy, nodes must still communicate something useful to maintain system operation. Transmitting raw data is prohibitively expensive, yet dropping samples entirely degrades accuracy unacceptably.
 
 The temporal dynamics of human activities and many sensing phenomena add another layer of complexity. Human activities exhibit temporal continuity---walking typically continues for multiple steps, machinery degradation progresses gradually. Intermittent systems must exploit this continuity to maintain accuracy despite missing samples, a challenge that traditional inference approaches do not address.
 
@@ -234,14 +227,7 @@ The key benefit is energy accumulation:
 E_{\text{accumulated}} = \int_{t}^{t+k\tau} P_{\text{harvest}}(s) ds - k \cdot P_{\text{idle}} \cdot \tau
 \end{equation}
 
-Figure~\ref{fig:ch2-rr-completion} shows how completion rates improve with longer rounds, reaching 52\% for RR12. However, longer rounds also increase latency and may miss transient activities.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.6\textwidth]{Chapter-2/Origin-DATE21-CameraReady/Figures/ExtendedRRCompletion.pdf}
-\caption{Inference completion rates for different extended round-robin policies. Longer rounds provide more energy accumulation time, improving completion rates.}
-\label{fig:ch2-rr-completion}
-\end{figure}
+Completion rates improve with longer rounds, reaching 52\% for RR12. However, longer rounds also increase latency and may miss transient activities.
 
 \subsection{Activity-Aware Scheduling}
 
@@ -282,13 +268,6 @@ Figure~\ref{fig:ch2-cas-accuracy} demonstrates the effectiveness of activity-awa
 
 Even with intelligent scheduling, not all sensors can participate in every ensemble decision due to energy constraints. Traditional majority voting fails when participation is incomplete and imbalanced. Origin addresses this through an adaptive confidence matrix that weights each sensor's contribution based on its historical performance.
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.7\textwidth]{Chapter-2/Origin-DATE21-CameraReady/Figures/ConfidenceMatrix.pdf}
-\caption{Adaptive confidence matrix construction. Each sensor's predictions are weighted based on historical accuracy for each class, updated continuously during operation.}
-\label{fig:ch2-confidence-matrix}
-\end{figure}
-
 The confidence matrix $\mathbf{C} \in \mathbb{R}^{N \times C \times C}$ captures each sensor's confusion patterns:
 \begin{equation}
 C_{i,j,k} = P(\text{true class} = k | \text{sensor } i \text{ predicts } j)
@@ -326,14 +305,7 @@ The recall window is activity-dependent, reflecting different temporal scales. S
 
 \subsection{Integrated Origin System}
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.9\textwidth]{Chapter-2/Origin-DATE21-CameraReady/Figures/OriginPolicy.pdf}
-\caption{Complete Origin system flow combining activity-aware scheduling, extended round-robin timing, adaptive confidence weighting, and temporal recall.}
-\label{fig:ch2-origin-complete}
-\end{figure}
-
-Figure~\ref{fig:ch2-origin-complete} shows how these components integrate into the complete Origin system. The execution flow proceeds through schedule selection where AAS determines which sensor should attempt inference based on predicted activity and energy levels, energy checking to evaluate whether sufficient energy exists, inference or recall based on energy availability, ensemble aggregation at the host combining available predictions using confidence weighting, adaptation of the confidence matrix based on ground truth when available, and activity prediction using the ensemble result to inform the next scheduling decision.
+The Origin system integrates all components described above into a cohesive workflow. The execution flow proceeds through schedule selection where AAS determines which sensor should attempt inference based on predicted activity and energy levels, energy checking to evaluate whether sufficient energy exists, inference or recall based on energy availability, ensemble aggregation at the host combining available predictions using confidence weighting, adaptation of the confidence matrix based on ground truth when available, and activity prediction using the ensemble result to inform the next scheduling decision.
 
 This integrated approach achieves 83.88\% accuracy on HAR tasks---2.7\% higher than battery-powered baselines despite intermittent operation. However, Origin still faces a critical limitation: 41\% of scheduled inferences fail to complete, providing no value to the system. The next section introduces Seeker, which addresses this limitation through intelligent compression.
 
@@ -384,7 +356,7 @@ Algorithm~\ref{alg:coreset-construction} shows our activity-aware coreset constr
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.8\textwidth]{Chapter-3/Seeker-ASPLOS26/figs/DPRecovery.pdf}
+\includegraphics[width=0.8\textwidth]{Chapter-2/Seeker-ASPLOS26/figs/DPRecovery.pdf}
 \caption{Recoverable coreset construction and reconstruction pipeline. The encoder selects representative points while the decoder reconstructs the full signal using learned activity patterns.}
 \label{fig:ch2-recoverable-coreset}
 \end{figure}
@@ -408,7 +380,7 @@ Seeker implements a hierarchical decision framework that adaptively selects the 
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.7\textwidth]{Chapter-3/Seeker-ASPLOS26/figs/SeekerDecisionFlow.pdf}
+\includegraphics[width=0.7\textwidth]{Chapter-2/Seeker-ASPLOS26/figs/SeekerDecisionFlow.pdf}
 \caption{Seeker's hierarchical decision flow. The system progressively evaluates options from low to high energy cost, selecting the best feasible action.}
 \label{fig:ch2-seeker-decision}
 \end{figure}
@@ -429,7 +401,7 @@ To further reduce energy, we implement quantized arithmetic with 8-bit distance 
 
 Seeker seamlessly integrates with Origin's ensemble learning framework. Origin's activity-aware scheduler informs Seeker's coreset construction about the predicted activity. Reconstructed inferences receive lower confidence weights than direct sensor inferences, reflecting their approximate nature. Coreset construction considers temporal patterns identified by Origin to select the most representative samples. Decision thresholds adapt based on Origin's observed accuracy, becoming more aggressive when accuracy is high and more conservative when struggling.
 
-This integration creates a complete system where Origin handles coordination and Seeker ensures efficient communication, together achieving 86.8\% accuracy---a 5.6\% improvement over battery-powered baselines.
+This integration creates a complete system where Origin handles coordination and Seeker ensures efficient communication, together achieving 87.05\% accuracy on MHEALTH---5.89\% more accurate than battery-operated energy-optimized systems.
 
 %==============================================================================
 \section{Comprehensive Evaluation}
@@ -456,9 +428,7 @@ We compare against several state-of-the-art approaches: Cloud-Only (all data tra
 \label{fig:ch2-mhealth-results}
 \end{figure}
 
-Figure~\ref{fig:ch2-mhealth-results} shows classification accuracy on the MHEALTH dataset. Origin achieves 83.88\% accuracy using only harvested energy, surpassing the battery-powered pruned DNN baseline (81.16\%). This improvement comes from intelligent scheduling that prioritizes capable sensors and adaptive ensemble learning that optimally weights available predictions. Adding Seeker increases accuracy to 86.8\%, approaching the cloud-only upper bound (89.2\%). The improvement comes from recovering value from otherwise failed inference attempts through coreset transmission.
-
-Per-activity analysis reveals that static activities (standing, sitting) achieve greater than 95\% accuracy due to temporal recall, cyclic activities (walking, running) achieve 85-90\% accuracy with good sensor coverage, and transient activities (sit-to-stand) achieve 70-75\% accuracy, proving most challenging due to their brief duration and rapid changes.
+Figure~\ref{fig:ch2-mhealth-results} shows classification accuracy on the MHEALTH dataset. The overall accuracy improves with increasing round-robin delay time due to the increasing number of completed inferences. Origin with RR-12 provides the best fit for HAR. For the MHEALTH dataset, RR12-Origin is 2.72\% more accurate than Baseline-2 (energy-aware pruned DNN). For certain activities like running, Origin exceeds even the unpruned Baseline-1 accuracy due to its use of a confidence matrix for weighted voting. Seeker further improves accuracy to 87.05\%---only 0.18\% less than a full-precision DNN on full power. Compared to battery-operated energy-optimized systems, Seeker is 5.89\% more accurate on MHEALTH.
 
 \subsection{Energy Efficiency Analysis}
 
@@ -485,7 +455,7 @@ Table~\ref{tab:ch2-energy-breakdown} shows energy consumption breakdown. Seeker 
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.8\textwidth]{Chapter-3/Seeker-ASPLOS26/figs/SeekerFull.pdf}
+\includegraphics[width=0.8\textwidth]{Chapter-2/Seeker-ASPLOS26/figs/SeekerFull.pdf}
 \caption{Communication volume reduction through coreset compression across different activities and compression ratios.}
 \label{fig:ch2-communication-reduction}
 \end{figure}
@@ -496,36 +466,20 @@ Figure~\ref{fig:ch2-communication-reduction} quantifies communication savings. C
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.9\textwidth]{Chapter-3/Seeker-ASPLOS26/figs/AnytimeCoreset.pdf}
+\includegraphics[width=0.9\textwidth]{Chapter-2/Seeker-ASPLOS26/figs/AnytimeCoreset.pdf}
 \caption{System performance under different energy harvesting conditions, showing robustness to power availability variations.}
 \label{fig:ch2-harvesting-robustness}
 \end{figure}
 
-Figure~\ref{fig:ch2-harvesting-robustness} evaluates robustness to harvesting variations. Testing with harvested power from 10$\mu$W to 1mW shows that below 50$\mu$W, the system relies heavily on temporal recall and coresets; from 50-200$\mu$W, it uses a mix of local inference and coreset transmission; and above 200$\mu$W, it primarily performs local inference with high completion rates. Different harvesting patterns (constant, periodic, random) show constant power yields best performance (86.8\% accuracy), periodic power achieves good performance (84.2\%) with pattern adaptation, and random power maintains acceptable performance (79.5\%) with conservative scheduling. Mixed harvesting (e.g., solar on chest, kinetic on wrist) improves robustness by 12\% compared to homogeneous harvesting.
+Figure~\ref{fig:ch2-harvesting-robustness} evaluates robustness to harvesting variations across multiple energy harvesting sources. Our experiments with piezo-electric and RF energy sources demonstrate the versatility of Seeker, which outperforms prior HAR classifiers designed for EH across multiple harvested energy sources. The figure shows the comparison of scheduled inferences completed while using Seeker and prior state-of-the-art systems, demonstrating how Seeker leverages all proposed design components (including memoization, DNN inference, and coreset) to complete maximum compute at the edge while offloading minimum to the host device.
 
 \subsection{Inference Completion Analysis}
 
-\begin{table}[t]
-\centering
-\caption{Inference completion rates and decision distribution}
-\label{tab:ch2-completion-analysis}
-\begin{tabular}{lccccc}
-\toprule
-\textbf{System} & \textbf{Completed} & \textbf{Local Inf.} & \textbf{Coreset} & \textbf{Recall} & \textbf{Dropped} \\
-\midrule
-Baseline & 10\% & 10\% & 0\% & 0\% & 90\% \\
-Origin & 59\% & 28\% & 0\% & 31\% & 41\% \\
-Seeker & 69\% & 28\% & 41\% & 0\% & 31\% \\
-Origin+Seeker & 87\% & 28\% & 33\% & 26\% & 13\% \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Table~\ref{tab:ch2-completion-analysis} shows how different mechanisms contribute. Origin's scheduling and recall increase effective completion from 10\% to 59\%. Seeker's coreset fallback recovers 41\% of otherwise dropped samples. The combined system achieves 87\% effective completion---8.7$\times$ improvement over baseline.
+Our experiments quantify the progression in inference completion rates. With na\"ive scheduling where three EH sensors work together to finish incoming inferences, only 1\% of cases have all sensors finish inference, while 9\% of the time at least one finishes. 90\% of the time, inference could not start due to lack of energy. With round-robin scheduling where one sensor performs inference while others accumulate energy, 28\% of inferences complete, while 72\% fail as sensors cannot harvest enough energy during idle periods. By offloading unfinished compute as coresets, Seeker finishes 58.67\% of inferences at the edge itself, reducing dropped inferences from approximately 40\% to approximately 6\% on average (5\% best case, 8\% worst case).
 
 \subsection{Predictive Maintenance Case Study}
 
-To demonstrate generalizability beyond HAR, we evaluate on industrial predictive maintenance with four vibration sensors monitoring bearing health, powered by vibration energy harvesting (5-50$\mu$W). The results show fault detection rate of 94.2\% (Origin+Seeker) versus 67.3\% (baseline), false positive rate of 2.1\% versus 8.4\%, early warning detection 3.2 hours earlier due to continuous monitoring, and 18$\times$ reduction in battery replacement costs. The high accuracy for fault detection demonstrates the system's applicability to critical monitoring tasks.
+To demonstrate generalizability beyond HAR, we evaluate on industrial bearing fault detection using the Case Western Bearing Fault dataset. Seeker delivers an average accuracy of 84.73\%, which is only 0.66\% less than a fully powered system. The communication overhead is reduced by approximately 7$\times$ while finishing $\ge$80\% of scheduled compute using WiFi energy sources. For a typical grinding job taking about 8.2 seconds, the 5\% improvement over prior state-of-the-art impacts approximately 46k parts per year per machine (working 8 hours/day). In large-scale industries, both saving communication overhead while maximizing accuracy directly impact production economics.
 
 \subsection{Theoretical Analysis and Performance Bounds}
 
@@ -552,29 +506,6 @@ The temporal recall mechanism's effectiveness depends on activity autocorrelatio
 \end{equation}
 
 This bound guides our activity-specific recall window selection.
-
-\subsection{Ablation Studies}
-
-\begin{table}[t]
-\centering
-\caption{Ablation study showing contribution of each component}
-\label{tab:ch2-ablation}
-\begin{tabular}{lcc}
-\toprule
-\textbf{Configuration} & \textbf{Accuracy (\%)} & \textbf{Energy ($\mu$J)} \\
-\midrule
-Full System & 86.8 & 7.6 \\
-- Hardware acceleration & 84.1 & 11.2 \\
-- Activity awareness & 82.3 & 8.9 \\
-- Temporal recall & 79.8 & 9.4 \\
-- Confidence weighting & 77.2 & 7.6 \\
-- Coreset compression & 75.4 & 39.8 \\
-Basic round-robin only & 68.9 & 14.8 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Table~\ref{tab:ch2-ablation} quantifies each component's contribution. Coreset compression provides the largest accuracy gain (11.4\%) by recovering failed inferences. Components work synergistically---removing multiple components causes super-linear degradation. Some components (e.g., confidence weighting) improve accuracy without energy cost, while others trade energy for accuracy.
 
 %==============================================================================
 \section{Conclusion}
