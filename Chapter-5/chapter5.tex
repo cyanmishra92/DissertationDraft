@@ -60,6 +60,13 @@ The theoretical justification for analog computation in intermittent systems res
 
 These theoretical advantages translate to practical benefits only through careful co-design of hardware and algorithms, which forms the core contribution of this chapter.
 
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=\linewidth]{Chapter-5/LREyE-MICRO/figs/RichIntroDiagram.pdf}
+    \caption{An example wildlife classification deployment---analog image sensor data is stored in digital memory, then processed in crossbar arrays in the mixed domain. The MCU, in the digital domain, performs activation functions. Every DNN layer undergoes expensive domain transfers. Our approach eliminates these costly transfers by keeping computations in the analog domain across multiple layers.}
+    \label{fig:lreye-intro-diagram}
+\end{figure}
+
 \subsection{Contributions and Chapter Organization}
 
 This chapter makes four key contributions to intermittent computing:
@@ -99,6 +106,7 @@ This chapter makes four key contributions to intermittent computing:
 
 The remainder of this chapter develops these contributions in detail, showing how analog computing fundamentally changes the intermittent intelligence equation. We begin with the hardware challenges that motivate our approach, then develop the circuit and algorithmic innovations that address them, and conclude with extensive experimental validation demonstrating practical feasibility.
 
+\FloatBarrier
 \section{The Hardware Challenge in Intermittent Systems}
 \label{sec:lreye-hardware-challenge}
 
@@ -108,7 +116,7 @@ To understand why analog computing naturally suits intermittent systems, we must
 
 Modern digital neural network accelerators achieve impressive performance through massive parallelism and specialized datapaths. However, their energy consumption remains dominated by data movement rather than computation. Consider the energy breakdown for a single convolutional layer on a state-of-the-art digital accelerator:
 
-\begin{table}[h]
+\begin{table}[!htb]
 \centering
 \caption{Energy consumption per operation in 7nm digital neural network accelerator}
 \label{tab:digital-energy-breakdown}
@@ -128,6 +136,13 @@ Total per MAC & 6.9 & 100\% \\
 \hline
 \end{tabular}
 \end{table}
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=\linewidth]{Chapter-5/LREyE-MICRO/NewResultFigs/combined_analysis_complete_final.pdf}
+    \caption{An understanding of the current state of the art: (top) Different available architectures for deploying edge intelligence including PIM-based and microcontroller-based approaches; (bottom) Contribution of the different moving parts of the edge ecosystem towards inference accuracy, area, power, and efficiency. The analysis reveals significant opportunities for improvement in analog processing and hardware-aware training.}
+    \label{fig:lreye-combined-analysis}
+\end{figure}
 
 The data reveals a stark reality: only 3-13\% of energy performs useful computation. The remaining 87-97\% moves data between memory hierarchies and processing elements. This inefficiency becomes catastrophic under intermittent power where:
 
@@ -206,6 +221,7 @@ However, realizing these benefits requires solving fundamental challenges:
 
 The following sections address each challenge, beginning with our revolutionary Schottky diode activation function.
 
+\FloatBarrier
 \section{Analog Activation Functions via Schottky Diodes}
 \label{sec:lreye-analog-activation}
 
@@ -215,7 +231,7 @@ The activation function represents the most critical challenge in analog neural 
 
 Figure \ref{fig:diode-circuit} shows our complete activation function circuit. The design consists of three key components:
 
-\begin{figure}[h]
+\begin{figure}[!htb]
 \centering
 \includegraphics[width=0.9\textwidth]{NewResultFigs/DiodeActivationCircuit2.pdf}
 \caption{Schottky diode-based ReLU implementation. (a) Three candidate circuits with trade-offs in complexity and linearity. (b) Selected design with series resistance for slope control. (c) Integration with transimpedance amplifier for current-to-voltage conversion. (d) Measured I-V characteristics showing ReLU-like behavior with 0.15V threshold.}
@@ -279,7 +295,7 @@ To understand the circuit behavior under realistic conditions, we performed comp
 
 \textbf{DC Characteristics.} Figure \ref{fig:diode-iv} shows the measured I-V characteristics across temperature and process corners:
 
-\begin{figure}[h]
+\begin{figure}[!htb]
 \centering
 \begin{tikzpicture}
 \begin{axis}[
@@ -487,6 +503,7 @@ r_{out,cascode} = g_m r_o^2
 
 These optimizations enable scaling to large networks while maintaining efficiency.
 
+\FloatBarrier
 \section{Hardware-Aware Neural Network Training}
 \label{sec:lreye-hardware-aware-training}
 
@@ -827,7 +844,7 @@ We validate our training methodology through extensive experiments:
 
 Table \ref{tab:training-ablation} shows the contribution of each component:
 
-\begin{table}[h]
+\begin{table}[!htb]
 \centering
 \caption{Accuracy impact of hardware-aware training components on NTLNP dataset}
 \label{tab:training-ablation}
@@ -845,35 +862,42 @@ Baseline (no hardware modeling) & 72.3 \\
 \end{tabular}
 \end{table}
 
+\begin{figure}[!htb]
+\centering
+\begin{subfigure}[t]{0.32\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{Chapter-5/LREyE-MICRO/figs/acc.pdf}
+    \caption{Accuracy}
+    \label{fig:lreye-training-acc}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{Chapter-5/LREyE-MICRO/figs/loss.pdf}
+    \caption{Loss}
+    \label{fig:lreye-training-loss}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.32\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{Chapter-5/LREyE-MICRO/figs/reg_gamma.pdf}
+    \caption{Gamma Regularization}
+    \label{fig:lreye-training-gamma}
+\end{subfigure}
+\caption{Training dynamics for hardware-aware neural network training: (a) Accuracy convergence showing stable learning despite hardware noise injection; (b) Loss curve demonstrating smooth optimization; (c) $\gamma$-regularization trends showing learned IR drop compensation factors converging to optimal values.}
+\label{fig:lreye-training-curves}
+\end{figure}
+
 Each component provides substantial improvement, with the full system achieving 88.1% accuracy—15.8% higher than naive training.
 
 \subsubsection{Robustness Analysis}
 
 Figure \ref{fig:robustness} demonstrates robustness to hardware variations:
 
-\begin{figure}[h]
+\begin{figure}[!htb]
 \centering
-\begin{tikzpicture}
-\begin{axis}[
-    xlabel={Hardware Variation (\%)},
-    ylabel={Accuracy (\%)},
-    width=0.8\textwidth,
-    height=0.4\textwidth,
-    legend pos=south west,
-    grid=major,
-]
-\addplot[blue, thick, mark=*] coordinates {
-    (0, 88.1) (5, 87.8) (10, 87.2) (15, 86.3) (20, 84.9) (25, 82.7) (30, 79.5)
-};
-\addlegendentry{Hardware-Aware Training}
-
-\addplot[red, dashed, mark=square] coordinates {
-    (0, 87.5) (5, 83.2) (10, 77.8) (15, 70.3) (20, 61.2) (25, 50.8) (30, 39.2)
-};
-\addlegendentry{Standard Training}
-\end{axis}
-\end{tikzpicture}
-\caption{Accuracy degradation with increasing hardware variation. Hardware-aware training maintains >80\% accuracy even with 25\% variation, while standard training catastrophically fails.}
+\includegraphics[width=0.8\textwidth]{Chapter-5/LREyE-MICRO/NewResultFigs/accuracy_vs_noise_trend.pdf}
+\caption{Accuracy degradation with increasing hardware variation (noise). Hardware-aware training maintains high accuracy even under significant noise conditions, while standard training without hardware modeling catastrophically fails as noise increases.}
 \label{fig:robustness}
 \end{figure}
 
@@ -906,10 +930,18 @@ where $P_{checkpoint}^{(l)}$ is the probability of checkpointing at layer $l$.
 
 This encourages architectures with smaller intermediate activations, reducing checkpoint cost.
 
+\FloatBarrier
 \section{System Architecture and Integration}
 \label{sec:lreye-system-architecture}
 
 Having established the circuit-level innovations and training methodology, we now present the complete system architecture that integrates these components into a practical intermittent computing platform. This section details the tile-based crossbar organization, memory hierarchy, control flow, and system-level optimizations that enable efficient operation under unstable power.
+
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=\linewidth]{Chapter-5/LREyE-MICRO/NewResultFigs/FullDesign.pdf}
+    \caption{Overall design of the proposed system: (Left) High-level hardware architecture showing the tile-based crossbar organization with Schottky diode activation circuits, ADC/DAC peripherals, and MeF-RAM buffers; (Right) The intricate hardware-software co-design and training flow that incorporates IR drop modeling, thermal noise injection, and device variability into the learning process.}
+    \label{fig:lreye-full-design}
+\end{figure}
 
 \subsection{Tile-Based ReRAM Crossbar Architecture}
 
@@ -990,7 +1022,7 @@ The key innovation is processing two neural network layers entirely in analog:
 
 The critical path for maintaining signal integrity:
 
-\begin{figure}[h]
+\begin{figure}[!htb]
 \centering
 \begin{circuitikz}[american]
 \draw
@@ -1134,7 +1166,7 @@ Efficient control is critical for managing the complex analog-digital interactio
 
 The control FSM handles power interruptions gracefully:
 
-\begin{figure}[h]
+\begin{figure}[!htb]
 \centering
 \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=3cm]
   \node[state, initial] (idle) {IDLE};
@@ -1384,6 +1416,7 @@ For 256 tiles at 100MHz:
 \text{Throughput} = 256 \cdot 100MHz \cdot 64^2 = 100 \text{ TOPS}
 \end{equation}
 
+\FloatBarrier
 \section{Implementation and Evaluation}
 \label{sec:lreye-evaluation}
 
@@ -1395,7 +1428,7 @@ This section presents comprehensive experimental validation of our analog neural
 
 We implemented a prototype system with the following specifications:
 
-\begin{table}[h]
+\begin{table}[!htb]
 \centering
 \caption{Hardware implementation specifications}
 \label{tab:hardware-specs}
@@ -1522,7 +1555,7 @@ class HardwareAwareLinear(nn.Module):
 
 Training hyperparameters optimized for hardware awareness:
 
-\begin{table}[h]
+\begin{table}[!htb]
 \centering
 \caption{Hardware-aware training configuration}
 \begin{tabular}{ll}
@@ -1587,6 +1620,13 @@ Preprocessing pipeline:
 \item Balanced sampling for rare species
 \end{enumerate}
 
+\begin{figure}[!htb]
+    \centering
+    \includegraphics[width=\linewidth]{Chapter-5/LREyE-MICRO/figs/samples.pdf}
+    \caption{Sample images from the NTLNP (Northeast Tiger and Leopard National Park) dataset showing infrared camera trap captures of various wildlife species in different environmental conditions. The dataset includes rare and endangered species such as Amur tigers and leopards, making accurate classification critical for conservation efforts.}
+    \label{fig:lreye-ntlnp-samples}
+\end{figure}
+
 \subsubsection{Solar Energy Harvesting Simulation}
 
 We simulate realistic energy harvesting using NOAA SOLRAD data:
@@ -1616,7 +1656,7 @@ where:
 
 Figure \ref{fig:solar-trace} shows a typical 48-hour energy profile:
 
-\begin{figure}[h]
+\begin{figure}[!htb]
 \centering
 \begin{tikzpicture}
 \begin{axis}[
@@ -1658,7 +1698,7 @@ Figure \ref{fig:solar-trace} shows a typical 48-hour energy profile:
 
 We evaluated four neural networks of varying complexity:
 
-\begin{table}[h]
+\begin{table}[!htb]
 \centering
 \caption{Models evaluated for wildlife monitoring}
 \begin{tabular}{lrrrr}
@@ -1686,7 +1726,7 @@ Each model was trained with our hardware-aware methodology, incorporating:
 
 First, we evaluate accuracy with stable power:
 
-\begin{table}[h]
+\begin{table}[!htb]
 \centering
 \caption{Wildlife classification accuracy on NTLNP dataset}
 \label{tab:wildlife-accuracy}
@@ -1723,7 +1763,7 @@ We evaluate under realistic solar-powered operation over 7 days:
 \item Measure completed inferences and accuracy
 \end{itemize}
 
-\begin{table}[h]
+\begin{table}[!htb]
 \centering
 \caption{Performance under week-long intermittent operation}
 \begin{tabular}{lcccc}
@@ -1754,7 +1794,7 @@ Our analog system shows:
 
 Figure \ref{fig:energy-breakdown} shows where energy is consumed:
 
-\begin{figure}[h]
+\begin{figure}[!htb]
 \centering
 \begin{tikzpicture}
 \begin{axis}[
@@ -1791,62 +1831,11 @@ The two-layer analog processing eliminates 45\% of ADC/DAC energy, the dominant 
 
 We evaluate accuracy under extreme conditions:
 
-\begin{figure}[h]
+\begin{figure}[!htb]
 \centering
-\begin{tikzpicture}
-\begin{axis}[
-    xlabel={Signal-to-Noise Ratio (dB)},
-    ylabel={Accuracy (\%)},
-    width=0.48\textwidth,
-    height=0.35\textwidth,
-    legend pos=south east,
-    grid=major,
-]
-
-\addplot[blue, thick, mark=*] coordinates {
-    (10,68.2) (15,75.3) (20,80.1) (25,83.4) (30,85.2)
-    (35,86.5) (40,87.3) (50,87.8) (60,88.1)
-};
-\addlegendentry{Our Method}
-
-\addplot[red, dashed, mark=square] coordinates {
-    (10,42.3) (15,51.7) (20,61.2) (25,69.8) (30,75.3)
-    (35,79.1) (40,81.6) (50,83.2) (60,83.8)
-};
-\addlegendentry{No HW Training}
-
-\addplot[green, dotted, mark=triangle] coordinates {
-    (10,71.2) (15,76.8) (20,80.4) (25,82.7) (30,84.1)
-    (35,85.2) (40,85.8) (50,86.3) (60,86.5)
-};
-\addlegendentry{Digital 4-bit}
-
-\end{axis}
-\begin{axis}[
-    at={(0.52\textwidth,0)},
-    xlabel={Temperature (°C)},
-    ylabel={Accuracy (\%)},
-    width=0.48\textwidth,
-    height=0.35\textwidth,
-    legend pos=south west,
-    grid=major,
-]
-
-\addplot[blue, thick, mark=*] coordinates {
-    (-20,84.7) (-10,85.9) (0,86.8) (10,87.3) (20,87.7)
-    (27,88.1) (40,87.5) (50,86.2) (60,84.1)
-};
-\addlegendentry{Our Method}
-
-\addplot[red, dashed, mark=square] coordinates {
-    (-20,71.3) (-10,74.2) (0,76.8) (10,78.9) (20,80.3)
-    (27,81.2) (40,80.7) (50,78.3) (60,74.5)
-};
-\addlegendentry{No HW Training}
-
-\end{axis}
-\end{tikzpicture}
-\caption{Robustness to (a) noise and (b) temperature variations. Hardware-aware training maintains >80\% accuracy across wide operating ranges.}
+\includegraphics[width=0.9\textwidth]{Chapter-5/LREyE-MICRO/NewResultFigs/Accuracy_vs_noise_EH.pdf}
+\caption{Classification accuracy at different signal-to-noise ratios under energy harvesting conditions. Hardware-aware training maintains high accuracy across wide operating ranges, demonstrating robustness to environmental variations encountered in real-world deployments.}
+\label{fig:lreye-snr-robustness}
 \end{figure}
 
 Hardware-aware training provides:
@@ -1860,7 +1849,7 @@ Hardware-aware training provides:
 
 Accuracy varies by species based on dataset characteristics:
 
-\begin{table}[h]
+\begin{table}[!htb]
 \centering
 \caption{Per-species classification performance}
 \begin{tabular}{lrcc}
@@ -1892,7 +1881,7 @@ Rare species (tiger, leopard) achieve highest precision due to:
 
 \subsubsection{Comparison with Digital Accelerators}
 
-\begin{table}[h]
+\begin{table}[!htb]
 \centering
 \caption{Comparison with digital neural network accelerators}
 \begin{tabular}{lccccc}
@@ -1913,7 +1902,7 @@ Our system achieves 2.4× better efficiency than the best digital accelerator wh
 
 \subsubsection{Comparison with Analog PIM Architectures}
 
-\begin{table}[h]
+\begin{table}[!htb]
 \centering
 \caption{Comparison with ReRAM-based PIM architectures}
 \begin{tabular}{lcccc}
@@ -1938,13 +1927,39 @@ Key advantages:
 \item Native intermittent operation support
 \end{itemize}
 
+\begin{figure}[!htb]
+\centering
+\begin{subfigure}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{Chapter-5/LREyE-MICRO/NewResultFigs/model_accuracy_final.pdf}
+    \caption{Accuracy comparison across models}
+    \label{fig:lreye-accuracy-comparison}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{Chapter-5/LREyE-MICRO/NewResultFigs/power_efficiency_comparison.pdf}
+    \caption{Power efficiency comparison (GOps/W)}
+    \label{fig:lreye-power-comparison}
+\end{subfigure}
+\caption{Quantitative comparison with state-of-the-art approaches: (a) Classification accuracy showing our hardware-aware training recovers most of the accuracy loss from analog non-idealities; (b) Power efficiency demonstrating significant improvements over digital and single-layer analog approaches.}
+\label{fig:lreye-comparison}
+\end{figure}
+
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=0.9\textwidth]{Chapter-5/LREyE-MICRO/NewResultFigs/network_latency_comparison.pdf}
+\caption{Latency breakdown and savings for four representative networks. Our two-layer analog pipeline significantly reduces ADC/DAC conversion overhead, resulting in 20-40\% latency reduction compared to single-layer analog approaches.}
+\label{fig:lreye-latency-comparison}
+\end{figure}
+
 \subsection{Benchmark Evaluation}
 
 Beyond wildlife monitoring, we evaluate on standard benchmarks:
 
 \subsubsection{TinyImageNet Results}
 
-\begin{table}[h]
+\begin{table}[!htb]
 \centering
 \caption{TinyImageNet classification accuracy}
 \begin{tabular}{lccccc}
@@ -1964,7 +1979,7 @@ While accuracy is slightly lower than pure INT4, the energy savings justify the 
 
 \subsubsection{CIFAR-10 Results}
 
-\begin{table}[h]
+\begin{table}[!htb]
 \centering
 \caption{CIFAR-10 classification with varying energy}
 \begin{tabular}{lcccc}
@@ -2050,7 +2065,7 @@ While 38\% seems low, it's 2.3× better than digital systems (16% typical).
 
 End-to-end latency for MobileNetV3-S inference:
 
-\begin{table}[h]
+\begin{table}[!htb]
 \centering
 \caption{Latency breakdown (ms)}
 \begin{tabular}{lccc}
@@ -2075,7 +2090,7 @@ Our approach reduces latency by 20\% compared to digital and 24\% compared to si
 
 Projecting to advanced nodes:
 
-\begin{table}[h]
+\begin{table}[!htb]
 \centering
 \caption{Scalability to advanced process nodes}
 \begin{tabular}{lccc}
@@ -2093,6 +2108,7 @@ Area (mm²) & 3.2 & 4.1 & 3.8 \\
 
 Advanced nodes enable larger models while maintaining energy efficiency suitable for energy harvesting.
 
+\FloatBarrier
 \section{Discussion: Implications for Intermittent Intelligence}
 \label{sec:lreye-discussion}
 
