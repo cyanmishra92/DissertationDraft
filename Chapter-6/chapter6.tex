@@ -330,11 +330,7 @@ The micro-profiler plays a critical role in determining optimal hyperparameters 
 
 The morphable hardware architecture enables \US{} to maintain computational efficiency across the wide power range of solar energy. Figure~\ref{fig:hardware-arch} shows the relationship between available power and achieved throughput for different hardware configurations. The morphable array achieves near-linear scaling from 256 GFLOPS at 23W (16 PEs) to 4.1 TFLOPS at 285W (256 PEs). This 16$\times$ compute scaling with 12.4$\times$ power scaling demonstrates the efficiency of our hierarchical design, where inactive tiles consume negligible power.
 
-<<<<<<< HEAD
-\begin{figure}[h!]
-=======
 \begin{figure}[!htb]
->>>>>>> 26c4f2d (Usas)
 \centering
 \includegraphics[width=0.5\textwidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/ACDesign.pdf}
 \caption{Morphable hardware architecture showing the hierarchical tile organization, power domains, and data flow paths that enable dynamic scaling with solar power availability.}
@@ -408,16 +404,13 @@ The use of multiple teacher models for data annotation and exemplar selection pr
 
 The quality of exemplar selection directly impacts accuracy through two mechanisms. First, missing valid exemplars prevents the student model from learning vital information, increasing its drift over time. Second, incorrect annotations by a single teacher can cause the student to learn erroneous labels, leading to increased mispredictions. To address these issues, \US{} employs an ensemble of three teacher models (ResNet-101, YOLO-V2, and VGG-16) that perform majority voting to determine the correct exemplars. This ensemble approach significantly reduces both false positives and true negatives compared to single-teacher methods. Furthermore, the feature extraction for each potential exemplar is hardware-assisted, imposing no overhead on the inference task.
 
-<<<<<<< HEAD
-\begin{figure}[h!]
-=======
-\begin{figure}[!htb]
->>>>>>> 26c4f2d (Usas)
+\begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/teachers3.pdf}
 \caption{Impact of multiple teachers on exemplar selection accuracy. The ensemble approach (top bar) achieves the best annotation quality with only 2 false positives, significantly outperforming single-teacher approaches (R: ResNeXt101, T: YOLO-V3, V: VGG-16) and heuristic methods (IL: Intermittent Learning, RR: Round Robin).}
 \label{fig:usas-teachers-impact}
 \end{figure}
+
 
 \subsection{Task Completion Under Intermittent Power}
 
@@ -434,33 +427,40 @@ The techniques developed in \US{} extend beyond video analytics to other data mo
 
 Figure~\ref{fig:usas-contri} illustrates the contribution of different \US{} components under varying power profiles. When power is highly uncertain, the morphable hardware provides the dominant benefit by enabling continuous progress despite fluctuations. As the power profile stabilizes, the algorithmic contributions (exemplar selection and micro-profiler) become increasingly important. This complementary relationship ensures robust performance across the full range of operating conditions.
 
+\begin{figure}[!htb]
+\centering
+
+\subfloat[Component contribution under different power profiles.]{
+  \includegraphics[
+    trim={0 12pt 0 0},
+    clip,
+    width=0.7\linewidth
+  ]{Chapter-6/Usas-HPCA24-CameraReady/figs/contri.pdf}
+  \label{fig:usas-contri}
+}\\[0.5em]
+
+\subfloat[Generalization to other data modalities.]{
+  \includegraphics[
+    width=0.7\linewidth
+  ]{Chapter-6/Usas-HPCA24-CameraReady/figs/genrl.pdf}
+  \label{fig:usas-genrl}
+}\\[0.5em]
+
+\subfloat[Hardware-assisted scheduling across different scenarios.]{
+  \includegraphics[
+    width=0.7\linewidth
+  ]{Chapter-6/Usas-HPCA24-CameraReady/figs/Sens.pdf}
+  \label{fig:usas-sens}
+}
+
+\caption{Analysis of \US{} components and their generalization: (a) morphable hardware dominates under volatile power while algorithmic contributions excel under stable conditions; (b) exemplar selection and micro-profiler outperform baselines across Audio, 3D Point Cloud, and IMU data; (c) hardware assistance provides greater benefit for smaller workloads and more sporadic energy availability.}
+\label{fig:usas-beyond}
+\end{figure}
+
 The algorithmic innovations generalize to diverse data modalities beyond video. We evaluated the exemplar selection and micro-profiler on Audio data (speech classification from AudioMNIST and CHiME datasets), 3D Point Clouds (object classification from KITTI and nuScenes autonomous driving datasets), and Inertial Measurement Unit sensor data (fault and activity detection from bearing and mHealth datasets). As shown in Figure~\ref{fig:usas-genrl}, \US{} outperforms state-of-the-art approaches across all modalities. This superior performance stems from \US{}'s design for dense, noisy data characteristic of real-world deployments, whereas prior methods were often tuned for clean benchmark datasets.
 
 Figure~\ref{fig:usas-sens} demonstrates how hardware-assisted scheduling impacts performance across different data and model sizes, as well as varying energy income patterns. As data and model dimensions decrease, the relative impact of hardware assistance becomes more pronounced because smaller workloads have lower tolerance for wasted computation. Similarly, as energy income becomes more sporadic, the morphable hardware's ability to seamlessly transfer work to active processing elements becomes increasingly valuable.
 
-<<<<<<< HEAD
-\begin{figure}[h!]
-=======
-\begin{figure}[!htb]
->>>>>>> 26c4f2d (Usas)
-\centering
-\subfloat[Component contribution under different power profiles.]{
-  \includegraphics[trim={0 12pt 0 0},clip,width=0.7\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/contri.pdf}
-  \label{fig:usas-contri}
-}
-
-\subfloat[Generalization to other data modalities.]{
-  \includegraphics[width=0.7\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/genrl.pdf}
-  \label{fig:usas-genrl}
-}
-
-\subfloat[Hardware-assisted scheduling across different scenarios.]{
-  \includegraphics[width=0.7\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/Sens.pdf}
-  \label{fig:usas-sens}
-}
-\caption{Analysis of \US{} components and their generalization: (a) morphable hardware dominates under volatile power while algorithmic contributions excel under stable conditions; (b) exemplar selection and micro-profiler outperform baselines across Audio, 3D Point Cloud, and IMU data; (c) hardware assistance provides greater benefit for smaller workloads and more sporadic energy availability.}
-\label{fig:usas-beyond}
-\end{figure}
 
 \FloatBarrier
 \section{Bridging Scales: From Sensors to Servers}
@@ -556,4 +556,4 @@ The progression from Chapter~\ref{ch:intelligent-inference}'s intelligent infere
 
 As we conclude this technical journey, \US{} stands as proof that the vision of ubiquitous, sustainable intelligence is achievable. Edge servers powered entirely by renewable energy, continuously learning and adapting while producing zero operational emissions, transform from academic curiosity to practical reality. The path from sensors to servers reveals not just technical solutions but a philosophical shift: recognizing intermittency as a fundamental property of sustainable computing that, when properly addressed, enables systems superior to their constantly powered predecessors. This recognition opens new possibilities for computing that respects both the potential of artificial intelligence and the constraints of our physical world.
 
-With the technical foundations of sustainable, intermittent-aware intelligent systems now established across multiple scales, we turn in Chapter~\ref{ch:conclusions} to synthesize the broader implications of this work. The journey from resource-constrained inference through intermittent training to solar-powered continuous learning reveals not only a progression of technical capabilities but also fundamental principles about the future of sustainable computing. The concluding chapter examines how these insights extend beyond the specific systems presented here, exploring the path toward a computing ecosystem where sustainability and intelligence develop in harmony rather than conflict.
+With the technical foundations of sustainable, intermittent-aware intelligent systems now established across multiple scales, we turn in Chapter~\ref{chapter8:conclusions} to synthesize the broader implications of this work. The journey from resource-constrained inference through intermittent training to solar-powered continuous learning reveals not only a progression of technical capabilities but also fundamental principles about the future of sustainable computing. The concluding chapter examines how these insights extend beyond the specific systems presented here, exploring the path toward a computing ecosystem where sustainability and intelligence develop in harmony rather than conflict.
