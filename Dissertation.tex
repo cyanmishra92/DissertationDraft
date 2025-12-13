@@ -97,8 +97,10 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Table of contents customization
 % (MUST come *before* caption/subcaption)
+% NOTE: tocloft is already loaded by psuthesis.cls with [subfigure] option
+% DO NOT load it again here as it causes LOF/LOT generation issues
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\usepackage{tocloft}
+% \usepackage{tocloft}  % REMOVED - already loaded by psuthesis.cls
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Math and symbols
