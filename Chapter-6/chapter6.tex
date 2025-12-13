@@ -404,7 +404,7 @@ The use of multiple teacher models for data annotation and exemplar selection pr
 
 The quality of exemplar selection directly impacts accuracy through two mechanisms. First, missing valid exemplars prevents the student model from learning vital information, increasing its drift over time. Second, incorrect annotations by a single teacher can cause the student to learn erroneous labels, leading to increased mispredictions. To address these issues, \US{} employs an ensemble of three teacher models (ResNet-101, YOLO-V2, and VGG-16) that perform majority voting to determine the correct exemplars. This ensemble approach significantly reduces both false positives and true negatives compared to single-teacher methods. Furthermore, the feature extraction for each potential exemplar is hardware-assisted, imposing no overhead on the inference task.
 
-\begin{figure}[t]
+\begin{figure}[!htb]
 \centering
 \includegraphics[width=\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/teachers3.pdf}
 \caption{Impact of multiple teachers on exemplar selection accuracy. The ensemble approach (top bar) achieves the best annotation quality with only 2 false positives, significantly outperforming single-teacher approaches (R: ResNeXt101, T: YOLO-V3, V: VGG-16) and heuristic methods (IL: Intermittent Learning, RR: Round Robin).}
