@@ -396,14 +396,6 @@ The quality of exemplar selection directly impacts accuracy through two mechanis
 
 A critical metric for intermittent systems is the ability to complete scheduled tasks despite power variations. We measure task completion rate as the fraction of training iterations that finish successfully within their deadlined time windows. For this experiment, we schedule one training iteration every hour, requiring completion within the subsequent 4-hour window to maintain model freshness.
 
-Figure~\ref{fig:task-completion} shows cumulative task completion over a one-week period with typical weather variations. The GPU baseline completes only 48\% of scheduled iterations, failing whenever solar power drops below its 70W minimum. These failures cluster during cloudy periods, causing extended intervals where no training occurs and accuracy degrades. The DNN accelerator performs better at 71\% completion but still fails during extended low-power periods.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.85\textwidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/TrackingCompute.pdf}
-\caption{Task completion rates under intermittent solar power. \US{} achieves 94\% completion by dynamically adapting computational capacity to match available power, while fixed-power baselines fail catastrophically when solar generation drops below minimum operating thresholds.}
-\label{fig:task-completion}
-\end{figure}
 
 \US{} achieves 94\% task completion by adapting computation to available power. During full sun, training iterations complete in under 20 minutes using all 256 PEs. During overcast conditions, the same iteration may require 3 hours using only 16-32 PEs, but still completes within the deadline. Only during extreme conditions (dense fog, heavy storms) does \US{} fail to complete iterations, and even then, partial progress is preserved through NVSBs for resumption when conditions improve.
 
