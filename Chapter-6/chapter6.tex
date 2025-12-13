@@ -238,19 +238,34 @@ Table~\ref{tab:usas-specs} summarizes the area and power characteristics of the 
 \centering
 \caption{Area and power estimation of \US{} hardware design components synthesized at 592~MHz with Synopsys 32nm library.}
 \label{tab:usas-specs}
-\begin{tabular}{lccc}
+\begin{tabularx}{\linewidth}{lXcc}
 \toprule
 \textbf{Component} & \textbf{Specification} & \textbf{Power (W)} & \textbf{Area (mm$^2$)} \\
 \midrule
-SRAM Buffers & 1kB$\times$256 + 8kB$\times$256 + 64kB + 16$\times$256kB & 10.37 & 117.16 \\
-MAC Unit & (8$\times$8)$\times$256 & 8.46 & 32.72 \\
-Adder Tree \& Comparator & 16$\times$16bit + 256 & 2.40 & 21.56 \\
-Control Logic & -- & 0.96 & 12.20 \\
-Host Processor & ARM Cortex A78 series & 11.00 & -- \\
+SRAM Buffers &
+1kB$\times$256 + 8kB$\times$256 + 64kB + 16$\times$256kB
+& 10.37 & 117.16 \\
+
+MAC Unit &
+(8$\times$8)$\times$256
+& 8.46 & 32.72 \\
+
+Adder Tree \& Comparator &
+16$\times$16\,bit + 256
+& 2.40 & 21.56 \\
+
+Control Logic &
+--
+& 0.96 & 12.20 \\
+
+Host Processor &
+ARM Cortex A78 series
+& 11.00 & -- \\
+
 \midrule
 \textbf{Total} & 256 tiles & 33.19 & 183.64 \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
 \section{Implementation and Evaluation}
@@ -311,9 +326,9 @@ The micro-profiler plays a critical role in determining optimal hyperparameters 
 
 The morphable hardware architecture enables \US{} to maintain computational efficiency across the wide power range of solar energy. Figure~\ref{fig:hardware-arch} shows the relationship between available power and achieved throughput for different hardware configurations. The morphable array achieves near-linear scaling from 256 GFLOPS at 23W (16 PEs) to 4.1 TFLOPS at 285W (256 PEs). This 16$\times$ compute scaling with 12.4$\times$ power scaling demonstrates the efficiency of our hierarchical design, where inactive tiles consume negligible power.
 
-\begin{figure}[t]
+\begin{figure}[h!]
 \centering
-\includegraphics[width=0.9\textwidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/ACDesign.pdf}
+\includegraphics[width=0.5\textwidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/ACDesign.pdf}
 \caption{Morphable hardware architecture showing the hierarchical tile organization, power domains, and data flow paths that enable dynamic scaling with solar power availability.}
 \label{fig:hardware-arch}
 \end{figure}
@@ -385,7 +400,7 @@ The use of multiple teacher models for data annotation and exemplar selection pr
 
 The quality of exemplar selection directly impacts accuracy through two mechanisms. First, missing valid exemplars prevents the student model from learning vital information, increasing its drift over time. Second, incorrect annotations by a single teacher can cause the student to learn erroneous labels, leading to increased mispredictions. To address these issues, \US{} employs an ensemble of three teacher models (ResNet-101, YOLO-V2, and VGG-16) that perform majority voting to determine the correct exemplars. This ensemble approach significantly reduces both false positives and true negatives compared to single-teacher methods. Furthermore, the feature extraction for each potential exemplar is hardware-assisted, imposing no overhead on the inference task.
 
-\begin{figure}[t]
+\begin{figure}[h!]
 \centering
 \includegraphics[width=\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/teachers3.pdf}
 \caption{Impact of multiple teachers on exemplar selection accuracy. The ensemble approach (top bar) achieves the best annotation quality with only 2 false positives, significantly outperforming single-teacher approaches (R: ResNeXt101, T: YOLO-V3, V: VGG-16) and heuristic methods (IL: Intermittent Learning, RR: Round Robin).}
@@ -411,20 +426,20 @@ The algorithmic innovations generalize to diverse data modalities beyond video. 
 
 Figure~\ref{fig:usas-sens} demonstrates how hardware-assisted scheduling impacts performance across different data and model sizes, as well as varying energy income patterns. As data and model dimensions decrease, the relative impact of hardware assistance becomes more pronounced because smaller workloads have lower tolerance for wasted computation. Similarly, as energy income becomes more sporadic, the morphable hardware's ability to seamlessly transfer work to active processing elements becomes increasingly valuable.
 
-\begin{figure}[t]
+\begin{figure}[h!]
 \centering
 \subfloat[Component contribution under different power profiles.]{
-  \includegraphics[trim={0 12pt 0 0},clip,width=\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/contri.pdf}
+  \includegraphics[trim={0 12pt 0 0},clip,width=0.7\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/contri.pdf}
   \label{fig:usas-contri}
 }
 
 \subfloat[Generalization to other data modalities.]{
-  \includegraphics[width=\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/genrl.pdf}
+  \includegraphics[width=0.7\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/genrl.pdf}
   \label{fig:usas-genrl}
 }
 
 \subfloat[Hardware-assisted scheduling across different scenarios.]{
-  \includegraphics[width=\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/Sens.pdf}
+  \includegraphics[width=0.7\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/Sens.pdf}
   \label{fig:usas-sens}
 }
 \caption{Analysis of \US{} components and their generalization: (a) morphable hardware dominates under volatile power while algorithmic contributions excel under stable conditions; (b) exemplar selection and micro-profiler outperform baselines across Audio, 3D Point Cloud, and IMU data; (c) hardware assistance provides greater benefit for smaller workloads and more sporadic energy availability.}
