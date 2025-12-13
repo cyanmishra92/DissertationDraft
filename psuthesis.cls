@@ -95,8 +95,9 @@
 \RequirePackage{setspace}
 % If you are using the subfigure package, load the tocloft package with
 % the subfigure option and comment out the next line.
-%\RequirePackage{tocloft}[2003/09/26]
-\RequirePackage[subfigure]{tocloft}[2003/09/26]
+% NOTE: Using subcaption package (not subfigure), so load tocloft WITHOUT subfigure option
+\RequirePackage{tocloft}[2003/09/26]
+%\RequirePackage[subfigure]{tocloft}[2003/09/26]
 \RequirePackage{fancyhdr}
 \RequirePackage[overload]{textcase}
 \RequirePackage[letterpaper, left = 1.4in, right = 0.9in, top = 0.9in, bottom = 0.9in, includefoot]{geometry}
