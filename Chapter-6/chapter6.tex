@@ -19,6 +19,7 @@ The synthesis of these contributions enables a fundamental shift in how we appro
 
 The remainder of this chapter develops these ideas systematically. Section~\ref{sec:usas-challenge} examines the edge server challenge in detail, exploring how scale affects intermittency and why existing solutions prove inadequate. Section~\ref{sec:usas-architecture} presents the \US{} system architecture, describing our algorithmic innovations for continuous learning under power constraints. Section~\ref{sec:usas-morphable} details the morphable hardware design that enables computation to adapt dynamically to power availability. Section~\ref{sec:usas-evaluation} evaluates our system on real workloads and solar traces, quantifying both accuracy improvements and sustainability benefits. Section~\ref{sec:usas-bridging} steps back to examine the common principles that unite our work across scales, from the resource-constrained devices of Chapter~\ref{ch:intelligent-inference} to the edge servers presented here. Finally, Section~\ref{sec:usas-discussion} discusses limitations, broader implications, and future directions before Section~\ref{sec:usas-summary} concludes the chapter.
 
+\FloatBarrier
 \section{The Edge Server Challenge: When Scale Meets Intermittency}
 \label{sec:usas-challenge}
 
@@ -30,7 +31,7 @@ The challenge intensifies when we consider data drift, a phenomenon where the di
 
 Figure~\ref{fig:drift-motivation} illustrates the severity of data drift across multiple modalities including video, audio, and 3D point cloud data. Focusing on video analytics, our experiments demonstrate that compressed models like quantized MobileNet-V2 (14M parameters, 71.3\% baseline accuracy) experience accuracy degradation exceeding 20\% across five sampling windows of four hours each. In contrast, larger models such as ResNet-101 (171M parameters, 76.4\% baseline accuracy) exhibit minimal degradation under identical conditions. Critically, continuous retraining enables the smaller model to maintain its original accuracy despite ongoing distribution shifts. Similar trends appear across audio and 3D point cloud modalities, confirming that continuous learning is essential for maintaining model quality across diverse deployment scenarios.
 
-\begin{figure}[t]
+\begin{figure}[!htb]
 \centering
 \includegraphics[width=\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/DriftAll.pdf}
 \caption{Data drift across different modalities demonstrates the vulnerability of compressed models to distribution shifts. Sampling windows: 4 hours for video, 20 minutes for audio (urban traffic), 1 hour for 3D point cloud (simulated). SM: Small Model (compressed/quantized), LM: Large Model (no compression), SMR: Small Model with continuous retraining. Compressed models suffer over 20\% accuracy loss without retraining, while continuous learning restores performance to baseline levels.}
@@ -53,6 +54,7 @@ These constraints lead us to a different approach: designing edge systems that a
 
 The following sections detail how \US{} addresses these challenges through a combination of algorithmic innovation, architectural design, and system integration. We show that by embracing intermittency rather than attempting to mask it, we can create edge systems that provide continuous learning capabilities while operating sustainably on renewable energy.
 
+\FloatBarrier
 \section{\US{} System Architecture}
 \label{sec:usas-architecture}
 
@@ -62,7 +64,7 @@ The \US{} architecture represents a fundamental rethinking of how edge servers p
 
 The \US{} system architecture, illustrated in Figure~\ref{fig:usas-system}, separates inference and training into distinct computational phases that can be scheduled based on power availability. This separation proves critical for several reasons. Inference tasks, which directly support user-facing applications, require consistent low latency and high availability. These tasks consume relatively little power, typically 2-5W for a MobileNetV2 model running on specialized hardware, and can be sustained even during periods of limited solar generation. Training tasks, in contrast, are power-intensive but latency-tolerant. They can be scheduled opportunistically when excess solar power becomes available, scaled dynamically based on instantaneous power budgets, and interrupted without affecting inference quality.
 
-\begin{figure}[t]
+\begin{figure}[!htb]
 \centering
 \includegraphics[width=\textwidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/IntroDesignNew.pdf}
 \caption{The \US{} system architecture, showing the separation of inference and training paths, the student-teacher paradigm for unsupervised labeling, and the morphable hardware accelerator that adapts to available solar power.}
@@ -89,7 +91,7 @@ The teacher model, typically 10-50$\times$ larger than the student model, runs o
 
 Figure~\ref{fig:auto-labeling} illustrates our auto-labeling mechanism within the student-teacher framework. The student model performs continuous inference on incoming video frames, outputting classification results along with confidence scores. Frames where the student exhibits low confidence indicate potential distribution shift or novel patterns that warrant further investigation. These low-confidence frames become candidates for auto-labeling by the teacher ensemble. By selectively processing only frames that challenge the current student model, we focus computational resources on the most informative examples while minimizing unnecessary teacher invocations. The ensemble of teachers then provides high-quality labels for these challenging frames, which subsequently enter the exemplar selection pipeline for potential inclusion in the training set.
 
-\begin{figure}[t]
+\begin{figure}[!htb]
 \centering
 \includegraphics[width=\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/AutoLabel.pdf}
 \caption{Auto-labeling mechanism in \US{}. The student model continuously processes video frames, identifying low-confidence predictions that may contain novel information. These frames are selected for labeling by an ensemble of teacher models using weighted majority voting, enabling unsupervised continuous learning without human annotation.}
@@ -98,7 +100,7 @@ Figure~\ref{fig:auto-labeling} illustrates our auto-labeling mechanism within th
 
 The key insight enabling our student-teacher approach lies in the asymmetric computational requirements of the two models. The student model must run continuously on every frame to support real-time inference, necessitating a lightweight architecture. The teacher models need only process selected frames when power is available, allowing for much larger, more accurate architectures. This asymmetry maps naturally to solar power availability, as illustrated in Figure~\ref{fig:usas-teachers}. During peak generation, we can afford to run teacher models frequently, generating many labeled examples. During limited power periods, we rely on previously generated labels or defer training until conditions improve.
 
-\begin{figure}[t]
+\begin{figure}[!htb]
 \centering
 \includegraphics[width=0.9\textwidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/teachers.pdf}
 \caption{Student-teacher paradigm for unsupervised labeling. Multiple teacher models process selected video frames to generate high-quality pseudo-labels, enabling continuous learning without human annotation.}
@@ -113,7 +115,7 @@ Real-world video streams exhibit severe class imbalance. In urban traffic monito
 
 Figure~\ref{fig:sampling-bias} illustrates the severity of sampling bias in real-world traffic scenarios. Static objects like fire hydrants and traffic lights appear in 100\% of frames, while dynamic objects exhibit highly skewed distributions. Without proper exemplar selection, the training set would mirror this imbalanced distribution, leading to catastrophic forgetting for rare classes (such as bicycles, which barely appear in the dataset) and overfitting for omnipresent classes (such as traffic lights). The representation learning framework prevents this bias by maintaining balanced representation across all classes, ensuring the model retains the ability to recognize infrequent but critical objects.
 
-\begin{figure}[t]
+\begin{figure}[!htb]
 \centering
 \includegraphics[trim={0 40pt 0 1pt},clip,width=0.85\textwidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/biastrain.pdf}
 \caption{Distribution of object classes in typical traffic patterns and the impact of sampling bias on training. The "appeared" line shows the percentage of frames containing each class (e.g., fire hydrants appear in 100\% of frames in the observed scene). Naive exemplar selection creates non-IID training distributions, causing catastrophic forgetting for rare classes and overfitting for common classes. Representation learning addresses this by maintaining balanced exemplars.}
@@ -124,7 +126,7 @@ The exemplar selection process begins by encoding each labeled frame into a high
 
 Our selection algorithm addresses these objectives through a novel scoring mechanism. For each frame $f_i$ in the buffer, we compute a retention score $R_i$ that combines four factors. The coverage factor $\alpha_i$ measures the frame's contribution to representation space coverage using the determinant of the Gram matrix formed by nearby frames. The balance factor $\beta_i$ inversely weights frames based on their class frequency, giving higher scores to rare classes. The temporal factor $\gamma_i$ applies exponential decay based on frame age, gradually reducing the importance of old examples. The uniqueness factor $\delta_i$ measures the minimum distance to other frames in representation space, penalizing redundant examples. The final retention score $R_i = \alpha_i \cdot \beta_i \cdot \gamma_i \cdot \delta_i$ provides a holistic measure of each frame's value to the training process.
 
-\begin{figure}[t]
+\begin{figure}[!htb]
 \centering
 \includegraphics[width=0.85\textwidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/RepLrn.pdf}
 \caption{Representation learning for exemplar selection. Frames are encoded into a high-dimensional representation space where our selection algorithm maintains diversity, class balance, and temporal relevance in the training buffer.}
@@ -143,6 +145,7 @@ When training begins, the micro-profiler uses $\mathcal{M}$ to evaluate differen
 
 The micro-profiler also adapts hyperparameters during training based on observed dynamics. If the loss plateaus, indicating convergence to a local minimum, the profiler may increase the learning rate to escape. If validation accuracy decreases while training accuracy improves, suggesting overfitting, it may increase weight decay or dropout. If power availability suddenly decreases mid-training, it can gracefully reduce batch size and adjust other parameters to continue within the new constraints. This adaptive behavior proves essential for maintaining training quality despite the unpredictable nature of solar power.
 
+\FloatBarrier
 \section{Morphable Hardware Design}
 \label{sec:usas-morphable}
 
@@ -154,7 +157,7 @@ Before describing our morphable architecture, it is instructive to understand wh
 
 Dynamic voltage and frequency scaling (DVFS) provides one mechanism for reducing GPU power consumption. By lowering clock frequencies and voltages, DVFS can reduce power draw by 30-50\% with corresponding performance degradation. However, our experiments reveal fundamental limitations of DVFS for intermittent operation. Figure~\ref{fig:dvfs-limits} shows the completion rate of training tasks under solar power using DVFS-enabled GPUs. Even with aggressive power management, commercial GPUs complete less than 50\% of scheduled training tasks. The primary issue stems from minimum operating power. GPUs require substantial baseline power for memory controllers, interconnects, and control logic regardless of compute frequency. When solar power drops below this threshold, the GPU shuts down completely, losing all progress since the last checkpoint.
 
-\begin{figure}[t]
+\begin{figure}[!htb]
 \centering
 \includegraphics[width=0.8\textwidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/DVFS.pdf}
 \caption{Training task completion rates for commercial GPUs with DVFS under intermittent solar power. Even with dynamic frequency scaling, GPUs cannot adapt to the wide power variations of solar energy, completing less than half of scheduled tasks.}
@@ -169,7 +172,7 @@ The core of our morphable hardware is a systolic array that can dynamically adju
 
 Our design employs 256 PEs organized in a 16$\times$16 array at full capacity, as illustrated in Figure~\ref{fig:usas-full-architecture}. Each PE contains a 16-bit multiplier, 32-bit accumulator, and local register files for storing weights and intermediate values. The PEs connect in a 2D mesh topology, allowing data to flow horizontally for input features and vertically for partial sums. This weight-stationary dataflow, where each PE retains a weight value across multiple computations, minimizes data movement during normal operation and simplifies reconfiguration during power scaling.
 
-\begin{figure}[t]
+\begin{figure}[!htb]
 \centering
 \includegraphics[width=\textwidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/FullComputeMapping_New.pdf}
 \caption{Complete \US{} system architecture showing the morphable systolic array, power control hierarchy, non-volatile state buffers, and the integration of inference and training pipelines. The system dynamically adjusts computational capacity across power domains to match solar energy availability.}
@@ -196,7 +199,7 @@ This predictive approach contrasts sharply with reactive systems that wait until
 
 The morphable array's ability to scale introduces new challenges in scheduling computations across variable resources. Traditional DNN accelerators employ static schedules optimized for fixed array dimensions. Our morphable architecture requires dynamic scheduling that adapts to the current array configuration while maintaining efficiency, as shown in Figure~\ref{fig:usas-schedule}. We develop two scheduling strategies, conservative and eager, that offer different trade-offs between throughput and resilience to power variations.
 
-\begin{figure}[t]
+\begin{figure}[!htb]
 \centering
 \includegraphics[width=0.85\textwidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/WQSchedule.pdf}
 \caption{Work queue scheduling strategy showing how training tasks are dynamically allocated to active tiles based on power availability. The scheduler maintains load balance while adapting to morphable array reconfigurations.}
@@ -211,7 +214,7 @@ Our adaptive scheduling approach dynamically selects between conservative and ea
 
 The scheduler also implements fine-grained load balancing across active tiles, as illustrated in Figure~\ref{fig:usas-loadbalance}. As tiles are activated or deactivated, computational load may become imbalanced, with some tiles processing more operations than others. The scheduler monitors tile utilization through performance counters and redistributes work to maintain balance. This redistribution occurs at layer boundaries in the neural network, natural synchronization points where data dependencies are minimal. By maintaining load balance, we ensure that no individual tile becomes a bottleneck, maximizing overall array throughput regardless of configuration.
 
-\begin{figure}[t]
+\begin{figure}[!htb]
 \centering
 \includegraphics[width=0.8\textwidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/LoadBalancing.pdf}
 \caption{Load balancing mechanism showing how computational work is redistributed across active tiles to maintain efficiency. The system dynamically reallocates tasks when tiles are activated or deactivated due to power changes.}
@@ -234,7 +237,7 @@ The NVSBs also enable an optimization we term speculative progress. During very 
 
 Table~\ref{tab:usas-specs} summarizes the area and power characteristics of the \US{} hardware design. The morphable systolic array was implemented in SystemVerilog and synthesized using Synopsys Design Compiler with a 32nm technology library operating at 592~MHz. The design comprises 256 tiles, each containing 64 MAC units organized as an 8$\times$8 array. The SRAM buffers constitute the largest area contribution, providing sufficient on-chip storage for weights, activations, and intermediate results without frequent off-chip memory accesses. The total power of 33.19W represents full-capacity operation; at minimum configuration (16 tiles), power reduces to approximately 4W while maintaining computational progress.
 
-\begin{table}[t]
+\begin{table}[!htb]
 \centering
 \caption{Area and power estimation of \US{} hardware design components synthesized at 592~MHz with Synopsys 32nm library.}
 \label{tab:usas-specs}
@@ -268,6 +271,7 @@ ARM Cortex A78 series
 \end{tabularx}
 \end{table}
 
+\FloatBarrier
 \section{Implementation and Evaluation}
 \label{sec:usas-evaluation}
 
@@ -293,7 +297,7 @@ The Ekya+ baseline with perfect power maintains 88.7\% average accuracy through 
 
 The accuracy improvement is not uniform across all classes, as shown in Figure~\ref{fig:usas-accrl}. For common classes like cars, all systems maintain above 95\% accuracy since abundant training examples are available. For rare classes like emergency vehicles, \US{} shows dramatic improvement, achieving 87.3\% accuracy compared to 68.2\% for Ekya+. This improvement is critical for practical deployments where missing rare but important events (emergency vehicles, accidents, unusual cargo) could have serious consequences.
 
-\begin{figure}[t]
+\begin{figure}[!htb]
 \centering
 \includegraphics[width=0.85\textwidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/AccRL.pdf}
 \caption{Accuracy improvement from representation learning-based exemplar selection. \US{} maintains balanced accuracy across all classes, including rare but critical events, by intelligently managing the training buffer to counter sampling bias.}
@@ -302,7 +306,7 @@ The accuracy improvement is not uniform across all classes, as shown in Figure~\
 
 The micro-profiler plays a critical role in determining optimal hyperparameters for training under variable power conditions. Figure~\ref{fig:usas-microprofiler} demonstrates the effectiveness of our micro-profiling approach compared to an oracle selection. Over multiple training iterations, the micro-profiler consistently identifies the correct number of layers to train (achieving 87.06\% agreement with oracle), selects appropriate batch sizes (82.64\% accuracy), and efficiently balances exemplar selection with training time. The average accuracy deviation from oracle-selected parameters is only 2.46\%, demonstrating that the micro-profiler can effectively guide hyperparameter selection without exhaustive search.
 
-\begin{figure}[t]
+\begin{figure}[!htb]
 \centering
 \subfloat[Number of layers trained vs. oracle selection.]{
   \includegraphics[width=\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/4.pdf}
@@ -326,7 +330,11 @@ The micro-profiler plays a critical role in determining optimal hyperparameters 
 
 The morphable hardware architecture enables \US{} to maintain computational efficiency across the wide power range of solar energy. Figure~\ref{fig:hardware-arch} shows the relationship between available power and achieved throughput for different hardware configurations. The morphable array achieves near-linear scaling from 256 GFLOPS at 23W (16 PEs) to 4.1 TFLOPS at 285W (256 PEs). This 16$\times$ compute scaling with 12.4$\times$ power scaling demonstrates the efficiency of our hierarchical design, where inactive tiles consume negligible power.
 
+<<<<<<< HEAD
 \begin{figure}[h!]
+=======
+\begin{figure}[!htb]
+>>>>>>> 26c4f2d (Usas)
 \centering
 \includegraphics[width=0.5\textwidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/ACDesign.pdf}
 \caption{Morphable hardware architecture showing the hierarchical tile organization, power domains, and data flow paths that enable dynamic scaling with solar power availability.}
@@ -341,7 +349,7 @@ Power prediction accuracy significantly impacts hardware utilization. With our 9
 
 Table~\ref{tab:usas-hw-comparison} compares \US{} against prior DNN accelerator platforms. While \US{} does not achieve the highest raw throughput or energy efficiency, this is by design. The morphable architecture prioritizes scheduling flexibility over peak performance, enabling operation across a wide power range rather than optimizing for a single operating point. When operating at full power on DNN computation alone, \US{} achieves competitive energy efficiency of 287.44~GOps/W. The apparent efficiency reduction in full-system operation (159.40~GOps/W) reflects the overhead of exemplar selection, micro-profiling, non-volatile memories, and the host processor that enable sustainable operation under intermittent power.
 
-\begin{table}[t]
+\begin{table}[!htb]
 \centering
 \caption{Comparison of \US{} with prior accelerator-based platforms. \US{} prioritizes scheduling flexibility for intermittent operation over peak throughput.}
 \label{tab:usas-hw-comparison}
@@ -367,7 +375,7 @@ FlexBlock & 333 & 160.3 & 34.4 & 4504 & 131.0 \\
 
 The ultimate goal of \US{} is enabling sustainable edge computing that scales with deployment size without proportional environmental impact. Table~\ref{tab:sustainability} quantifies the energy consumption and carbon emissions of different approaches for a single edge server over one year of operation. The analysis assumes the server operates continuously, performing inference at all times and training when power permits.
 
-\begin{table}[t]
+\begin{table}[!htb]
 \centering
 \caption{Annual energy consumption and CO$_2$ emissions per edge server for different continuous learning approaches. \US{} operates entirely on solar power, eliminating grid energy consumption.}
 \label{tab:sustainability}
@@ -400,7 +408,11 @@ The use of multiple teacher models for data annotation and exemplar selection pr
 
 The quality of exemplar selection directly impacts accuracy through two mechanisms. First, missing valid exemplars prevents the student model from learning vital information, increasing its drift over time. Second, incorrect annotations by a single teacher can cause the student to learn erroneous labels, leading to increased mispredictions. To address these issues, \US{} employs an ensemble of three teacher models (ResNet-101, YOLO-V2, and VGG-16) that perform majority voting to determine the correct exemplars. This ensemble approach significantly reduces both false positives and true negatives compared to single-teacher methods. Furthermore, the feature extraction for each potential exemplar is hardware-assisted, imposing no overhead on the inference task.
 
+<<<<<<< HEAD
 \begin{figure}[h!]
+=======
+\begin{figure}[!htb]
+>>>>>>> 26c4f2d (Usas)
 \centering
 \includegraphics[width=\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/teachers3.pdf}
 \caption{Impact of multiple teachers on exemplar selection accuracy. The ensemble approach (top bar) achieves the best annotation quality with only 2 false positives, significantly outperforming single-teacher approaches (R: ResNeXt101, T: YOLO-V3, V: VGG-16) and heuristic methods (IL: Intermittent Learning, RR: Round Robin).}
@@ -426,7 +438,11 @@ The algorithmic innovations generalize to diverse data modalities beyond video. 
 
 Figure~\ref{fig:usas-sens} demonstrates how hardware-assisted scheduling impacts performance across different data and model sizes, as well as varying energy income patterns. As data and model dimensions decrease, the relative impact of hardware assistance becomes more pronounced because smaller workloads have lower tolerance for wasted computation. Similarly, as energy income becomes more sporadic, the morphable hardware's ability to seamlessly transfer work to active processing elements becomes increasingly valuable.
 
+<<<<<<< HEAD
 \begin{figure}[h!]
+=======
+\begin{figure}[!htb]
+>>>>>>> 26c4f2d (Usas)
 \centering
 \subfloat[Component contribution under different power profiles.]{
   \includegraphics[trim={0 12pt 0 0},clip,width=0.7\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/contri.pdf}
@@ -446,6 +462,7 @@ Figure~\ref{fig:usas-sens} demonstrates how hardware-assisted scheduling impacts
 \label{fig:usas-beyond}
 \end{figure}
 
+\FloatBarrier
 \section{Bridging Scales: From Sensors to Servers}
 \label{sec:usas-bridging}
 
@@ -485,6 +502,7 @@ The system level would address end-to-end concerns that span multiple devices an
 
 Most importantly, the framework would be grounded in sustainability metrics that extend beyond simple energy efficiency. This includes lifecycle carbon accounting that considers manufacturing and disposal, deployment flexibility that enables operation in diverse environments, and scalability analysis that ensures solutions remain viable at global deployment scales. By making sustainability a first-class design constraint alongside performance and cost, the framework would guide development of truly sustainable computing systems.
 
+\FloatBarrier
 \section{Discussion and Future Directions}
 \label{sec:usas-discussion}
 
@@ -522,6 +540,7 @@ The intersection of federated learning and intermittent computing presents intri
 
 Finally, the ultimate vision is autonomous systems that operate indefinitely on ambient energy while continuously improving their capabilities. This requires advances across the entire stack: ultra-efficient neuromorphic hardware inspired by biological systems, self-organizing software that adapts to changing resources, and learning algorithms that extract maximum knowledge from minimal data. While ambitious, the trajectory from Camaroptera's simple sensors to \US{}'s sophisticated edge servers suggests this vision is achievable.
 
+\FloatBarrier
 \section{Chapter Summary}
 \label{sec:usas-summary}
 
