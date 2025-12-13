@@ -1,5 +1,5 @@
 % Chapter 6: Usas - Solar-Powered Continuous Learning at the Edge
-\chapter{U\d{s}\'{a}s: Solar-Powered Continuous Learning at the Edge}
+\chapter{\US{}: Solar-Powered Continuous Learning at the Edge}
 \label{ch:usas}
 
 \section{Introduction: From Milliwatts to Kilowatts}
@@ -11,13 +11,13 @@ Consider the modern urban landscape, where tens of thousands of cameras monitor 
 
 The transition from micro to macro scale brings both opportunities and responsibilities. Edge servers possess the computational power to run sophisticated deep neural networks, perform real-time video analytics, and continuously adapt to changing data distributions. Yet this capability comes with a sobering environmental cost. Deploying continuous learning on New York City's approximately 56,000 surveillance cameras using traditional edge servers would consume 17 megawatts of power, contributing 156 metric tons of CO$_2$ emissions daily. As cities worldwide embrace intelligent infrastructure, the aggregate environmental impact becomes unsustainable. The imperative for renewable-powered computing extends beyond academic curiosity to urgent practical necessity.
 
-This chapter presents U\d{s}\'{a}s, a comprehensive system that enables solar-powered continuous learning for edge video analytics. The name, derived from the Vedic goddess of dawn, emphasizes both the significance of solar power in our design and the dawn of a new era in sustainable edge computing. U\d{s}\'{a}s addresses the unique challenges that arise when scaling intermittent systems from sensors to servers. Where previous chapters focused on preserving basic functionality during power failures, U\d{s}\'{a}s must maintain complex learning pipelines involving data labeling, exemplar selection, hyperparameter optimization, and distributed training. Where tiny devices could rely on simple checkpointing mechanisms, U\d{s}\'{a}s requires sophisticated state management across gigabytes of model parameters and training data.
+This chapter presents \US{}, a comprehensive system that enables solar-powered continuous learning for edge video analytics. The name, derived from the Vedic goddess of dawn, emphasizes both the significance of solar power in our design and the dawn of a new era in sustainable edge computing. \US{} addresses the unique challenges that arise when scaling intermittent systems from sensors to servers. Where previous chapters focused on preserving basic functionality during power failures, \US{} must maintain complex learning pipelines involving data labeling, exemplar selection, hyperparameter optimization, and distributed training. Where tiny devices could rely on simple checkpointing mechanisms, \US{} requires sophisticated state management across gigabytes of model parameters and training data.
 
-The technical contributions of U\d{s}\'{a}s span multiple layers of the system stack. At the algorithmic level, we develop a confidence-based frame selection mechanism that identifies the most informative video frames for continuous learning while operating within strict power budgets. Our student-teacher paradigm enables unsupervised labeling of streaming video data, eliminating the need for human annotation while preserving privacy. Through representation learning, we address the sampling bias inherent in real-world video streams where certain classes dominate the observed distribution. At the architectural level, we introduce a morphable systolic array that dynamically adjusts its computational capacity to match available solar power. Unlike conventional accelerators that fail catastrophically when power drops below minimum thresholds, our morphable design gracefully scales computation from 256 tiles at full power down to 16 tiles during cloudy periods.
+The technical contributions of \US{} span multiple layers of the system stack. At the algorithmic level, we develop a confidence-based frame selection mechanism that identifies the most informative video frames for continuous learning while operating within strict power budgets. Our student-teacher paradigm enables unsupervised labeling of streaming video data, eliminating the need for human annotation while preserving privacy. Through representation learning, we address the sampling bias inherent in real-world video streams where certain classes dominate the observed distribution. At the architectural level, we introduce a morphable systolic array that dynamically adjusts its computational capacity to match available solar power. Unlike conventional accelerators that fail catastrophically when power drops below minimum thresholds, our morphable design gracefully scales computation from 256 tiles at full power down to 16 tiles during cloudy periods.
 
-The synthesis of these contributions enables a fundamental shift in how we approach edge computing sustainability. Rather than viewing renewable energy as an auxiliary power source backed by grid connections, U\d{s}\'{a}s demonstrates that sophisticated AI workloads can operate entirely on harvested solar power. Our evaluation on real-world urban traffic datasets shows that U\d{s}\'{a}s achieves 4.96\% higher accuracy than traditional continuous learning approaches while reducing annual energy consumption by 234.95 kWh compared to conventional DNN accelerators and 2.63 MWh compared to datacenter GPUs. These improvements translate directly to environmental impact, with each U\d{s}\'{a}s-equipped edge server preventing 200 pounds of CO$_2$ emissions annually.
+The synthesis of these contributions enables a fundamental shift in how we approach edge computing sustainability. Rather than viewing renewable energy as an auxiliary power source backed by grid connections, \US{} demonstrates that sophisticated AI workloads can operate entirely on harvested solar power. Our evaluation on real-world urban traffic datasets shows that \US{} achieves 4.96\% higher accuracy than traditional continuous learning approaches while reducing annual energy consumption by 234.95 kWh compared to conventional DNN accelerators and 2.63 MWh compared to datacenter GPUs. These improvements translate directly to environmental impact, with each \US{}-equipped edge server preventing 200 pounds of CO$_2$ emissions annually.
 
-The remainder of this chapter develops these ideas systematically. Section~\ref{sec:usas-challenge} examines the edge server challenge in detail, exploring how scale affects intermittency and why existing solutions prove inadequate. Section~\ref{sec:usas-architecture} presents the U\d{s}\'{a}s system architecture, describing our algorithmic innovations for continuous learning under power constraints. Section~\ref{sec:usas-morphable} details the morphable hardware design that enables computation to adapt dynamically to power availability. Section~\ref{sec:usas-evaluation} evaluates our system on real workloads and solar traces, quantifying both accuracy improvements and sustainability benefits. Section~\ref{sec:usas-bridging} steps back to examine the common principles that unite our work across scales, from the resource-constrained devices of Chapter~\ref{ch:intelligent-inference} to the edge servers presented here. Finally, Section~\ref{sec:usas-discussion} discusses limitations, broader implications, and future directions before Section~\ref{sec:usas-summary} concludes the chapter.
+The remainder of this chapter develops these ideas systematically. Section~\ref{sec:usas-challenge} examines the edge server challenge in detail, exploring how scale affects intermittency and why existing solutions prove inadequate. Section~\ref{sec:usas-architecture} presents the \US{} system architecture, describing our algorithmic innovations for continuous learning under power constraints. Section~\ref{sec:usas-morphable} details the morphable hardware design that enables computation to adapt dynamically to power availability. Section~\ref{sec:usas-evaluation} evaluates our system on real workloads and solar traces, quantifying both accuracy improvements and sustainability benefits. Section~\ref{sec:usas-bridging} steps back to examine the common principles that unite our work across scales, from the resource-constrained devices of Chapter~\ref{ch:intelligent-inference} to the edge servers presented here. Finally, Section~\ref{sec:usas-discussion} discusses limitations, broader implications, and future directions before Section~\ref{sec:usas-summary} concludes the chapter.
 
 \section{The Edge Server Challenge: When Scale Meets Intermittency}
 \label{sec:usas-challenge}
@@ -27,6 +27,15 @@ The proliferation of edge computing represents a fundamental shift in how we pro
 Yet the very characteristics that make edge servers attractive also create new challenges. Unlike datacenter deployments where thousands of servers share cooling infrastructure and power distribution, edge servers operate in diverse, often hostile environments. They may be mounted on traffic poles exposed to extreme temperatures, installed in remote locations with unreliable grid connections, or deployed in developing regions where power infrastructure remains nascent. The computational demands placed on these servers continue to grow as applications become more sophisticated. Modern video analytics pipelines employ complex deep neural networks for object detection, tracking, activity recognition, and anomaly detection. These models, while powerful, require substantial computational resources that strain edge server capabilities.
 
 The challenge intensifies when we consider data drift, a phenomenon where the distribution of observed data changes over time relative to the training distribution. A model trained on summer traffic patterns may perform poorly during winter conditions. A surveillance system deployed in a residential area may encounter different vehicle types when nearby construction redirects commercial traffic. These distribution shifts affect all deployed models but prove particularly problematic for edge deployments. Compressed models, commonly used on edge servers to meet latency and resource constraints, exhibit heightened sensitivity to data drift. Where a full-scale model might experience 5\% accuracy degradation, a compressed model may suffer 15-20\% performance loss under the same distribution shift. This vulnerability necessitates continuous learning, where models adapt to new data patterns while retaining knowledge of previous distributions.
+
+Figure~\ref{fig:drift-motivation} illustrates the severity of data drift across multiple modalities including video, audio, and 3D point cloud data. Focusing on video analytics, our experiments demonstrate that compressed models like quantized MobileNet-V2 (14M parameters, 71.3\% baseline accuracy) experience accuracy degradation exceeding 20\% across five sampling windows of four hours each. In contrast, larger models such as ResNet-101 (171M parameters, 76.4\% baseline accuracy) exhibit minimal degradation under identical conditions. Critically, continuous retraining enables the smaller model to maintain its original accuracy despite ongoing distribution shifts. Similar trends appear across audio and 3D point cloud modalities, confirming that continuous learning is essential for maintaining model quality across diverse deployment scenarios.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/DriftAll.pdf}
+\caption{Data drift across different modalities demonstrates the vulnerability of compressed models to distribution shifts. Sampling windows: 4 hours for video, 20 minutes for audio (urban traffic), 1 hour for 3D point cloud (simulated). SM: Small Model (compressed/quantized), LM: Large Model (no compression), SMR: Small Model with continuous retraining. Compressed models suffer over 20\% accuracy loss without retraining, while continuous learning restores performance to baseline levels.}
+\label{fig:drift-motivation}
+\end{figure}
 
 The traditional approach to continuous learning relies on cloud infrastructure. Edge devices stream suspicious or misclassified samples to the cloud, where powerful servers retrain models on aggregated data from multiple edge nodes. Updated models are then distributed back to edge devices, completing the learning cycle. This approach, while technically sound, fails to address the fundamental constraints that motivated edge computing initially. Streaming video data for labeling consumes precious bandwidth, potentially violating privacy regulations. The round-trip latency for model updates may span hours or days, during which edge devices operate with degraded accuracy. Most critically, the approach maintains dependence on centralized infrastructure, negating the autonomy benefits of edge deployment.
 
@@ -42,21 +51,21 @@ Batteries provide one approach to managing solar intermittency, storing excess e
 
 These constraints lead us to a different approach: designing edge systems that adapt dynamically to available power rather than attempting to maintain constant operation through energy storage. This philosophy, which we term morphable computing, requires fundamental changes in how we architect both hardware and software systems. Just as Chapter~\ref{ch:intelligent-inference} introduced intelligent inference mechanisms for resource-constrained devices, Chapter~\ref{ch:nexume} developed adaptive training approaches for intermittent power environments, and Chapter~\ref{ch:lreye} created analog circuits robust to voltage variations, we must now create edge systems that gracefully scale computation with solar availability. The challenge extends beyond simple throttling or duty cycling. The system must maintain learning quality despite power variations, ensure forward progress even during minimal power availability, and maximize computational efficiency across the entire power range.
 
-The following sections detail how U\d{s}\'{a}s addresses these challenges through a combination of algorithmic innovation, architectural design, and system integration. We show that by embracing intermittency rather than attempting to mask it, we can create edge systems that provide continuous learning capabilities while operating sustainably on renewable energy.
+The following sections detail how \US{} addresses these challenges through a combination of algorithmic innovation, architectural design, and system integration. We show that by embracing intermittency rather than attempting to mask it, we can create edge systems that provide continuous learning capabilities while operating sustainably on renewable energy.
 
-\section{U\d{s}\'{a}s System Architecture}
+\section{\US{} System Architecture}
 \label{sec:usas-architecture}
 
-The U\d{s}\'{a}s architecture represents a fundamental rethinking of how edge servers perform continuous learning under intermittent power. Rather than treating power variability as a constraint to be overcome through batteries or grid connections, we design our system to embrace and adapt to the natural rhythms of solar energy. This section presents our system architecture, beginning with an overview of the key components and their interactions, then detailing our algorithmic innovations for continuous learning under power constraints.
+The \US{} architecture represents a fundamental rethinking of how edge servers perform continuous learning under intermittent power. Rather than treating power variability as a constraint to be overcome through batteries or grid connections, we design our system to embrace and adapt to the natural rhythms of solar energy. This section presents our system architecture, beginning with an overview of the key components and their interactions, then detailing our algorithmic innovations for continuous learning under power constraints.
 
 \subsection{System Overview}
 
-The U\d{s}\'{a}s system architecture, illustrated in Figure~\ref{fig:usas-system}, separates inference and training into distinct computational phases that can be scheduled based on power availability. This separation proves critical for several reasons. Inference tasks, which directly support user-facing applications, require consistent low latency and high availability. These tasks consume relatively little power, typically 2-5W for a MobileNetV2 model running on specialized hardware, and can be sustained even during periods of limited solar generation. Training tasks, in contrast, are power-intensive but latency-tolerant. They can be scheduled opportunistically when excess solar power becomes available, scaled dynamically based on instantaneous power budgets, and interrupted without affecting inference quality.
+The \US{} system architecture, illustrated in Figure~\ref{fig:usas-system}, separates inference and training into distinct computational phases that can be scheduled based on power availability. This separation proves critical for several reasons. Inference tasks, which directly support user-facing applications, require consistent low latency and high availability. These tasks consume relatively little power, typically 2-5W for a MobileNetV2 model running on specialized hardware, and can be sustained even during periods of limited solar generation. Training tasks, in contrast, are power-intensive but latency-tolerant. They can be scheduled opportunistically when excess solar power becomes available, scaled dynamically based on instantaneous power budgets, and interrupted without affecting inference quality.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/IntroDesignNew.pdf}
-\caption{The U\d{s}\'{a}s system architecture, showing the separation of inference and training paths, the student-teacher paradigm for unsupervised labeling, and the morphable hardware accelerator that adapts to available solar power.}
+\caption{The \US{} system architecture, showing the separation of inference and training paths, the student-teacher paradigm for unsupervised labeling, and the morphable hardware accelerator that adapts to available solar power.}
 \label{fig:usas-system}
 \end{figure}
 
@@ -78,6 +87,15 @@ Obtaining labeled training data remains one of the primary challenges in continu
 
 The teacher model, typically 10-50$\times$ larger than the student model, runs on selected frames when power permits. For a frame identified by the confidence mechanism, the teacher performs the same detection and classification tasks as the student but with substantially higher accuracy. We employ an ensemble of three teacher models trained on different datasets and architectures to improve robustness. The teachers' predictions are combined through weighted voting, where weights reflect each teacher's historical accuracy on validated examples. This ensemble approach reduces the impact of individual model biases and provides more reliable pseudo-labels than any single teacher.
 
+Figure~\ref{fig:auto-labeling} illustrates our auto-labeling mechanism within the student-teacher framework. The student model performs continuous inference on incoming video frames, outputting classification results along with confidence scores. Frames where the student exhibits low confidence indicate potential distribution shift or novel patterns that warrant further investigation. These low-confidence frames become candidates for auto-labeling by the teacher ensemble. By selectively processing only frames that challenge the current student model, we focus computational resources on the most informative examples while minimizing unnecessary teacher invocations. The ensemble of teachers then provides high-quality labels for these challenging frames, which subsequently enter the exemplar selection pipeline for potential inclusion in the training set.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/AutoLabel.pdf}
+\caption{Auto-labeling mechanism in \US{}. The student model continuously processes video frames, identifying low-confidence predictions that may contain novel information. These frames are selected for labeling by an ensemble of teacher models using weighted majority voting, enabling unsupervised continuous learning without human annotation.}
+\label{fig:auto-labeling}
+\end{figure}
+
 The key insight enabling our student-teacher approach lies in the asymmetric computational requirements of the two models. The student model must run continuously on every frame to support real-time inference, necessitating a lightweight architecture. The teacher models need only process selected frames when power is available, allowing for much larger, more accurate architectures. This asymmetry maps naturally to solar power availability, as illustrated in Figure~\ref{fig:usas-teachers}. During peak generation, we can afford to run teacher models frequently, generating many labeled examples. During limited power periods, we rely on previously generated labels or defer training until conditions improve.
 
 \begin{figure}[t]
@@ -92,6 +110,15 @@ To prevent distribution collapse, where the student merely mimics the teacher's 
 \subsection{Representation Learning for Exemplar Selection}
 
 Real-world video streams exhibit severe class imbalance. In urban traffic monitoring, cars may appear in 90\% of frames while emergency vehicles appear in less than 0.1\%. Training directly on this imbalanced distribution causes the model to overfit to common classes while failing to recognize rare but important events. Traditional solutions like weighted sampling or synthetic minority oversampling prove inadequate for continuous learning scenarios where the class distribution constantly evolves. Our representation learning approach addresses this challenge by constructing balanced exemplar sets that preserve knowledge of all observed classes while adapting to new patterns.
+
+Figure~\ref{fig:sampling-bias} illustrates the severity of sampling bias in real-world traffic scenarios. Static objects like fire hydrants and traffic lights appear in 100\% of frames, while dynamic objects exhibit highly skewed distributions. Without proper exemplar selection, the training set would mirror this imbalanced distribution, leading to catastrophic forgetting for rare classes (such as bicycles, which barely appear in the dataset) and overfitting for omnipresent classes (such as traffic lights). The representation learning framework prevents this bias by maintaining balanced representation across all classes, ensuring the model retains the ability to recognize infrequent but critical objects.
+
+\begin{figure}[t]
+\centering
+\includegraphics[trim={0 40pt 0 1pt},clip,width=0.85\textwidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/biastrain.pdf}
+\caption{Distribution of object classes in typical traffic patterns and the impact of sampling bias on training. The "appeared" line shows the percentage of frames containing each class (e.g., fire hydrants appear in 100\% of frames in the observed scene). Naive exemplar selection creates non-IID training distributions, causing catastrophic forgetting for rare classes and overfitting for common classes. Representation learning addresses this by maintaining balanced exemplars.}
+\label{fig:sampling-bias}
+\end{figure}
 
 The exemplar selection process begins by encoding each labeled frame into a high-dimensional representation using the penultimate layer of the teacher model, as shown in Figure~\ref{fig:usas-replrn}. These representations capture semantic content while abstracting away pixel-level details. We maintain a exemplar buffer $\mathcal{E}$ with fixed capacity $K$, typically 10,000 frames for a city-scale deployment. When a new frame $f_{\text{new}}$ arrives, we must decide whether to include it in $\mathcal{E}$ and, if so, which existing frame to remove. This decision balances multiple objectives that often conflict. We want to maximize coverage of the representation space, ensuring diverse examples are retained. We need to maintain class balance, preventing common classes from dominating the buffer. We must preserve temporal relevance, gradually replacing old examples with recent observations. We should minimize redundancy, avoiding near-duplicate frames that waste buffer capacity.
 
@@ -119,7 +146,7 @@ The micro-profiler also adapts hyperparameters during training based on observed
 \section{Morphable Hardware Design}
 \label{sec:usas-morphable}
 
-The hardware architecture of U\d{s}\'{a}s represents a radical departure from conventional accelerator design. Traditional DNN accelerators optimize for peak throughput under constant power, employing fixed arrays of processing elements that fail catastrophically when power drops below design thresholds. Our morphable design instead enables dynamic scaling of computational capacity to match available power, ensuring forward progress even under severe power constraints. This section details our hardware innovations, from the architectural principles enabling morphability to the specific implementations that achieve efficient training under intermittent solar power.
+The hardware architecture of \US{} represents a radical departure from conventional accelerator design. Traditional DNN accelerators optimize for peak throughput under constant power, employing fixed arrays of processing elements that fail catastrophically when power drops below design thresholds. Our morphable design instead enables dynamic scaling of computational capacity to match available power, ensuring forward progress even under severe power constraints. This section details our hardware innovations, from the architectural principles enabling morphability to the specific implementations that achieve efficient training under intermittent solar power.
 
 \subsection{Why Commercial GPUs Fail Under Intermittency}
 
@@ -145,7 +172,7 @@ Our design employs 256 PEs organized in a 16$\times$16 array at full capacity, a
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/FullComputeMapping_New.pdf}
-\caption{Complete U\d{s}\'{a}s system architecture showing the morphable systolic array, power control hierarchy, non-volatile state buffers, and the integration of inference and training pipelines. The system dynamically adjusts computational capacity across power domains to match solar energy availability.}
+\caption{Complete \US{} system architecture showing the morphable systolic array, power control hierarchy, non-volatile state buffers, and the integration of inference and training pipelines. The system dynamically adjusts computational capacity across power domains to match solar energy availability.}
 \label{fig:usas-full-architecture}
 \end{figure}
 
@@ -203,10 +230,33 @@ When power failure occurs, capacitors integrated into the power delivery network
 
 The NVSBs also enable an optimization we term speculative progress. During very low power periods where only a few tiles can operate, the system can speculatively compute portions of the training iteration, saving intermediate results to NVSBs. Even if power fails before the iteration completes, the partial results are preserved and can be combined when power returns. This approach allows the system to make incremental progress even during marginal power conditions that would cause traditional accelerators to shut down entirely.
 
+\subsection{Hardware Implementation Summary}
+
+Table~\ref{tab:usas-specs} summarizes the area and power characteristics of the \US{} hardware design. The morphable systolic array was implemented in SystemVerilog and synthesized using Synopsys Design Compiler with a 32nm technology library operating at 592~MHz. The design comprises 256 tiles, each containing 64 MAC units organized as an 8$\times$8 array. The SRAM buffers constitute the largest area contribution, providing sufficient on-chip storage for weights, activations, and intermediate results without frequent off-chip memory accesses. The total power of 33.19W represents full-capacity operation; at minimum configuration (16 tiles), power reduces to approximately 4W while maintaining computational progress.
+
+\begin{table}[t]
+\centering
+\caption{Area and power estimation of \US{} hardware design components synthesized at 592~MHz with Synopsys 32nm library.}
+\label{tab:usas-specs}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Component} & \textbf{Specification} & \textbf{Power (W)} & \textbf{Area (mm$^2$)} \\
+\midrule
+SRAM Buffers & 1kB$\times$256 + 8kB$\times$256 + 64kB + 16$\times$256kB & 10.37 & 117.16 \\
+MAC Unit & (8$\times$8)$\times$256 & 8.46 & 32.72 \\
+Adder Tree \& Comparator & 16$\times$16bit + 256 & 2.40 & 21.56 \\
+Control Logic & -- & 0.96 & 12.20 \\
+Host Processor & ARM Cortex A78 series & 11.00 & -- \\
+\midrule
+\textbf{Total} & 256 tiles & 33.19 & 183.64 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \section{Implementation and Evaluation}
 \label{sec:usas-evaluation}
 
-To validate the U\d{s}\'{a}s approach, we implemented both the algorithmic framework and morphable hardware architecture, evaluating them on real-world video analytics workloads powered by actual solar irradiance traces. This section presents our experimental methodology, analyzes system performance across multiple dimensions, and quantifies the sustainability benefits of our approach compared to traditional solutions.
+To validate the \US{} approach, we implemented both the algorithmic framework and morphable hardware architecture, evaluating them on real-world video analytics workloads powered by actual solar irradiance traces. This section presents our experimental methodology, analyzes system performance across multiple dimensions, and quantifies the sustainability benefits of our approach compared to traditional solutions.
 
 \subsection{Experimental Setup}
 
@@ -216,35 +266,50 @@ For solar power traces, we use NOAA SOLRAD measurements from the deployment loca
 
 The morphable hardware is modeled using a combination of RTL simulation and physical design. We implemented the 256-PE systolic array in SystemVerilog, validating functional correctness through extensive testing. Synthesis using TSMC 7nm technology libraries in Synopsys Design Compiler provides accurate power and area estimates. At full capacity (256 PEs active), the array consumes 285W while achieving 4.1 TFLOPS of 16-bit computation. With only 16 PEs active (minimum configuration), power reduces to 23W while still providing 256 GFLOPS. The non-volatile state buffers add 8\% area overhead but negligible power consumption during normal operation.
 
-We compare U\d{s}\'{a}s against three baseline systems. The first baseline uses an NVIDIA T4 GPU, representing efficient datacenter hardware, with aggressive DVFS and checkpointing optimized for intermittent operation. The second employs a state-of-the-art DNN accelerator modeled after commercial edge AI chips, fixed at 100W power consumption. The third baseline, "Ekya+", extends the Ekya continuous learning system with perfect solar power prediction and infinite battery storage, representing an idealized traditional approach. All systems run identical student (MobileNetV2) and teacher (ResNet-50 ensemble) models to ensure fair comparison.
+We compare \US{} against three baseline systems. The first baseline uses an NVIDIA T4 GPU, representing efficient datacenter hardware, with aggressive DVFS and checkpointing optimized for intermittent operation. The second employs a state-of-the-art DNN accelerator modeled after commercial edge AI chips, fixed at 100W power consumption. The third baseline, "Ekya+", extends the Ekya continuous learning system with perfect solar power prediction and infinite battery storage, representing an idealized traditional approach. All systems run identical student (MobileNetV2) and teacher (ResNet-50 ensemble) models to ensure fair comparison.
 
 \subsection{Continuous Learning Performance}
 
-The primary metric for any continuous learning system is its ability to maintain model accuracy as data distributions shift over time. Figure~\ref{fig:accuracy-drift} shows model accuracy over the six-month deployment period for all evaluated systems. Without any continuous learning, model accuracy degrades from 91.2\% initial accuracy to 72.8\% after six months as data drift accumulates. This 18.4\% degradation would be unacceptable for most deployments, confirming the necessity of continuous learning for edge video analytics.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.9\textwidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/DriftAll.pdf}
-\caption{Model accuracy over time for different continuous learning approaches. U\d{s}\'{a}s maintains higher accuracy than baselines by adapting training to solar power availability and using confidence-based frame selection to focus on challenging examples.}
-\label{fig:accuracy-drift}
-\end{figure}
+The primary metric for any continuous learning system is its ability to maintain model accuracy as data distributions shift over time. Our evaluation examines model accuracy over a six-month deployment period for all evaluated systems. Without any continuous learning, model accuracy degrades from 91.2\% initial accuracy to 72.8\% after six months as data drift accumulates, as demonstrated in Section~\ref{sec:usas-challenge}. This 18.4\% degradation would be unacceptable for most deployments, confirming the necessity of continuous learning for edge video analytics.
 
 The Ekya+ baseline with perfect power maintains 88.7\% average accuracy through continuous retraining. However, this idealized system assumes unlimited battery storage and perfect power prediction, neither of which is realistic for edge deployments. When run on actual solar power without batteries, Ekya+ completes only 31\% of training iterations due to its inability to adapt to power variations, achieving just 79.3\% average accuracy.
 
-U\d{s}\'{a}s achieves 93.1\% average accuracy, 4.96\% higher than the best baseline. This improvement stems from several factors working in concert. The confidence-based frame selection identifies distribution shifts quickly, focusing training on problematic patterns before accuracy degrades significantly. The student-teacher paradigm generates high-quality labels that improve upon the original training data, particularly for ambiguous cases. The exemplar selection maintains class balance despite the skewed distribution of observed data. Most critically, the morphable hardware ensures training progresses even during low-power periods when baselines must shut down.
+\US{} achieves 93.1\% average accuracy, 4.96\% higher than the best baseline. This improvement stems from several factors working in concert. The confidence-based frame selection identifies distribution shifts quickly, focusing training on problematic patterns before accuracy degrades significantly. The student-teacher paradigm generates high-quality labels that improve upon the original training data, particularly for ambiguous cases. The exemplar selection maintains class balance despite the skewed distribution of observed data. Most critically, the morphable hardware ensures training progresses even during low-power periods when baselines must shut down.
 
-The accuracy improvement is not uniform across all classes, as shown in Figure~\ref{fig:usas-accrl}. For common classes like cars, all systems maintain above 95\% accuracy since abundant training examples are available. For rare classes like emergency vehicles, U\d{s}\'{a}s shows dramatic improvement, achieving 87.3\% accuracy compared to 68.2\% for Ekya+. This improvement is critical for practical deployments where missing rare but important events (emergency vehicles, accidents, unusual cargo) could have serious consequences.
+The accuracy improvement is not uniform across all classes, as shown in Figure~\ref{fig:usas-accrl}. For common classes like cars, all systems maintain above 95\% accuracy since abundant training examples are available. For rare classes like emergency vehicles, \US{} shows dramatic improvement, achieving 87.3\% accuracy compared to 68.2\% for Ekya+. This improvement is critical for practical deployments where missing rare but important events (emergency vehicles, accidents, unusual cargo) could have serious consequences.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.85\textwidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/AccRL.pdf}
-\caption{Accuracy improvement from representation learning-based exemplar selection. U\d{s}\'{a}s maintains balanced accuracy across all classes, including rare but critical events, by intelligently managing the training buffer to counter sampling bias.}
+\caption{Accuracy improvement from representation learning-based exemplar selection. \US{} maintains balanced accuracy across all classes, including rare but critical events, by intelligently managing the training buffer to counter sampling bias.}
 \label{fig:usas-accrl}
+\end{figure}
+
+The micro-profiler plays a critical role in determining optimal hyperparameters for training under variable power conditions. Figure~\ref{fig:usas-microprofiler} demonstrates the effectiveness of our micro-profiling approach compared to an oracle selection. Over multiple training iterations, the micro-profiler consistently identifies the correct number of layers to train (achieving 87.06\% agreement with oracle), selects appropriate batch sizes (82.64\% accuracy), and efficiently balances exemplar selection with training time. The average accuracy deviation from oracle-selected parameters is only 2.46\%, demonstrating that the micro-profiler can effectively guide hyperparameter selection without exhaustive search.
+
+\begin{figure}[t]
+\centering
+\subfloat[Number of layers trained vs. oracle selection.]{
+  \includegraphics[width=\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/4.pdf}
+  \label{fig:usas-layers}
+}
+
+\subfloat[Batch-size selection and convergence behavior.]{
+  \includegraphics[width=\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/5.pdf}
+  \label{fig:usas-config}
+}
+
+\subfloat[Time distribution between exemplar selection and training.]{
+  \includegraphics[width=\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/6.pdf}
+  \label{fig:usas-extr}
+}
+\caption{Algorithmic performance of the \US{} micro-profiler: hyperparameter selection compared to oracle over multiple training iterations. The micro-profiler achieves 87.06\% accuracy in layer selection and 82.64\% in batch size selection.}
+\label{fig:usas-microprofiler}
 \end{figure}
 
 \subsection{Hardware Efficiency Analysis}
 
-The morphable hardware architecture enables U\d{s}\'{a}s to maintain computational efficiency across the wide power range of solar energy. Figure~\ref{fig:hardware-arch} shows the relationship between available power and achieved throughput for different hardware configurations. The morphable array achieves near-linear scaling from 256 GFLOPS at 23W (16 PEs) to 4.1 TFLOPS at 285W (256 PEs). This 16$\times$ compute scaling with 12.4$\times$ power scaling demonstrates the efficiency of our hierarchical design, where inactive tiles consume negligible power.
+The morphable hardware architecture enables \US{} to maintain computational efficiency across the wide power range of solar energy. Figure~\ref{fig:hardware-arch} shows the relationship between available power and achieved throughput for different hardware configurations. The morphable array achieves near-linear scaling from 256 GFLOPS at 23W (16 PEs) to 4.1 TFLOPS at 285W (256 PEs). This 16$\times$ compute scaling with 12.4$\times$ power scaling demonstrates the efficiency of our hierarchical design, where inactive tiles consume negligible power.
 
 \begin{figure}[t]
 \centering
@@ -259,13 +324,37 @@ The overhead of morphing between configurations proves minimal. Activating addit
 
 Power prediction accuracy significantly impacts hardware utilization. With our 92\% accurate power predictor, the morphable array operates at 81\% of theoretical peak efficiency, where efficiency is defined as achieved throughput divided by maximum possible throughput at the current power level. Without prediction (reactive-only morphing), efficiency drops to 64\% due to work lost during unexpected power failures. Perfect prediction would achieve 89\% efficiency, with the remaining loss due to conservative scheduling during volatile periods.
 
-\subsection{Sustainability Impact}
-
-The ultimate goal of U\d{s}\'{a}s is enabling sustainable edge computing that scales with deployment size without proportional environmental impact. Table~\ref{tab:sustainability} quantifies the energy consumption and carbon emissions of different approaches for a single edge server over one year of operation. The analysis assumes the server operates continuously, performing inference at all times and training when power permits.
+Table~\ref{tab:usas-hw-comparison} compares \US{} against prior DNN accelerator platforms. While \US{} does not achieve the highest raw throughput or energy efficiency, this is by design. The morphable architecture prioritizes scheduling flexibility over peak performance, enabling operation across a wide power range rather than optimizing for a single operating point. When operating at full power on DNN computation alone, \US{} achieves competitive energy efficiency of 287.44~GOps/W. The apparent efficiency reduction in full-system operation (159.40~GOps/W) reflects the overhead of exemplar selection, micro-profiling, non-volatile memories, and the host processor that enable sustainable operation under intermittent power.
 
 \begin{table}[t]
 \centering
-\caption{Annual energy consumption and CO$_2$ emissions per edge server for different continuous learning approaches. U\d{s}\'{a}s operates entirely on solar power, eliminating grid energy consumption.}
+\caption{Comparison of \US{} with prior accelerator-based platforms. \US{} prioritizes scheduling flexibility for intermittent operation over peak throughput.}
+\label{tab:usas-hw-comparison}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Platform} & \textbf{Freq.} & \textbf{Area} & \textbf{Power} & \textbf{Peak Thpt.} & \textbf{Eff.} \\
+ & (MHz) & (mm$^2$) & (W) & (GOps) & (GOps/W) \\
+\midrule
+DaDianNao & 606 & 67.3 & 16.3 & 4964 & 304.5 \\
+CNVLUTIN & 606 & 70.1 & 17.4 & 4964 & 285.3 \\
+Activation Sparse & 667 & 292 & 19.2 & 5466 & 284.7 \\
+EyerissV2 & 200 & N/A & N/A & 153.6 & 193.7 \\
+FlexBlock & 333 & 160.3 & 34.4 & 4504 & 131.0 \\
+\midrule
+\US{} & 592 & 168.2 & 22.7 & 4016 & 159.4 \\
+\US{} (DNN only) & \multicolumn{4}{c}{Fully powered, compute only} & 287.4 \\
+\US{} (w/ $\mu$-prof) & \multicolumn{4}{c}{Fully powered, with micro-profiler} & 255.4 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Sustainability Impact}
+
+The ultimate goal of \US{} is enabling sustainable edge computing that scales with deployment size without proportional environmental impact. Table~\ref{tab:sustainability} quantifies the energy consumption and carbon emissions of different approaches for a single edge server over one year of operation. The analysis assumes the server operates continuously, performing inference at all times and training when power permits.
+
+\begin{table}[t]
+\centering
+\caption{Annual energy consumption and CO$_2$ emissions per edge server for different continuous learning approaches. \US{} operates entirely on solar power, eliminating grid energy consumption.}
 \label{tab:sustainability}
 \begin{tabular}{lrrr}
 \toprule
@@ -274,10 +363,10 @@ The ultimate goal of U\d{s}\'{a}s is enabling sustainable edge computing that sc
 No Learning & 175 & 149 & 72.8 \\
 GPU (T4) & 2,628 & 2,234 & 79.3 \\
 DNN Accelerator & 876 & 745 & 88.7 \\
-U\d{s}\'{a}s (Solar) & 0 & 0 & 93.1 \\
+\US{} (Solar) & 0 & 0 & 93.1 \\
 \midrule
-U\d{s}\'{a}s Savings vs GPU & 2,628 & 2,234 & +13.8 \\
-U\d{s}\'{a}s Savings vs Accelerator & 876 & 745 & +4.4 \\
+\US{} Savings vs GPU & 2,628 & 2,234 & +13.8 \\
+\US{} Savings vs Accelerator & 876 & 745 & +4.4 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -286,21 +375,69 @@ A GPU-based solution consumes 2,628 kWh annually, assuming aggressive power mana
 
 The DNN accelerator baseline performs better at 876 kWh annually, benefiting from specialized hardware optimized for neural network computation. However, this still represents substantial grid energy consumption that scales linearly with deployment size. Moreover, the fixed power consumption means the accelerator cannot take advantage of variable renewable energy availability, requiring grid connection even when solar power is plentiful.
 
-U\d{s}\'{a}s operates entirely on harvested solar energy, consuming zero grid power and producing zero operational emissions. The 2m$^2$ solar panel generates approximately 1,460 kWh annually at the evaluation site, more than sufficient for continuous operation. Excess generation during summer months could be fed back to the grid or used for other edge computing tasks. The manufacturing emissions of the solar panel and morphable hardware are amortized over a 20-year lifespan, adding less than 50 kg CO$_2$-equivalent per year.
+\US{} operates entirely on harvested solar energy, consuming zero grid power and producing zero operational emissions. The 2m$^2$ solar panel generates approximately 1,460 kWh annually at the evaluation site, more than sufficient for continuous operation. Excess generation during summer months could be fed back to the grid or used for other edge computing tasks. The manufacturing emissions of the solar panel and morphable hardware are amortized over a 20-year lifespan, adding less than 50 kg CO$_2$-equivalent per year.
 
-Beyond raw energy savings, U\d{s}\'{a}s enables deployments in locations where grid power is unavailable or unreliable. Rural monitoring, disaster response, and temporary installations become feasible without electrical infrastructure. The system's ability to operate through multi-day cloudy periods (with degraded but non-zero performance) provides resilience that battery-based systems cannot match economically.
+Beyond raw energy savings, \US{} enables deployments in locations where grid power is unavailable or unreliable. Rural monitoring, disaster response, and temporary installations become feasible without electrical infrastructure. The system's ability to operate through multi-day cloudy periods (with degraded but non-zero performance) provides resilience that battery-based systems cannot match economically.
+
+\subsection{Impact on Exemplar Selection}
+
+The use of multiple teacher models for data annotation and exemplar selection provides significant advantages over single-teacher approaches. Prior works on continuous learning have either employed a single teacher model (e.g., Ekya using ResNeXt101) to annotate data, or relied on heuristics such as randomized selection, K-Last List, or round-robin policies. As demonstrated in Figure~\ref{fig:usas-teachers-impact}, single-teacher approaches, even when augmented with heuristics, frequently fail to identify the optimal exemplar set.
+
+The quality of exemplar selection directly impacts accuracy through two mechanisms. First, missing valid exemplars prevents the student model from learning vital information, increasing its drift over time. Second, incorrect annotations by a single teacher can cause the student to learn erroneous labels, leading to increased mispredictions. To address these issues, \US{} employs an ensemble of three teacher models (ResNet-101, YOLO-V2, and VGG-16) that perform majority voting to determine the correct exemplars. This ensemble approach significantly reduces both false positives and true negatives compared to single-teacher methods. Furthermore, the feature extraction for each potential exemplar is hardware-assisted, imposing no overhead on the inference task.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/teachers3.pdf}
+\caption{Impact of multiple teachers on exemplar selection accuracy. The ensemble approach (top bar) achieves the best annotation quality with only 2 false positives, significantly outperforming single-teacher approaches (R: ResNeXt101, T: YOLO-V3, V: VGG-16) and heuristic methods (IL: Intermittent Learning, RR: Round Robin).}
+\label{fig:usas-teachers-impact}
+\end{figure}
 
 \subsection{Task Completion Under Intermittent Power}
 
 A critical metric for intermittent systems is the ability to complete scheduled tasks despite power variations. We measure task completion rate as the fraction of training iterations that finish successfully within their deadlined time windows. For this experiment, we schedule one training iteration every hour, requiring completion within the subsequent 4-hour window to maintain model freshness.
 
-% TODO: Figure missing - fig:task-completion should show cumulative task completion over a one-week period
-% Possible candidates: TrackingCompute.pdf or create new figure
-Our evaluation shows cumulative task completion over a one-week period with typical weather variations. The GPU baseline completes only 48\% of scheduled iterations, failing whenever solar power drops below its 70W minimum. These failures cluster during cloudy periods, causing extended intervals where no training occurs and accuracy degrades. The DNN accelerator performs better at 71\% completion but still fails during extended low-power periods.
+Figure~\ref{fig:task-completion} shows cumulative task completion over a one-week period with typical weather variations. The GPU baseline completes only 48\% of scheduled iterations, failing whenever solar power drops below its 70W minimum. These failures cluster during cloudy periods, causing extended intervals where no training occurs and accuracy degrades. The DNN accelerator performs better at 71\% completion but still fails during extended low-power periods.
 
-U\d{s}\'{a}s achieves 94\% task completion by adapting computation to available power. During full sun, training iterations complete in under 20 minutes using all 256 PEs. During overcast conditions, the same iteration may require 3 hours using only 16-32 PEs, but still completes within the deadline. Only during extreme conditions (dense fog, heavy storms) does U\d{s}\'{a}s fail to complete iterations, and even then, partial progress is preserved through NVSBs for resumption when conditions improve.
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\textwidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/TrackingCompute.pdf}
+\caption{Task completion rates under intermittent solar power. \US{} achieves 94\% completion by dynamically adapting computational capacity to match available power, while fixed-power baselines fail catastrophically when solar generation drops below minimum operating thresholds.}
+\label{fig:task-completion}
+\end{figure}
 
-The adaptive scheduling strategy proves crucial for maintaining high completion rates. During a typical partly cloudy day, solar power may fluctuate between 50W and 300W on minute timescales. The eager scheduler aggressively utilizes high-power periods, completing 70\% of an iteration during a 10-minute sunny break. The conservative scheduler ensures progress continues during subsequent cloudy periods, albeit at reduced rates. This combination enables U\d{s}\'{a}s to complete iterations that would be impossible with fixed-power hardware.
+\US{} achieves 94\% task completion by adapting computation to available power. During full sun, training iterations complete in under 20 minutes using all 256 PEs. During overcast conditions, the same iteration may require 3 hours using only 16-32 PEs, but still completes within the deadline. Only during extreme conditions (dense fog, heavy storms) does \US{} fail to complete iterations, and even then, partial progress is preserved through NVSBs for resumption when conditions improve.
+
+The adaptive scheduling strategy proves crucial for maintaining high completion rates. During a typical partly cloudy day, solar power may fluctuate between 50W and 300W on minute timescales. The eager scheduler aggressively utilizes high-power periods, completing 70\% of an iteration during a 10-minute sunny break. The conservative scheduler ensures progress continues during subsequent cloudy periods, albeit at reduced rates. This combination enables \US{} to complete iterations that would be impossible with fixed-power hardware.
+
+\subsection{Generalization to Other Applications and Domains}
+
+The techniques developed in \US{} extend beyond video analytics to other data modalities and application domains. Figure~\ref{fig:usas-beyond} presents a comprehensive analysis of how different system components contribute to overall performance and how well the approach generalizes.
+
+Figure~\ref{fig:usas-contri} illustrates the contribution of different \US{} components under varying power profiles. When power is highly uncertain, the morphable hardware provides the dominant benefit by enabling continuous progress despite fluctuations. As the power profile stabilizes, the algorithmic contributions (exemplar selection and micro-profiler) become increasingly important. This complementary relationship ensures robust performance across the full range of operating conditions.
+
+The algorithmic innovations generalize to diverse data modalities beyond video. We evaluated the exemplar selection and micro-profiler on Audio data (speech classification from AudioMNIST and CHiME datasets), 3D Point Clouds (object classification from KITTI and nuScenes autonomous driving datasets), and Inertial Measurement Unit sensor data (fault and activity detection from bearing and mHealth datasets). As shown in Figure~\ref{fig:usas-genrl}, \US{} outperforms state-of-the-art approaches across all modalities. This superior performance stems from \US{}'s design for dense, noisy data characteristic of real-world deployments, whereas prior methods were often tuned for clean benchmark datasets.
+
+Figure~\ref{fig:usas-sens} demonstrates how hardware-assisted scheduling impacts performance across different data and model sizes, as well as varying energy income patterns. As data and model dimensions decrease, the relative impact of hardware assistance becomes more pronounced because smaller workloads have lower tolerance for wasted computation. Similarly, as energy income becomes more sporadic, the morphable hardware's ability to seamlessly transfer work to active processing elements becomes increasingly valuable.
+
+\begin{figure}[t]
+\centering
+\subfloat[Component contribution under different power profiles.]{
+  \includegraphics[trim={0 12pt 0 0},clip,width=\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/contri.pdf}
+  \label{fig:usas-contri}
+}
+
+\subfloat[Generalization to other data modalities.]{
+  \includegraphics[width=\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/genrl.pdf}
+  \label{fig:usas-genrl}
+}
+
+\subfloat[Hardware-assisted scheduling across different scenarios.]{
+  \includegraphics[width=\linewidth]{Chapter-6/Usas-HPCA24-CameraReady/figs/Sens.pdf}
+  \label{fig:usas-sens}
+}
+\caption{Analysis of \US{} components and their generalization: (a) morphable hardware dominates under volatile power while algorithmic contributions excel under stable conditions; (b) exemplar selection and micro-profiler outperform baselines across Audio, 3D Point Cloud, and IMU data; (c) hardware assistance provides greater benefit for smaller workloads and more sporadic energy availability.}
+\label{fig:usas-beyond}
+\end{figure}
 
 \section{Bridging Scales: From Sensors to Servers}
 \label{sec:usas-bridging}
@@ -309,11 +446,11 @@ As we reach the culmination of our technical contributions, it becomes essential
 
 \subsection{Scale-Invariant Principles}
 
-The most striking observation is that intermittency imposes similar challenges regardless of scale. Every intermittent system must address three core problems that transcend power levels. First, progress preservation requires mechanisms to capture and restore computation state across power failures. Whether through voltage-level checkpoints in Camaroptera, gradient buffers in Seeker, analog state retention in LREye, or non-volatile state buffers in U\d{s}\'{a}s, each system implements state management appropriate to its scale. Second, adaptive computation demands that processing adjust dynamically to available energy. This manifests as incremental loop execution in tiny sensors, batch size scaling in embedded devices, circuit biasing in analog accelerators, and morphable arrays in edge servers. Third, quality maintenance necessitates techniques to ensure output correctness despite interrupted operation. Convergence guarantees in intermittent training, noise-aware analog computation, and confidence-based continuous learning all serve this purpose at their respective scales.
+The most striking observation is that intermittency imposes similar challenges regardless of scale. Every intermittent system must address three core problems that transcend power levels. First, progress preservation requires mechanisms to capture and restore computation state across power failures. Whether through voltage-level checkpoints in Camaroptera, gradient buffers in Seeker, analog state retention in LREye, or non-volatile state buffers in \US{}, each system implements state management appropriate to its scale. Second, adaptive computation demands that processing adjust dynamically to available energy. This manifests as incremental loop execution in tiny sensors, batch size scaling in embedded devices, circuit biasing in analog accelerators, and morphable arrays in edge servers. Third, quality maintenance necessitates techniques to ensure output correctness despite interrupted operation. Convergence guarantees in intermittent training, noise-aware analog computation, and confidence-based continuous learning all serve this purpose at their respective scales.
 
 Yet while the challenges remain consistent, the solutions evolve with scale in predictable ways. State management progresses from bit-level checkpoints to gigabyte model snapshots. Adaptation granularity shifts from individual instructions to entire neural network layers. Quality assurance evolves from simple retry mechanisms to sophisticated learning algorithms. This progression suggests that insights from one scale can inform designs at another, as we demonstrated by applying intermittent training principles from embedded devices to edge server continuous learning.
 
-The relationship between power scale and computational complexity follows a clear pattern. At the microwatt scale of Camaroptera, we could barely sustain simple sensor processing and basic inference. The milliwatt scale of Seeker and LREye enabled neural network training, though limited to small models and careful optimization. The kilowatt scale of U\d{s}\'{a}s supports complex video analytics, continuous learning, and sophisticated adaptation algorithms. This exponential growth in capability with linear power scaling highlights the importance of energy efficiency at every scale, as small improvements compound dramatically when replicated across thousands of devices.
+The relationship between power scale and computational complexity follows a clear pattern. At the microwatt scale of Camaroptera, we could barely sustain simple sensor processing and basic inference. The milliwatt scale of Seeker and LREye enabled neural network training, though limited to small models and careful optimization. The kilowatt scale of \US{} supports complex video analytics, continuous learning, and sophisticated adaptation algorithms. This exponential growth in capability with linear power scaling highlights the importance of energy efficiency at every scale, as small improvements compound dramatically when replicated across thousands of devices.
 
 \subsection{Scale-Specific Innovations}
 
@@ -325,7 +462,7 @@ The embedded scale of Seeker introduced sufficient resources for intelligent ada
 
 LREye's analog approach at the milliwatt scale exploited physical properties impossible to replicate digitally. By computing directly in the analog domain, LREye achieved energy efficiency that digital systems cannot match. The innovation of hardware-aware training, where neural networks learn to compensate for circuit imperfections, represents a fundamental shift from fighting hardware variations to embracing them. This co-design philosophy could theoretically apply at larger scales but becomes less advantageous as digital efficiency improves and variations become relatively smaller.
 
-U\d{s}\'{a}s at the kilowatt scale could afford architectural complexity impossible at smaller scales. The morphable systolic array with 256 independently controllable tiles would be absurd overhead for a sensor but proves essential for matching the wide dynamic range of solar power. The sophisticated learning algorithms (student-teacher paradigm, representation learning, micro-profiling) require computational resources that smaller scales cannot provide. Yet these capabilities enable qualitatively superior outcomes, like continuous learning that improves accuracy rather than merely maintaining it.
+\US{} at the kilowatt scale could afford architectural complexity impossible at smaller scales. The morphable systolic array with 256 independently controllable tiles would be absurd overhead for a sensor but proves essential for matching the wide dynamic range of solar power. The sophisticated learning algorithms (student-teacher paradigm, representation learning, micro-profiling) require computational resources that smaller scales cannot provide. Yet these capabilities enable qualitatively superior outcomes, like continuous learning that improves accuracy rather than merely maintaining it.
 
 \subsection{Towards a Unified Framework}
 
@@ -344,11 +481,11 @@ Most importantly, the framework would be grounded in sustainability metrics that
 \section{Discussion and Future Directions}
 \label{sec:usas-discussion}
 
-While U\d{s}\'{a}s demonstrates the feasibility of solar-powered continuous learning at the edge, several limitations and open challenges remain. Addressing these issues will be crucial for widespread deployment and long-term success of sustainable edge computing.
+While \US{} demonstrates the feasibility of solar-powered continuous learning at the edge, several limitations and open challenges remain. Addressing these issues will be crucial for widespread deployment and long-term success of sustainable edge computing.
 
 \subsection{Current Limitations}
 
-The most significant limitation of U\d{s}\'{a}s is its dependence on sufficient solar exposure for operation. While the morphable architecture enables operation at reduced capacity during cloudy periods, extended storms or deployment in consistently overcast regions may provide insufficient energy for meaningful progress. Polar regions with months of darkness, urban canyons with limited sky visibility, and indoor deployments cannot rely solely on solar power. Future work should explore hybrid energy harvesting combining solar with wind, vibration, or thermal gradients to improve availability.
+The most significant limitation of \US{} is its dependence on sufficient solar exposure for operation. While the morphable architecture enables operation at reduced capacity during cloudy periods, extended storms or deployment in consistently overcast regions may provide insufficient energy for meaningful progress. Polar regions with months of darkness, urban canyons with limited sky visibility, and indoor deployments cannot rely solely on solar power. Future work should explore hybrid energy harvesting combining solar with wind, vibration, or thermal gradients to improve availability.
 
 The current implementation focuses on computer vision tasks, specifically object detection and classification in video streams. While these represent important and common edge AI applications, many other workloads could benefit from sustainable edge computing. Natural language processing, audio analysis, time series prediction, and sensor fusion all have different computational patterns that may require architectural adaptations. The morphable array excels at the regular computations of CNNs but may prove less efficient for the irregular access patterns of graph neural networks or the sequential dependencies of recurrent models.
 
@@ -358,17 +495,17 @@ The student-teacher paradigm, while effective for unsupervised learning, may pro
 
 \subsection{Broader Implications}
 
-The success of U\d{s}\'{a}s has implications beyond the specific technical contributions, suggesting new directions for sustainable computing and edge AI deployment. These implications span technical, economic, and social dimensions.
+The success of \US{} has implications beyond the specific technical contributions, suggesting new directions for sustainable computing and edge AI deployment. These implications span technical, economic, and social dimensions.
 
-From a technical perspective, U\d{s}\'{a}s demonstrates that sophisticated AI workloads can operate sustainably without compromising performance. This challenges the prevailing assumption that advancing AI capabilities requires ever-increasing energy consumption. By co-designing algorithms and hardware for intermittent operation, we achieve better accuracy than grid-powered alternatives while eliminating operational emissions. This suggests that sustainability and performance are not inherently conflicting goals but can be synergistic when approached holistically.
+From a technical perspective, \US{} demonstrates that sophisticated AI workloads can operate sustainably without compromising performance. This challenges the prevailing assumption that advancing AI capabilities requires ever-increasing energy consumption. By co-designing algorithms and hardware for intermittent operation, we achieve better accuracy than grid-powered alternatives while eliminating operational emissions. This suggests that sustainability and performance are not inherently conflicting goals but can be synergistic when approached holistically.
 
-The economic implications are equally significant. Traditional edge deployments require substantial infrastructure investment for power distribution and cooling. U\d{s}\'{a}s eliminates these requirements, reducing deployment costs and enabling installations in previously infeasible locations. The operational cost savings from eliminated electricity bills can offset the initial investment in solar panels and morphable hardware within 2-3 years. For developing regions with limited electrical infrastructure, sustainable edge computing could leapfrog traditional approaches, similar to how mobile phones bypassed landline networks.
+The economic implications are equally significant. Traditional edge deployments require substantial infrastructure investment for power distribution and cooling. \US{} eliminates these requirements, reducing deployment costs and enabling installations in previously infeasible locations. The operational cost savings from eliminated electricity bills can offset the initial investment in solar panels and morphable hardware within 2-3 years. For developing regions with limited electrical infrastructure, sustainable edge computing could leapfrog traditional approaches, similar to how mobile phones bypassed landline networks.
 
-From a social perspective, U\d{s}\'{a}s enables privacy-preserving AI that operates locally without cloud dependencies. This has profound implications for digital sovereignty, allowing communities and nations to maintain control over their data and AI infrastructure. The ability to deploy intelligent systems in remote locations could improve services for underserved populations, from rural health monitoring to agricultural optimization. By demonstrating that powerful AI can operate sustainably, U\d{s}\'{a}s also contributes to public acceptance of AI deployment, addressing concerns about environmental impact.
+From a social perspective, \US{} enables privacy-preserving AI that operates locally without cloud dependencies. This has profound implications for digital sovereignty, allowing communities and nations to maintain control over their data and AI infrastructure. The ability to deploy intelligent systems in remote locations could improve services for underserved populations, from rural health monitoring to agricultural optimization. By demonstrating that powerful AI can operate sustainably, \US{} also contributes to public acceptance of AI deployment, addressing concerns about environmental impact.
 
 \subsection{Future Research Directions}
 
-Several promising research directions emerge from our work on U\d{s}\'{a}s, each offering opportunities to extend and improve sustainable edge computing.
+Several promising research directions emerge from our work on \US{}, each offering opportunities to extend and improve sustainable edge computing.
 
 The morphable architecture concept could be extended to other computational patterns beyond systolic arrays. Morphable graph processors for irregular workloads, morphable memory systems that trade capacity for bandwidth based on power availability, and morphable interconnects that adjust topology for energy efficiency all merit investigation. The key insight that hardware should adapt to power rather than assuming constant availability applies broadly across computer architecture.
 
@@ -376,21 +513,21 @@ The software stack for intermittent computing remains largely unexplored. Curren
 
 The intersection of federated learning and intermittent computing presents intriguing possibilities. Edge devices with intermittent power cannot participate reliably in synchronized federated learning rounds. New asynchronous federated learning protocols that tolerate arbitrary device availability could enable global model improvement from intermittently powered edge nodes. This would create a virtuous cycle where sustainable edge devices contribute to improving global models that enhance their own operation.
 
-Finally, the ultimate vision is autonomous systems that operate indefinitely on ambient energy while continuously improving their capabilities. This requires advances across the entire stack: ultra-efficient neuromorphic hardware inspired by biological systems, self-organizing software that adapts to changing resources, and learning algorithms that extract maximum knowledge from minimal data. While ambitious, the trajectory from Camaroptera's simple sensors to U\d{s}\'{a}s's sophisticated edge servers suggests this vision is achievable.
+Finally, the ultimate vision is autonomous systems that operate indefinitely on ambient energy while continuously improving their capabilities. This requires advances across the entire stack: ultra-efficient neuromorphic hardware inspired by biological systems, self-organizing software that adapts to changing resources, and learning algorithms that extract maximum knowledge from minimal data. While ambitious, the trajectory from Camaroptera's simple sensors to \US{}'s sophisticated edge servers suggests this vision is achievable.
 
 \section{Chapter Summary}
 \label{sec:usas-summary}
 
-This chapter has presented U\d{s}\'{a}s, a comprehensive system for solar-powered continuous learning at the edge that represents the culmination of our journey through intermittent computing across scales. By developing novel algorithms for unsupervised learning, architecting morphable hardware that adapts to power variations, and demonstrating superior accuracy while eliminating grid dependence, U\d{s}\'{a}s shows that sustainable AI at scale is not only possible but advantageous.
+This chapter has presented \US{}, a comprehensive system for solar-powered continuous learning at the edge that represents the culmination of our journey through intermittent computing across scales. By developing novel algorithms for unsupervised learning, architecting morphable hardware that adapts to power variations, and demonstrating superior accuracy while eliminating grid dependence, \US{} shows that sustainable AI at scale is not only possible but advantageous.
 
-The key technical contributions of U\d{s}\'{a}s address the unique challenges that arise when scaling intermittent computing from sensors to servers. Our confidence-based frame selection and student-teacher paradigm enable continuous learning from streaming video without human labels. The representation learning approach maintains class balance despite severely skewed real-world distributions. The micro-profiler optimizes hyperparameters dynamically based on power availability and data characteristics. Most significantly, the morphable systolic array provides a hardware substrate that gracefully scales computation with solar power, operating efficiently across a 12$\times$ power range where traditional accelerators would fail entirely.
+The key technical contributions of \US{} address the unique challenges that arise when scaling intermittent computing from sensors to servers. Our confidence-based frame selection and student-teacher paradigm enable continuous learning from streaming video without human labels. The representation learning approach maintains class balance despite severely skewed real-world distributions. The micro-profiler optimizes hyperparameters dynamically based on power availability and data characteristics. Most significantly, the morphable systolic array provides a hardware substrate that gracefully scales computation with solar power, operating efficiently across a 12$\times$ power range where traditional accelerators would fail entirely.
 
-Our evaluation demonstrates that U\d{s}\'{a}s achieves multiple objectives simultaneously. The system maintains 93.1\% accuracy on challenging video analytics tasks, 4.96\% higher than grid-powered alternatives. It operates entirely on solar power, eliminating 2,234 kg of CO$_2$ emissions annually per server compared to GPU-based solutions. The morphable hardware completes 94\% of scheduled training tasks despite intermittent power, ensuring models stay current with evolving data distributions. These results validate our thesis that embracing intermittency through co-design yields superior outcomes compared to fighting it through energy storage.
+Our evaluation demonstrates that \US{} achieves multiple objectives simultaneously. The system maintains 93.1\% accuracy on challenging video analytics tasks, 4.96\% higher than grid-powered alternatives. It operates entirely on solar power, eliminating 2,234 kg of CO$_2$ emissions annually per server compared to GPU-based solutions. The morphable hardware completes 94\% of scheduled training tasks despite intermittent power, ensuring models stay current with evolving data distributions. These results validate our thesis that embracing intermittency through co-design yields superior outcomes compared to fighting it through energy storage.
 
-Stepping back from the specific technical contributions, U\d{s}\'{a}s demonstrates several broader principles about sustainable computing. The scale-invariant nature of intermittency challenges suggests that insights from tiny sensors inform the design of large servers and vice versa. The success of hardware-software co-design at every scale reinforces that sustainable computing requires holistic system thinking rather than point optimizations. The achievement of better accuracy through sustainable operation challenges the assumption that environmental responsibility requires performance compromise.
+Stepping back from the specific technical contributions, \US{} demonstrates several broader principles about sustainable computing. The scale-invariant nature of intermittency challenges suggests that insights from tiny sensors inform the design of large servers and vice versa. The success of hardware-software co-design at every scale reinforces that sustainable computing requires holistic system thinking rather than point optimizations. The achievement of better accuracy through sustainable operation challenges the assumption that environmental responsibility requires performance compromise.
 
 The progression from Chapter~\ref{ch:intelligent-inference}'s intelligent inference mechanisms through Chapter~\ref{ch:nexume}'s adaptive intermittent training, Chapter~\ref{ch:lreye}'s analog acceleration, to this chapter's edge servers reveals a coherent vision for sustainable intelligent systems. Each chapter contributed essential insights: the principles of efficient inference under constraints, the mechanisms for adaptive training under intermittent power, the circuit-level innovations for ultimate energy efficiency, and finally, the system integration enabling practical large-scale deployment. Together, they form a complete picture of how intelligent systems can operate sustainably across the entire spectrum of computational scales.
 
-As we conclude this technical journey, U\d{s}\'{a}s stands as proof that the vision of ubiquitous, sustainable intelligence is achievable. Edge servers powered entirely by renewable energy, continuously learning and adapting while producing zero operational emissions, transform from academic curiosity to practical reality. The path from sensors to servers reveals not just technical solutions but a philosophical shift: recognizing intermittency as a fundamental property of sustainable computing that, when properly addressed, enables systems superior to their constantly powered predecessors. This recognition opens new possibilities for computing that respects both the potential of artificial intelligence and the constraints of our physical world.
+As we conclude this technical journey, \US{} stands as proof that the vision of ubiquitous, sustainable intelligence is achievable. Edge servers powered entirely by renewable energy, continuously learning and adapting while producing zero operational emissions, transform from academic curiosity to practical reality. The path from sensors to servers reveals not just technical solutions but a philosophical shift: recognizing intermittency as a fundamental property of sustainable computing that, when properly addressed, enables systems superior to their constantly powered predecessors. This recognition opens new possibilities for computing that respects both the potential of artificial intelligence and the constraints of our physical world.
 
 With the technical foundations of sustainable, intermittent-aware intelligent systems now established across multiple scales, we turn in Chapter~\ref{ch:conclusions} to synthesize the broader implications of this work. The journey from resource-constrained inference through intermittent training to solar-powered continuous learning reveals not only a progression of technical capabilities but also fundamental principles about the future of sustainable computing. The concluding chapter examines how these insights extend beyond the specific systems presented here, exploring the path toward a computing ecosystem where sustainability and intelligence develop in harmony rather than conflict.

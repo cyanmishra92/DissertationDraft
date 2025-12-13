@@ -1,2 +1,126 @@
-\chapter{Related Works}~\label{relatedworks
-}
+\chapter{Related Work}
+\label{ch:related-work}
+
+This dissertation spans multiple research domains, from energy harvesting and intermittent computing to neural network acceleration and continuous learning at the edge. This chapter provides a comprehensive review of the related work across these areas, positioning the contributions of the preceding chapters within the broader research landscape.
+
+% ============================================================================
+\section{Energy Harvesting and Intermittent Computing}
+\label{sec:rw-intermittent}
+
+The proliferation of Internet of Things devices has driven significant interest in battery-free operation powered by ambient energy harvesting. Early foundational work by Ransford, Sorber, and Fu introduced Mementos~\cite{mementos}, a system that automatically checkpoints program state to non-volatile memory before power failures, enabling computation to resume after energy becomes available again. This work established the fundamental challenge of maintaining forward progress under intermittent power.
+
+Subsequent research explored various approaches to managing intermittency. The Chain programming model by Colin and Lucia~\cite{chain} introduced task-based decomposition, where programs are structured as chains of idempotent tasks that can be safely re-executed after power failures. Maeng, Colin, and Lucia further developed Alpaca~\cite{alpaca}, which provides language-level support for intermittent computing with privatization of non-volatile memory to ensure consistency. These software-based approaches fundamentally changed how programmers reason about battery-free systems.
+
+Hardware innovations have complemented these software advances. Non-volatile processors (NVPs)~\cite{nvpMA, incidental} eliminate the need for explicit checkpointing by making processor state inherently persistent. The work by Ma, Zheng, and colleagues demonstrated that embedding non-volatility directly into the processor microarchitecture can significantly reduce the overhead of power failure recovery. Similarly, the WISP platform~\cite{wisp} provided an open research platform for exploring RFID-powered computing, enabling practical experimentation with batteryless systems.
+
+Energy harvesting technologies themselves have matured considerably. Solar cells, thermoelectric generators, piezoelectric harvesters, and RF energy harvesting each offer different power densities and availability characteristics~\cite{batteryfree}. The work by Hester, Sitanayah, and Sorber on Tragedy of the Coulombs~\cite{batteryfree} analyzed the fundamental trade-offs in energy harvesting system design, showing how buffer sizing and harvesting source characteristics interact to determine system capability. Understanding these trade-offs is essential for designing effective intermittent systems.
+
+More recent work has pushed toward increasingly sophisticated workloads on intermittent power. Gobieski, Lucia, and Beckmann demonstrated Intelligence Beyond the Edge~\cite{intelligencebeyondedge}, showing that neural network inference is feasible on energy harvesting devices with careful system design. Qiu, Wang, and colleagues introduced ResiRCA~\cite{resirca}, a resilient ReRAM-based accelerator architecture that combines analog computing with intermittent operation support. These works established that machine learning workloads, once thought too demanding for batteryless operation, can indeed execute on harvested energy.
+
+% ============================================================================
+\section{Edge Machine Learning and Model Deployment}
+\label{sec:rw-edge-ml}
+
+Deploying neural networks on resource-constrained edge devices requires careful optimization of model size, computation, and memory access patterns. The foundational work on Deep Compression by Han, Mao, and Dally~\cite{deepcompression} demonstrated that neural networks contain substantial redundancy that can be eliminated through pruning, quantization, and Huffman coding, achieving compression ratios exceeding 35$\times$ without significant accuracy loss.
+
+Network architecture search (NAS) has emerged as a powerful approach for automatically designing efficient models. Howard, Zhu, and colleagues introduced MobileNet~\cite{mobilenetv2}, which uses depthwise separable convolutions to dramatically reduce computation while maintaining accuracy. Tan and Le developed EfficientNet~\cite{efficientnet}, which systematically scales network width, depth, and resolution to optimize the accuracy-efficiency trade-off. These hand-designed and automatically-discovered architectures form the backbone of modern edge deployment.
+
+Hardware-aware optimization takes model efficiency further by incorporating target platform characteristics into the design process. Yang, Chen, and colleagues introduced NetAdapt~\cite{netadapt}, which iteratively adapts pre-trained networks to meet resource budgets on specific hardware. Energy-aware pruning~\cite{eap} extends this approach by directly optimizing for energy consumption rather than proxy metrics like FLOPs or parameter count. These techniques are essential for maximizing performance within the strict constraints of edge devices.
+
+Quantization reduces the precision of weights and activations, enabling more efficient storage and computation. Post-training quantization can be applied to pre-trained models with minimal accuracy loss for many applications. Quantization-aware training~\cite{qat} goes further by simulating quantization effects during training, allowing the network to adapt to reduced precision. Recent work has pushed quantization to extreme levels, with binary and ternary networks achieving reasonable accuracy on certain tasks while enabling highly efficient inference.
+
+The TinyML movement has coalesced around enabling machine learning on microcontroller-class devices with kilobytes of memory and milliwatts of power. Lin, Chen, and colleagues introduced MCUNet~\cite{mcunet}, which co-designs neural architecture search with memory-efficient inference scheduling to fit models within the tight constraints of microcontrollers. Li, Lin, and colleagues developed MicroNet~\cite{micronet}, pushing the boundaries of what is achievable on sub-milliwatt platforms. These works demonstrate that meaningful intelligence is possible even at the extreme edge.
+
+% ============================================================================
+\section{Distributed Inference and Sensor Networks}
+\label{sec:rw-distributed}
+
+Wireless sensor networks have long grappled with the challenge of performing meaningful computation under severe resource constraints. The seminal work on ensemble learning by Dietterich~\cite{ensemble} established the theoretical foundations for combining multiple weak learners into a strong classifier. This paradigm is particularly appealing for sensor networks, where individual nodes may be too constrained to run sophisticated models but can collectively achieve high accuracy.
+
+Computation partitioning between edge devices and more capable servers has been extensively studied. Kang, Hauswald, and colleagues introduced Neurosurgeon~\cite{neurosurgeon}, which automatically partitions neural networks between mobile devices and the cloud to minimize latency and energy consumption. The optimal partition point depends on network conditions, model architecture, and hardware capabilities, requiring adaptive decision-making. Subsequent work by Zhao, Barik, and colleagues on DeepThings~\cite{deepthings} extended partitioning to distributed edge scenarios where multiple edge devices collaborate on inference.
+
+Communication efficiency is critical for distributed inference in energy-constrained environments. Traditional data compression algorithms like discrete cosine transform and wavelet compression struggle to preserve the features relevant for machine learning inference. Coreset-based compression~\cite{bachem2015coresets, practicalcoresets} offers an alternative that provably preserves geometric properties of the data, making it well-suited for maintaining inference accuracy. The theoretical foundations established by Bachem, Lucic, and Krause enable principled compression with guarantees on downstream task performance.
+
+Federated learning, introduced by McMahan, Moore, and colleagues~\cite{fedavg}, enables collaborative model training across distributed devices without centralizing raw data. While originally motivated by privacy concerns, federated learning is also relevant for edge scenarios where communication bandwidth is limited. Subsequent work has addressed the challenges of non-IID data distributions, system heterogeneity, and communication efficiency that arise in practical federated deployments. These techniques are increasingly relevant as edge intelligence scales to larger deployments.
+
+% ============================================================================
+\section{Neural Network Training on Constrained Devices}
+\label{sec:rw-training}
+
+Training neural networks traditionally requires substantial computational resources, but recent work has begun enabling on-device training for adaptation and personalization. The fundamental challenge is that backpropagation requires storing activations from the forward pass, dramatically increasing memory requirements compared to inference alone.
+
+Gradient checkpointing trades computation for memory by recomputing activations during the backward pass rather than storing them. Chen, Xu, and colleagues formalized this trade-off~\cite{gradientcheckpoint}, showing that memory requirements can be reduced from $O(n)$ to $O(\sqrt{n})$ layers at the cost of one additional forward pass. This technique is essential for training on memory-constrained devices.
+
+On-device training has been explored for various scenarios. Transfer learning and fine-tuning require training only a subset of layers, reducing resource requirements substantially. Lin, Chen, and colleagues demonstrated practical on-device training for microcontrollers by carefully managing memory and using sparse updates. The Stateful Neural Networks work by Islam, Nirjon, and colleagues~\cite{statefulnn} introduced mechanisms for preserving training state across power interruptions, enabling intermittent training on energy harvesting devices.
+
+Continual learning addresses the challenge of learning from streaming data without forgetting previously learned knowledge. The iCaRL approach by Rebuffi, Kolesnikov, and colleagues~\cite{icarl} maintains a small set of exemplars from previous tasks to prevent catastrophic forgetting. Exemplar selection strategies significantly impact the effectiveness of continual learning, with representation-based selection outperforming random sampling. These techniques are essential for edge systems that must adapt to changing data distributions over time.
+
+Hyperparameter optimization for resource-constrained training presents additional challenges. The optimal learning rate, batch size, and number of training iterations depend on available resources and data characteristics. Profiling-based approaches can estimate the impact of different configurations without exhaustive search, enabling adaptive training that responds to varying resource availability.
+
+% ============================================================================
+\section{Hardware Accelerators for Neural Networks}
+\label{sec:rw-accelerators}
+
+Specialized hardware accelerators have emerged as essential components for efficient neural network execution. The DianNao family of accelerators by Chen, Du, and colleagues~\cite{dadiannao} established many of the architectural principles used in modern neural network accelerators, including systolic arrays for matrix operations and specialized memory hierarchies for weight and activation reuse.
+
+Systolic array architectures have become the dominant approach for matrix multiplication in neural network accelerators. The TPU by Jouppi, Young, and colleagues demonstrated the effectiveness of large systolic arrays at datacenter scale. At the edge, designs like Eyeriss by Chen, Emer, and colleagues~\cite{eyeriss2} optimize for energy efficiency through careful dataflow design and exploitation of sparsity. FlexBlock by Park, Kim, and colleagues~\cite{flexblock} introduced flexible systolic arrays that can adapt to different layer shapes and sizes.
+
+Sparsity exploitation offers significant efficiency gains since neural networks often have many zero-valued weights and activations. CNVLUTIN by Albericio, Judd, and colleagues~\cite{cnvlutin} introduced mechanisms for skipping zero-valued computations in convolutional layers. Subsequent work has explored structured sparsity patterns that are more amenable to hardware acceleration while still providing meaningful compression.
+
+Processing-in-memory (PIM) architectures fundamentally change the computation model by performing operations where data resides rather than moving data to compute units. ReRAM-based accelerators like ISAAC by Shafiee, Nag, and colleagues~\cite{shafiee2016isaac} and PRIME by Chi, Li, and colleagues~\cite{chi2016prime} exploit the analog properties of resistive memory to perform matrix-vector multiplication in a single step. These designs achieve remarkable energy efficiency for the multiply-accumulate operations that dominate neural network workloads.
+
+However, analog PIM faces significant challenges from device variability, noise, and the overhead of analog-to-digital conversion. Each layer of a neural network requires converting analog outputs back to digital form before applying non-linear activation functions, and these conversions can dominate the system's energy consumption and latency. Various approaches have been proposed to mitigate these overheads, including reduced-precision ADCs, temporal encoding, and noise-aware training.
+
+% ============================================================================
+\section{Analog Computing and In-Sensor Processing}
+\label{sec:rw-analog}
+
+Analog computing for neural networks offers the potential for extreme energy efficiency by avoiding the overhead of digital representation and arithmetic. The RedEye architecture by LiKamWa, Hou, and colleagues~\cite{RedEye2020} demonstrated in-sensor convolutional processing by performing the first layers of a CNN directly in the analog domain at the image sensor. This approach dramatically reduces the data that must be digitized and transmitted, addressing a fundamental bottleneck in vision systems.
+
+Hardware-aware training has emerged as essential for deploying neural networks on analog substrates. Device variability, IR drop across crossbar interconnects, and other analog non-idealities can significantly degrade accuracy if not accounted for during training. Xu, Ho, and colleagues~\cite{xu2022multi} developed training procedures that inject realistic models of analog errors into the training loop, enabling networks to learn robustness to hardware imperfections.
+
+The PipeLayer architecture by Song, Qian, and colleagues~\cite{song2017pipelayer} extended analog PIM to support training through in-situ weight updates in ReRAM arrays. This work demonstrated that the same crossbar arrays used for inference can also perform the gradient computations required for training, potentially enabling fully analog learning systems. However, the precision requirements for training are typically higher than for inference, presenting additional challenges for analog implementations.
+
+Recent work has explored alternative non-volatile memory technologies for neural network acceleration. Phase-change memory, ferroelectric FETs, and magnetic tunnel junctions each offer different trade-offs in terms of endurance, precision, speed, and energy consumption. The optimal technology choice depends on the target application and whether the system requires frequent weight updates or primarily performs inference.
+
+% ============================================================================
+\section{Continuous Learning and Data Drift}
+\label{sec:rw-continuous}
+
+Real-world deployments face the challenge of data drift, where the statistical properties of incoming data change over time relative to the original training distribution. Gama, Medas, and colleagues established the foundational understanding of concept drift in streaming data, showing that models must continuously adapt to maintain accuracy.
+
+Edge video analytics exemplifies the data drift challenge. The Ekya system by Bhardwaj, Shu, and colleagues~\cite{ekya} demonstrated that video analytics models can experience substantial accuracy degradation within hours as lighting conditions, camera angles, and scene contents change. Ekya addresses this through intelligent scheduling of retraining tasks alongside inference, maximizing accuracy within resource constraints.
+
+Student-teacher learning provides a mechanism for generating training labels without human annotation. A large, accurate teacher model annotates incoming data, which is then used to train a smaller, more efficient student model. This approach enables continuous adaptation without the latency and cost of sending data to human annotators. The quality of the teacher's annotations directly impacts the student's learning, making ensemble-based annotation attractive for improving robustness.
+
+Exemplar selection strategies determine which samples to retain for replay during continual learning. Random selection provides a simple baseline, but more sophisticated approaches can significantly improve learning efficiency. Representation-based selection, which chooses samples that are diverse in the learned feature space, helps prevent catastrophic forgetting of rare but important patterns.
+
+Active learning techniques can further improve the efficiency of continuous learning by focusing annotation effort on the most informative samples. Uncertainty-based selection prioritizes samples where the model is least confident, while diversity-based selection ensures coverage of the input space. Combining these strategies with efficient exemplar management enables sustainable continuous learning within edge resource constraints.
+
+% ============================================================================
+\section{Sustainable and Green Computing}
+\label{sec:rw-sustainable}
+
+The environmental impact of computing has received increasing attention as the scale of deployment grows. Strubell, Ganesh, and McCallum~\cite{DNNcarbon01} quantified the carbon footprint of training large neural network models, finding that a single training run can emit as much carbon as five cars over their lifetimes. This analysis sparked widespread concern about the sustainability of current deep learning practices.
+
+Green data centers have emerged as one response to sustainability concerns. Major cloud providers including Microsoft~\cite{MSGreen} and Meta~\cite{metaGreen} have committed to powering their operations with renewable energy. However, centralized green computing does not address the communication overhead and privacy concerns associated with transmitting data from distributed sensors to remote data centers.
+
+Battery-free and energy harvesting systems offer an alternative path to sustainable edge computing. By operating entirely on ambient energy, these systems avoid both grid power consumption and the environmental costs of battery production and disposal. The environmental impact of battery manufacturing, including resource extraction and chemical processing, has been extensively documented~\cite{batterysus1, batterysus2, batterysus3}. Eliminating batteries from the billions of projected IoT devices could have substantial positive environmental impact.
+
+Solar-powered computing at larger scales has been explored for data centers but remains challenging for edge deployments. The intermittent nature of solar energy requires either energy storage (batteries or capacitors) or the ability to operate intermittently. Designing systems that can make productive use of variable solar energy without large storage buffers represents a significant research challenge that this dissertation addresses.
+
+% ============================================================================
+\section{Positioning This Dissertation}
+\label{sec:rw-positioning}
+
+The preceding chapters of this dissertation build upon and extend the related work surveyed above in several key ways:
+
+\textbf{Chapter~\ref{ch:intelligent-inference}} (Origin and Seeker) addresses distributed inference on energy harvesting wireless sensor networks. While prior work demonstrated individual sensor inference~\cite{resirca, intelligencebeyondedge}, Origin introduces ensemble-based coordination that maintains accuracy even when individual sensors cannot complete inference. Seeker extends this with coreset-based compression that preserves inference-relevant features while dramatically reducing communication overhead. Together, these contributions enable practical deployment of intelligent sensor networks under severe energy constraints.
+
+\textbf{Chapter~\ref{ch:nexume}} (NExUME) tackles the challenge of training neural networks under intermittent power, an area with limited prior work. While previous approaches focused on inference~\cite{statefulnn, intermittentNAS}, NExUME introduces training-time awareness of intermittency through DynFit and runtime adaptation through DynInfer. This co-design of training and inference for intermittent environments represents a novel contribution beyond prior work that treated intermittency as a deployment-time problem only.
+
+\textbf{Chapter~\ref{ch:lreye}} (LREyE) advances analog neural network acceleration by enabling multi-layer analog execution. Prior PIM architectures~\cite{shafiee2016isaac, chi2016prime} required digitization after each layer for activation functions. LREyE's Schottky diode-based analog activation enables two consecutive layers to execute entirely in analog, eliminating half of the costly analog-to-digital conversions. The integrated hardware-aware training ensures accuracy despite analog non-idealities.
+
+\textbf{Chapter~\ref{ch:usas}} (\US{}) scales intermittent computing to edge servers, a regime not previously explored. While prior work on continuous learning at the edge~\cite{ekya} assumed stable grid power, \US{} demonstrates that solar-powered continuous learning is feasible through morphable hardware that adapts to varying power availability. The combination of algorithmic innovations (ensemble-based annotation, representation learning for exemplar selection) with hardware innovations (morphable systolic arrays, power-aware scheduling) enables sustainable edge intelligence at unprecedented scale.
+
+Collectively, this dissertation demonstrates that intermittent computing can support sophisticated machine learning workloads across thirteen orders of magnitude in power scale, from microwatt sensors to kilowatt edge servers. The key insight unifying these contributions is that intermittency should be embraced as a design principle rather than hidden behind abstractions. By co-designing algorithms, systems, and hardware with explicit awareness of intermittent operation, we can achieve both sustainability and capability goals that seemed incompatible under traditional design approaches.
