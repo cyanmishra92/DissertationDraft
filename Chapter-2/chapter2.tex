@@ -237,19 +237,19 @@ While ER-r improves completion rates, it treats all sensors equally despite thei
 \caption{Activity-Aware Scheduling Algorithm}
 \label{alg:activity-aware}
 \begin{algorithmic}[1]
-\STATE \textbf{Input:} Current activity $a_t$, sensor accuracies $\mathbf{A} \in \mathbb{R}^{N \times C}$, energy levels $\mathbf{E}$
-\STATE \textbf{Output:} Next scheduled sensor $s_{t+1}$
+\State \textbf{Input:} Current activity $a_t$, sensor accuracies $\mathbf{A} \in \mathbb{R}^{N \times C}$, energy levels $\mathbf{E}$
+\State \textbf{Output:} Next scheduled sensor $s_{t+1}$
 
-\STATE $a_{\text{predicted}} \leftarrow a_t$ \COMMENT{Exploit temporal continuity}
-\STATE $\text{rankings} \leftarrow \text{argsort}(\mathbf{A}[:, a_{\text{predicted}}])$ \COMMENT{Rank sensors by accuracy}
+\State $a_{\text{predicted}} \leftarrow a_t$ \Comment{Exploit temporal continuity}
+\State $\text{rankings} \leftarrow \text{argsort}(\mathbf{A}[:, a_{\text{predicted}}])$ \Comment{Rank sensors by accuracy}
 
-\FOR{$i$ in rankings}
-    \IF{$E_i \geq E_{\text{threshold}}$}
-        \STATE \textbf{return} $i$ \COMMENT{Schedule highest-accuracy sensor with sufficient energy}
-    \ENDIF
-\ENDFOR
+\For{$i$ in rankings}
+    \If{$E_i \geq E_{\text{threshold}}$}
+        \State \textbf{return} $i$ \Comment{Schedule highest-accuracy sensor with sufficient energy}
+    \EndIf
+\EndFor
 
-\STATE \textbf{return} $\arg\max_i E_i$ \COMMENT{Fallback: sensor with most energy}
+\State \textbf{return} $\arg\max_i E_i$ \Comment{Fallback: sensor with most energy}
 \end{algorithmic}
 \end{algorithm}
 
@@ -329,26 +329,26 @@ For sensor data classification, we construct coresets that maintain the statisti
 \caption{Activity-Aware Coreset Construction}
 \label{alg:coreset-construction}
 \begin{algorithmic}[1]
-\STATE \textbf{Input:} Data window $\mathbf{X} \in \mathbb{R}^{T \times d}$, predicted activity $a$, size $m$
-\STATE \textbf{Output:} Coreset $S = \{(\mathbf{x}_i, w_i)\}_{i=1}^m$
+\State \textbf{Input:} Data window $\mathbf{X} \in \mathbb{R}^{T \times d}$, predicted activity $a$, size $m$
+\State \textbf{Output:} Coreset $S = \{(\mathbf{x}_i, w_i)\}_{i=1}^m$
 
-\STATE $\boldsymbol{\mu}_a \leftarrow \text{ActivityPrototype}(a)$ \COMMENT{Load activity-specific prototype}
-\STATE $\mathbf{d} \leftarrow \|\mathbf{X} - \boldsymbol{\mu}_a\|_2$ \COMMENT{Compute distances to prototype}
+\State $\boldsymbol{\mu}_a \leftarrow \text{ActivityPrototype}(a)$ \Comment{Load activity-specific prototype}
+\State $\mathbf{d} \leftarrow \|\mathbf{X} - \boldsymbol{\mu}_a\|_2$ \Comment{Compute distances to prototype}
 
-\IF{$E_{\text{available}} \geq E_{\text{cluster}}$}
-    \STATE $\mathbf{C} \leftarrow \text{KMeans}(\mathbf{X}, m)$ \COMMENT{Clustering-based construction}
-    \FOR{$i = 1$ to $m$}
-        \STATE $S_i \leftarrow (\mathbf{C}_i, |\{\mathbf{x} : \text{cluster}(\mathbf{x}) = i\}|)$
-    \ENDFOR
-\ELSE
-    \STATE $\mathbf{p} \leftarrow \text{softmax}(\mathbf{d} / \tau)$ \COMMENT{Importance sampling}
-    \STATE $\text{indices} \leftarrow \text{sample}(m, \mathbf{p})$
-    \FOR{$i$ in indices}
-        \STATE $S_i \leftarrow (\mathbf{X}_i, 1/\mathbf{p}_i)$ \COMMENT{Inverse probability weighting}
-    \ENDFOR
-\ENDIF
+\If{$E_{\text{available}} \geq E_{\text{cluster}}$}
+    \State $\mathbf{C} \leftarrow \text{KMeans}(\mathbf{X}, m)$ \Comment{Clustering-based construction}
+    \For{$i = 1$ to $m$}
+        \State $S_i \leftarrow (\mathbf{C}_i, |\{\mathbf{x} : \text{cluster}(\mathbf{x}) = i\}|)$
+    \EndFor
+\Else
+    \State $\mathbf{p} \leftarrow \text{softmax}(\mathbf{d} / \tau)$ \Comment{Importance sampling}
+    \State $\text{indices} \leftarrow \text{sample}(m, \mathbf{p})$
+    \For{$i$ in indices}
+        \State $S_i \leftarrow (\mathbf{X}_i, 1/\mathbf{p}_i)$ \Comment{Inverse probability weighting}
+    \EndFor
+\EndIf
 
-\STATE \textbf{return} $S$
+\State \textbf{return} $S$
 \end{algorithmic}
 \end{algorithm}
 
