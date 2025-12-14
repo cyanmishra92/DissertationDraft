@@ -94,7 +94,7 @@ This section presents the system architecture for intelligent inference on inter
 
 \subsection{System Overview}
 
-We consider an energy-harvesting wireless sensor network (EH-WSN) consisting of multiple sensor nodes and a coordinating host device, as illustrated in Figure~\ref{fig:ch2-sensor-setup}. This architecture is motivated by real-world deployments in body area networks, industrial monitoring, and environmental sensing where distributed sensors collaborate to perform complex inference tasks.
+We consider an energy-harvesting wireless sensor network (EH-WSN) consisting of multiple sensor nodes and a coordinating host device. This architecture is motivated by real-world deployments in body area networks, industrial monitoring, and environmental sensing where distributed sensors collaborate to perform complex inference tasks.
 
 Each sensor node $i \in \{1, ..., N\}$ consists of a sensing unit that captures data streams (e.g., accelerometer, gyroscope etc.), an energy harvester that converts ambient energy to electrical power, an energy buffer (super-capacitor) with capacity $E_{\text{cap}}$, a non-volatile processor capable of preserving state across power failures, a DNN inference engine optimized for the specific sensor modality, and a communication interface for low-power wireless transmission. Each sensor node operates autonomously, making local decisions about whether to perform inference, transmit data, or conserve energy based on current conditions.
 
@@ -285,7 +285,7 @@ The confidence matrix adapts online using exponential moving average:
 C_{i,j,k}^{(t+1)} = \alpha \cdot \mathbb{1}[y_t = k] + (1-\alpha) \cdot C_{i,j,k}^{(t)}
 \end{equation}
 
-This adaptation allows the system to personalize to individual users and adjust to changing conditions, as illustrated in Figure~\ref{fig:ch2-confidence-matrix}.
+This adaptation allows the system to personalize to individual users and adjust to changing conditions.
 
 \subsection{Temporal Recall Mechanism}
 
