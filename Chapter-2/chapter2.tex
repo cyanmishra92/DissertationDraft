@@ -285,7 +285,7 @@ The confidence matrix adapts online using exponential moving average:
 C_{i,j,k}^{(t+1)} = \alpha \cdot \mathbb{1}[y_t = k] + (1-\alpha) \cdot C_{i,j,k}^{(t)}
 \end{equation}
 
-This adaptation allows the system to personalize to individual users and adjust to changing conditions, as illustrated in Figure~\ref{fig:ch2-confidence-matrix}.
+This adaptation allows the system to personalize to individual users and adjust to changing conditions.
 
 \subsection{Temporal Recall Mechanism}
 
@@ -329,28 +329,47 @@ For sensor data classification, we construct coresets that maintain the statisti
 \caption{Activity-Aware Coreset Construction}
 \label{alg:coreset-construction}
 \begin{algorithmic}[1]
-\STATE \textbf{Input:} Data window $\mathbf{X} \in \mathbb{R}^{T \times d}$, predicted activity $a$, size $m$
-\STATE \textbf{Output:} Coreset $S = \{(\mathbf{x}_i, w_i)\}_{i=1}^m$
+\STATE \textbf{Input:} Data window $\mathbf{X} = \{\mathbf{x}_t\}_{t=1}^{T} \subset \mathbb{R}^d$, 
+predicted activity $a$, coreset size $m$, temperature $\tau$, available energy $E_{\text{available}}$
+\STATE \textbf{Output:} Coreset $S = \{(\mathbf{s}_i, w_i)\}_{i=1}^{m}$
 
-\STATE $\boldsymbol{\mu}_a \leftarrow \text{ActivityPrototype}(a)$ \COMMENT{Load activity-specific prototype}
-\STATE $\mathbf{d} \leftarrow \|\mathbf{X} - \boldsymbol{\mu}_a\|_2$ \COMMENT{Compute distances to prototype}
+\STATE $S \leftarrow \emptyset$
+
+\STATE $\boldsymbol{\mu}_a \leftarrow \text{ActivityPrototype}(a)$ 
+\COMMENT{Activity-specific prototype}
+
+\FOR{$t = 1$ to $T$}
+    \STATE $d_t \leftarrow \|\mathbf{x}_t - \boldsymbol{\mu}_a\|_2$
+\ENDFOR
 
 \IF{$E_{\text{available}} \geq E_{\text{cluster}}$}
-    \STATE $\mathbf{C} \leftarrow \text{KMeans}(\mathbf{X}, m)$ \COMMENT{Clustering-based construction}
+    \STATE $(\{\mathbf{c}_i\}_{i=1}^{m}, \{\mathcal{C}_i\}_{i=1}^{m}) 
+    \leftarrow \text{KMeans}(\mathbf{X}, m)$
+
     \FOR{$i = 1$ to $m$}
-        \STATE $S_i \leftarrow (\mathbf{C}_i, |\{\mathbf{x} : \text{cluster}(\mathbf{x}) = i\}|)$
+        \STATE $\mathbf{s}_i \leftarrow \mathbf{c}_i$
+        \STATE $w_i \leftarrow |\mathcal{C}_i|$
+        \STATE $S \leftarrow S \cup \{(\mathbf{s}_i, w_i)\}$
     \ENDFOR
 \ELSE
-    \STATE $\mathbf{p} \leftarrow \text{softmax}(\mathbf{d} / \tau)$ \COMMENT{Importance sampling}
-    \STATE $\text{indices} \leftarrow \text{sample}(m, \mathbf{p})$
-    \FOR{$i$ in indices}
-        \STATE $S_i \leftarrow (\mathbf{X}_i, 1/\mathbf{p}_i)$ \COMMENT{Inverse probability weighting}
+    \STATE $p_t \leftarrow 
+    \frac{\exp(d_t / \tau)}{\sum_{j=1}^{T} \exp(d_j / \tau)} \quad \forall t$
+
+    \STATE $\mathcal{I} \leftarrow 
+    \text{SampleWithoutReplacement}(m, \{p_t\}_{t=1}^{T})$
+
+    \FOR{$i = 1$ to $m$}
+        \STATE $\mathbf{s}_i \leftarrow \mathbf{x}_{\mathcal{I}_i}$
+        \STATE $w_i \leftarrow \frac{1}{m\,p_{\mathcal{I}_i}}$
+        \STATE $S \leftarrow S \cup \{(\mathbf{s}_i, w_i)\}$
     \ENDFOR
 \ENDIF
 
 \STATE \textbf{return} $S$
 \end{algorithmic}
 \end{algorithm}
+
+
 
 Algorithm~\ref{alg:coreset-construction} shows our activity-aware coreset construction. The activity-specific prototypes $\boldsymbol{\mu}_a$ are learned offline from training data, capturing the typical pattern for each activity. Points far from the prototype are more informative and receive higher selection probability, capturing the distinctive features of the current activity.
 
