@@ -1930,16 +1930,6 @@ series = {RecSys '23}
   bibsource    = {dblp computer science bibliography, https://dblp.org}
 }
 
-@INPROCEEDINGS{Lin2022Building,
-  author={Lin, Zhongyi and Feng, Louis and Ardestani, Ehsan K. and Lee, Jaewon and Lundell, John and Kim, Changkyu and Kejariwal, Arun and Owens, John D.},
-  booktitle={2022 IEEE International Symposium on Performance Analysis of Systems and Software (ISPASS)}, 
-  title={Building a Performance Model for Deep Learning Recommendation Model Training on GPUs}, 
-  year={2022},
-  volume={},
-  number={},
-  pages={227-229},
-  doi={10.1109/ISPASS55109.2022.00030}}
-
 @inproceedings{Xiao2023Gmeta,
 author = {Xiao, Youshao and Zhao, Shangchun and Zhou, Zhenglei and Huan, Zhaoxin and Ju, Lin and Zhang, Xiaolu and Wang, Lin and Zhou, Jun},
 title = {G-Meta: Distributed Meta Learning in GPU Clusters for Large-Scale Recommender Systems},
@@ -2003,24 +1993,6 @@ series = {RecSys '22}
   timestamp    = {Mon, 26 Jun 2023 07:38:58 +0200},
   biburl       = {https://dblp.org/rec/journals/corr/abs-2204-05436.bib},
   bibsource    = {dblp computer science bibliography, https://dblp.org}
-}
-
-@inproceedings{Ye2023GRACE,
-author = {Ye, Haojie and Vedula, Sanketh and Chen, Yuhan and Yang, Yichen and Bronstein, Alex and Dreslinski, Ronald and Mudge, Trevor and Talati, Nishil},
-title = {GRACE: A Scalable Graph-Based Approach to Accelerating Recommendation Model Inference},
-year = {2023},
-isbn = {9781450399180},
-publisher = {Association for Computing Machinery},
-address = {New York, NY, USA},
-url = {https://doi.org/10.1145/3582016.3582029},
-doi = {10.1145/3582016.3582029},
-abstract = {The high memory bandwidth demand of sparse embedding layers continues to be a critical challenge in scaling the performance of recommendation models. While prior works have exploited heterogeneous memory system designs and partial embedding sum memoization techniques, they offer limited benefits. This is because prior designs either target a very small subset of embeddings to simplify their analysis or incur a high processing cost to account for all embeddings, which does not scale with the large sizes of modern embedding tables. This paper proposes GRACE-a lightweight and scalable graph-based algorithm-system co-design framework to significantly improve the embedding layer performance of recommendation models. GRACE proposes a novel Item Co-occurrence Graph (ICG) that scalably records item co-occurrences. GRACE then presents a new system-aware ICG clustering algorithm to find frequently accessed item combinations of arbitrary lengths to compute and memoize their partial sums. High-frequency partial sums are stored in a software-managed cache space to reduce memory traffic and improve the throughput of computing sparse features. We further present a cache data layout and low-cost address computation logic to efficiently lookup item embeddings and their partial sums. Our evaluation shows that GRACE significantly outperforms the state-of-the-art techniques SPACE and MERCI by 1.5x and 1.4x, respectively.},
-booktitle = {Proceedings of the 28th ACM International Conference on Architectural Support for Programming Languages and Operating Systems, Volume 3},
-pages = {282–301},
-numpages = {20},
-keywords = {Embedding Reduction, DLRM, Algorithm-System Co-Design},
-location = {Vancouver, BC, Canada},
-series = {ASPLOS 2023}
 }
 
 @inproceedings{Huang2021Hierarchical,
@@ -3208,25 +3180,6 @@ Concurrent Timing, Area, Power, and Test Optimization},
   publisher={IEEE}
 }
 
-@article{NVPma,
-  title={Nonvolatile processor architecture exploration for energy-harvesting applications},
-  author={Ma, Kaisheng and Li, Xueqing and Li, Shuangchen and Liu, Yongpan and Sampson, Jack and Xie, Yuan and Narayanan, Vijaykrishnan},
-  journal={IEEE Micro},
-  volume={35},
-  number={5},
-  pages={32--40},
-  year={2015},
-  publisher={IEEE}
-}
-
-@inproceedings{resiRCA,
-  title={ResiRCA: A resilient energy harvesting ReRAM crossbar-based accelerator for intelligent embedded processors},
-  author={Qiu, Keni and Jao, Nicholas and Zhao, Mengying and Mishra, Cyan Subhra and Gudukbay, Gulsum and Jose, Sethu and Sampson, Jack and Kandemir, Mahmut Taylan and Narayanan, Vijaykrishnan},
-  booktitle={2020 IEEE International Symposium on High Performance Computer Architecture (HPCA)},
-  pages={315--327},
-  year={2020},
-  organization={IEEE}
-}
 
 @inproceedings{dadiannao,
   title={Dadiannao: A machine-learning supercomputer},
