@@ -503,17 +503,6 @@ VisionTransformer & 86,568 & 156.3 & 62.4 & 78.2 & 76.1 \\
 
 The results demonstrate that LREyE maintains competitive accuracy across a wide range of network complexities while achieving substantial energy savings. Notably, for ultra-lightweight networks like MicroNet, our hardware-aware training actually improves accuracy by $2.8\%$ due to the regularization effect of modeling hardware constraints.
 
-\subsection{Comprehensive Energy Efficiency Analysis}
-
-Figure~\ref{fig:CombinedAnalysis} provides a detailed analysis of energy efficiency gains across different operational scenarios and network configurations, demonstrating LREyE's superiority in various deployment contexts.
-
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=\linewidth]{Chapter-5/LREyE-MICRO/figs/combined_analysis_complete.pdf}
-    \caption{Comprehensive analysis showing energy efficiency, throughput, and accuracy trade-offs across different operating conditions and network architectures.}
-    \label{fig:CombinedAnalysis}
-\end{figure}
-
 \subsection{Hardware Implementation Details}
 
 Table~\ref{tab:HardwareSpecs} presents the detailed specifications of our prototype implementation and experimental platforms used for evaluation. The integration of ReRAM technology with Schottky diode activation circuits achieves unprecedented energy efficiency for neural network inference.
