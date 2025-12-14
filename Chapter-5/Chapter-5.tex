@@ -371,6 +371,7 @@ Table~\ref{tab:AccuracyResults} summarizes the classification accuracy achieved 
 \centering
 \caption{Classification accuracy comparison on benchmark datasets. LREyE maintains high accuracy despite analog constraints through hardware-aware training.}
 \label{tab:AccuracyResults}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{lccccc}
 \toprule
 \textbf{Dataset} & \textbf{Network} & \textbf{Float32} & \textbf{Int8} & \textbf{Int4} & \textbf{LREyE} \\
@@ -382,7 +383,8 @@ NTLNP & MicroNet & 86.35 & 85.92 & 83.21 & 88.10 \\
 Bearing Fault & Custom CNN & 98.76 & 98.52 & 97.14 & 98.23 \\
 MIT-BIH & 1D CNN & 97.23 & 96.95 & 95.67 & 96.88 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 Our hardware-aware training successfully compensates for analog non-idealities, achieving accuracy within $1$-$2\%$ of floating-point baselines. Notably, on the NTLNP wildlife dataset, LREyE actually exceeds the floating-point accuracy by $1.75\%$. This counterintuitive result stems from the regularization effect of modeling hardware noise during training, which prevents overfitting to the training set.
@@ -486,6 +488,7 @@ Table~\ref{tab:NetworkComparison} presents a comprehensive comparison of LREyE's
 \centering
 \caption{Performance comparison across different network architectures showing energy efficiency, latency, and accuracy trade-offs.}
 \label{tab:NetworkComparison}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{lccccc}
 \toprule
 \textbf{Network} & \textbf{Parameters} & \textbf{Energy/Inf} & \textbf{Latency} & \textbf{Baseline Acc} & \textbf{LREyE Acc} \\
@@ -498,7 +501,8 @@ ResNet-18 & 11,689 & 34.2 & 14.3 & 69.8 & 68.9 \\
 ResNet-50 & 25,557 & 78.5 & 31.7 & 76.1 & 74.3 \\
 VisionTransformer & 86,568 & 156.3 & 62.4 & 78.2 & 76.1 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 The results demonstrate that LREyE maintains competitive accuracy across a wide range of network complexities while achieving substantial energy savings. Notably, for ultra-lightweight networks like MicroNet, our hardware-aware training actually improves accuracy by $2.8\%$ due to the regularization effect of modeling hardware constraints.
@@ -511,6 +515,7 @@ Table~\ref{tab:HardwareSpecs} presents the detailed specifications of our protot
 \centering
 \caption{Hardware specifications of LREyE prototype and experimental platforms.}
 \label{tab:HardwareSpecs}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{lcc}
 \toprule
 \textbf{Component} & \textbf{Specification} & \textbf{Power Consumption} \\
@@ -540,7 +545,8 @@ Solar Panel & $55 \times 70$ mm$^2$ & $10$ $\mu$W - $10$ mW \\
 Supercapacitor & $100$ mF & -- \\
 Voltage Regulator & LTC3588 & $950$ nA quiescent \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 The hardware platform demonstrates the feasibility of ultra-low-power neural network inference using analog computation. The ReRAM arrays provide non-volatile weight storage with endurance exceeding $10^{12}$ cycles, ensuring reliable long-term operation in energy-harvesting scenarios. The Schottky diode activation circuits add negligible power overhead while eliminating the need for costly digital conversions.
@@ -553,6 +559,7 @@ Motivated by the increasing importance of transformer architectures in edge AI a
 \centering
 \caption{Accuracy (\%) on two small transformer models---DistilBERT-Tiny (GLUE) and ViT-Micro (TinyImageNet)---under different quantization levels.}
 \label{tab:TransformerAcc}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{lcccc}
 \toprule
 & \multicolumn{2}{c}{\textbf{DistilBERT-Tiny}} & \multicolumn{2}{c}{\textbf{ViT-Micro}} \\
@@ -563,7 +570,8 @@ Motivated by the increasing importance of transformer architectures in edge AI a
 \textbf{INT16} & 92.7 & 92.5 & 71.3 & 71.2 \\
 \textbf{INT8}  & 92.1 & 91.8 & 70.6 & 70.3 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 Table~\ref{tab:TransformerAcc} summarizes the test accuracies before and after inserting our diode-based activation. Overall, the accuracy drop compared to ReLU is minimal: in both DistilBERT-Tiny and ViT-Micro, diode-based activations achieve results within $0.5\%$ of ReLU even at INT8 precision. Moreover, swapping ReLU for diode activation did not necessitate major architecture changes or specialized hyperparameters; both models adapted effectively over 5-10 additional fine-tuning epochs. These findings suggest that the proposed analog diode-based activation can extend beyond CNNs to small transformer models for both language and vision tasks, preserving accuracy under moderate or strict quantization.

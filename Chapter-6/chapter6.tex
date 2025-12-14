@@ -349,6 +349,7 @@ Table~\ref{tab:usas-hw-comparison} compares \US{} against prior DNN accelerator 
 \centering
 \caption{Comparison of \US{} with prior accelerator-based platforms. \US{} prioritizes scheduling flexibility for intermittent operation over peak throughput.}
 \label{tab:usas-hw-comparison}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{lccccc}
 \toprule
 \textbf{Platform} & \textbf{Freq.} & \textbf{Area} & \textbf{Power} & \textbf{Peak Thpt.} & \textbf{Eff.} \\
@@ -364,7 +365,8 @@ FlexBlock & 333 & 160.3 & 34.4 & 4504 & 131.0 \\
 \US{} (DNN only) & \multicolumn{4}{c}{Fully powered, compute only} & 287.4 \\
 \US{} (w/ $\mu$-prof) & \multicolumn{4}{c}{Fully powered, with micro-profiler} & 255.4 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 \subsection{Sustainability Impact}
@@ -375,6 +377,7 @@ The ultimate goal of \US{} is enabling sustainable edge computing that scales wi
 \centering
 \caption{Annual energy consumption and CO$_2$ emissions per edge server for different continuous learning approaches. \US{} operates entirely on solar power, eliminating grid energy consumption.}
 \label{tab:sustainability}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{lrrr}
 \toprule
 \textbf{System} & \textbf{Energy (kWh/year)} & \textbf{CO$_2$ (kg/year)} & \textbf{Accuracy (\%)} \\
@@ -387,7 +390,8 @@ DNN Accelerator & 876 & 745 & 88.7 \\
 \US{} Savings vs GPU & 2,628 & 2,234 & +13.8 \\
 \US{} Savings vs Accelerator & 876 & 745 & +4.4 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 A GPU-based solution consumes 2,628 kWh annually, assuming aggressive power management and duty cycling. At the U.S. average of 0.85 kg CO$_2$ per kWh, this generates 2,234 kg of CO$_2$ emissions per server. For a city-scale deployment with 10,000 cameras, the aggregate impact would be 26.3 GWh of energy and 22,340 metric tons of CO$_2$ annually, equivalent to the emissions from 4,800 passenger vehicles.

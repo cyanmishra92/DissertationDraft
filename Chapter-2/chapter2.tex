@@ -436,6 +436,7 @@ Figure~\ref{fig:ch2-mhealth-results} shows classification accuracy on the MHEALT
 \centering
 \caption{Energy consumption breakdown for different system configurations}
 \label{tab:ch2-energy-breakdown}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{lcccc}
 \toprule
 \textbf{Configuration} & \textbf{Sensing} & \textbf{Compute} & \textbf{Comm.} & \textbf{Total ($\mu$J)} \\
@@ -446,7 +447,8 @@ Origin (RR3) & 2.3 & 9.7 & 2.8 & 14.8 \\
 Origin (RR6) & 2.3 & 4.9 & 1.4 & 8.6 \\
 Origin+Seeker & 2.3 & 3.2 & 2.1 & 7.6 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}
 
 Table~\ref{tab:ch2-energy-breakdown} shows energy consumption breakdown. Seeker reduces communication energy by 8.9$\times$ compared to raw data transmission through coreset compression. Activity-aware scheduling reduces average computation by 3$\times$ by avoiding redundant inferences during continuous activities. The complete system achieves 9.5$\times$ energy reduction compared to cloud-only approaches while maintaining comparable accuracy.
