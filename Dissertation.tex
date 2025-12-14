@@ -165,6 +165,8 @@
 \usepackage{enumitem}
 \usepackage{xspace}
 \usepackage{url}
+% Allow URLs to break at any alphanumeric character to prevent overflow
+\def\UrlBreaks{\do\/\do-\do\_\do\.\do\@\do\?\do\&\do\=\do\+\do\:\do\a\do\b\do\c\do\d\do\e\do\f\do\g\do\h\do\i\do\j\do\k\do\l\do\m\do\n\do\o\do\p\do\q\do\r\do\s\do\t\do\u\do\v\do\w\do\x\do\y\do\z\do\A\do\B\do\C\do\D\do\E\do\F\do\G\do\H\do\I\do\J\do\K\do\L\do\M\do\N\do\O\do\P\do\Q\do\R\do\S\do\T\do\U\do\V\do\W\do\X\do\Y\do\Z\do\0\do\1\do\2\do\3\do\4\do\5\do\6\do\7\do\8\do\9}
 \usepackage{cite}
 \usepackage{comment}
 
@@ -176,6 +178,14 @@
 % Line spacing
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \setstretch{1.24}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Prevent overfull hboxes (text/URLs overshooting margins)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\tolerance=1000           % Allow more flexibility in word spacing
+\emergencystretch=3em     % Add extra stretch to prevent overfull boxes
+\hfuzz=2pt                % Suppress warnings for boxes overfull by < 2pt
+\hbadness=10000           % Suppress underfull hbox warnings
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Your macros and custom commands
